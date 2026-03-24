@@ -1,1 +1,0 @@
-import{_ as r}from"./index-CBUn9QXy.js";import{y as i,D as o}from"./vendor-CK3j12Sk.js";/* empty css                  */import"./utils-Bn4JO2lH.js";import"./ui-DCYccqnm.js";const t=r({},[["render",function(r,t){return i(),o("div",null," 关于我页面 ")}]]);export{t as default};
