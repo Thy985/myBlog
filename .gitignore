@@ -221,3 +221,27 @@ node_modules/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Debug and test images
+*.png
+*.jpg
+*.jpeg
+!**/src/**/*.png
+!**/src/**/*.jpg
+!**/src/**/*.jpeg
+!front/src/assets/**/*.png
+!front/src/assets/**/*.jpg
+!front/src/assets/**/*.jpeg
+!front/public/**/*.png
+!front/public/**/*.jpg
+!front/public/**/*.jpeg
+
+# Python scripts
+*.py
+!backend/src/**/*.py
+
+# Root level debug files
+debug.png
+assistant-page.png
+read_pdfs.py
+start_server.py
