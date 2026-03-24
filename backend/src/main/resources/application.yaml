@@ -1,0 +1,192 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: backend
+  profiles:
+    active: dev
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: ${MULTIPART_MAX_FILE_SIZE:10MB}
+      max-request-size: ${MULTIPART_MAX_REQUEST_SIZE:100MB}
+
+  task:
+    scheduling:
+      enabled: true
+
+# 日志配置
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.xingchen.backend: ${LOG_LEVEL_APP:DEBUG}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %replace(%msg){'password=[^\\s]*', 'password=***'}%n"
+  sensitive-fields: password,token,secret,key,creditCard,phone,email
+
+# MyBatis-Flex配置
+mybatis-flex:
+  type-aliases-package: com.xingchen.backend.entity
+  mapper-locations: classpath*:/mapper/**/*.xml
+  mapper-package: com.xingchen.backend.mapper
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: true
+    lazy-loading-enabled: false
+    multiple-result-sets-enabled: true
+    use-column-label: true
+    use-generated-keys: true
+    auto-mapping-behavior: partial
+    default-executor-type: simple
+    default-statement-timeout: 25000
+    default-fetch-size: 100
+    safe-row-bounds-enabled: false
+    local-cache-scope: session
+    jdbc-type-for-null: other
+    lazy-load-trigger-methods: "equals,clone,hashCode,toString"
+  global-config:
+    db-config:
+      logic-delete-field: is_deleted
+      logic-delete-value: "1"
+      logic-not-delete-value: "0"
+      insert-strategy: not_null
+      update-strategy: not_null
+      where-strategy: not_null
+
+# 文件上传配置
+file:
+  upload:
+    path: ${FILE_UPLOAD_PATH:./uploads}
+  access:
+    url: ${FILE_ACCESS_URL:/uploads}
+
+# AI 多模型配置
+ai:
+  models:
+    default: glm-4-flash
+    fallback: glm-4-air
+    premium: glm-4-plus
+  params:
+    default:
+      temperature: 0.7
+      max-tokens: 4096
+    code:
+      temperature: 0.2
+    creative:
+      temperature: 0.8
+  token:
+    budget: 8000
+  system:
+    prompt: "你是一个智能助手，帮助用户完成各种任务。"
+
+# GLM AI 配置（加密存储）
+glm:
+  api:
+    key: ${GLM_API_KEY:}
+    base-url: ${GLM_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
+    model: ${GLM_MODEL:glm-4-flash}
+
+# 加密配置
+encryption:
+  master-key: ${ENCRYPTION_MASTER_KEY:${random.uuid}}
+
+# Resilience4j 熔断配置
+resilience4j:
+  circuitbreaker:
+    instances:
+      aiChat:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowType: COUNT_BASED
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+      aiChatContext:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+      aiChatRag:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+      aiStream:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+  retry:
+    instances:
+      aiChat:
+        maxAttempts: 3
+        waitDuration: 1s
+        retryExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,circuitbreakers,ratelimiters
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 50ms,100ms,200ms,500ms,1s,5s
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
+
+# 飞书机器人配置（长连接 WebSocket 模式）
+feishu:
+  bot:
+    enabled: ${FEISHU_BOT_ENABLED:false}
+    app-id: ${FEISHU_APP_ID:}
+    app-secret: ${FEISHU_APP_SECRET:}
+
+# Agent 工作目录
+agent:
+  workspace: ${AGENT_WORKSPACE:./data/agent}
+  memory:
+    max-rounds: ${AGENT_MEMORY_MAX_ROUNDS:50}
+
+# 百度千帆 AI 配置
+baidu:
+  api:
+    key: ${BAIDU_API_KEY:bce-v3/ALTAKSP-W8fnSI7P0cqEcBxE6SYuM/94fd0c1e5615d09b244576df2d68dfd0739ed5f2}
+    base-url: ${BAIDU_BASE_URL:https://qianfan.baidubce.com/v2/coding}
+    model: ${BAIDU_MODEL:qianfan-code-latest}
+
+# Tavily 联网搜索配置
+tavily:
+  api:
+    key: ${TAVILY_API_KEY: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}
+
+# LangChain4j 配置
+langchain4j:
+  embeddings:
+    model: ${EMBEDDING_MODEL:bge-small-zh-v1.5}
+    dimensions: ${EMBEDDING_DIMENSIONS:512}
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:147258369Thy@}
+    database: ${REDIS_DATABASE:0}

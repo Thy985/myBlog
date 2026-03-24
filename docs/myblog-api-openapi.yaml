@@ -1,0 +1,1687 @@
+openapi: 3.0.3
+info:
+  title: Myblog API
+  description: 个人博客系统后端API接口文档
+  version: 3.0.0
+  contact:
+    name: 星辰远征客
+    email: 1850833838@qq.com
+
+servers:
+  - url: http://localhost:8080/api
+    description: 本地开发环境
+
+tags:
+  - name: 认证
+    description: 用户认证相关接口
+  - name: 用户
+    description: 用户管理相关接口
+  - name: 文章
+    description: 文章相关接口
+  - name: 评论
+    description: 评论相关接口
+  - name: 分类
+    description: 分类相关接口
+  - name: 标签
+    description: 标签相关接口
+  - name: 通知
+    description: 通知相关接口
+  - name: 文件
+    description: 文件管理相关接口
+  - name: 搜索
+    description: 搜索相关接口
+  - name: 数据分析
+    description: 数据分析相关接口
+  - name: 博客设置
+    description: 博客设置相关接口
+  - name: 管理
+    description: 后台管理相关接口
+  - name: 健康检查
+    description: 健康检查接口
+
+paths:
+  # ==================== 认证接口 ====================
+  /auth/login:
+    post:
+      tags:
+        - 认证
+      summary: 用户登录
+      description: 用户登录接口，限流5次/5分钟
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  example: 147258369Thy@
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
+  /auth/logout:
+    post:
+      tags:
+        - 认证
+      summary: 用户登出
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 登出成功
+
+  /auth/refresh:
+    post:
+      tags:
+        - 认证
+      summary: 刷新Token
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 刷新成功
+
+  /auth/info:
+    get:
+      tags:
+        - 认证
+      summary: 获取用户信息
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+
+  /auth/login-history:
+    get:
+      tags:
+        - 认证
+      summary: 获取登录历史
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+
+  # ==================== 用户接口 ====================
+  /user/register:
+    post:
+      tags:
+        - 用户
+      summary: 用户注册
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '200':
+          description: 注册成功
+
+  /user/profile:
+    get:
+      tags:
+        - 用户
+      summary: 获取个人资料
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+
+    put:
+      tags:
+        - 用户
+      summary: 更新个人资料
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nickname:
+                  type: string
+                bio:
+                  type: string
+                website:
+                  type: string
+                github:
+                  type: string
+                location:
+                  type: string
+                gender:
+                  type: integer
+                birthday:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: 更新成功
+
+  /user/password:
+    put:
+      tags:
+        - 用户
+      summary: 修改密码
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                oldPassword:
+                  type: string
+                newPassword:
+                  type: string
+      responses:
+        '200':
+          description: 修改成功
+
+  /user/avatar:
+    post:
+      tags:
+        - 用户
+      summary: 上传头像
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 上传成功
+
+  /user/roles:
+    get:
+      tags:
+        - 用户
+      summary: 获取用户角色
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+
+  # ==================== 密码重置接口 ====================
+  /password/reset-code:
+    post:
+      tags:
+        - 密码重置
+      summary: 发送重置验证码
+      description: 限流3次/分钟
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: 发送成功
+
+  /password/verify-code:
+    post:
+      tags:
+        - 密码重置
+      summary: 验证验证码
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 验证成功
+
+  /password/reset:
+    post:
+      tags:
+        - 密码重置
+      summary: 重置密码
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                code:
+                  type: string
+                newPassword:
+                  type: string
+      responses:
+        '200':
+          description: 重置成功
+
+  # ==================== MFA接口 ====================
+  /mfa/setup:
+    post:
+      tags:
+        - MFA
+      summary: 设置MFA
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 设置成功
+
+  /mfa/verify-and-enable:
+    post:
+      tags:
+        - MFA
+      summary: 验证并启用MFA
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+      responses:
+        '200':
+          description: 启用成功
+
+  /mfa/disable:
+    post:
+      tags:
+        - MFA
+      summary: 禁用MFA
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 禁用成功
+
+  /mfa/status:
+    get:
+      tags:
+        - MFA
+      summary: 获取MFA状态
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+
+  # ==================== 文章接口 ====================
+  /article:
+    post:
+      tags:
+        - 文章
+      summary: 创建文章
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                description:
+                  type: string
+                titleImage:
+                  type: string
+                categoryId:
+                  type: integer
+                tagIds:
+                  type: array
+                  items:
+                    type: integer
+                status:
+                  type: integer
+                  default: 0
+                commentStatus:
+                  type: integer
+                  default: 1
+                viewStatus:
+                  type: integer
+                  default: 1
+      responses:
+        '200':
+          description: 创建成功
+
+  /article/list:
+    get:
+      tags:
+        - 文章
+      summary: 文章列表
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: keyword
+          in: query
+          schema:
+            type: string
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+        - name: tagId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 获取成功
+
+  /article/{id}:
+    get:
+      tags:
+        - 文章
+      summary: 获取文章详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 获取成功
+
+    put:
+      tags:
+        - 文章
+      summary: 更新文章
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArticleCreate'
+      responses:
+        '200':
+          description: 更新成功
+
+    delete:
+      tags:
+        - 文章
+      summary: 删除文章
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 删除成功
+
+  /article/user/{userId}:
+    get:
+      tags:
+        - 文章
+      summary: 获取用户文章
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: 获取成功
+
+  /article/hot:
+    get:
+      tags:
+        - 文章
+      summary: 热门文章
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: 获取成功
+
+  /article/{id}/publish:
+    post:
+      tags:
+        - 文章
+      summary: 发布文章
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 发布成功
+
+  /article/{id}/offline:
+    post:
+      tags:
+        - 文章
+      summary: 下线文章
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 下线成功
+
+  /article/{id}/top:
+    post:
+      tags:
+        - 文章
+      summary: 置顶文章
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: isTop
+          in: query
+          required: true
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: 操作成功
+
+  /article/{id}/like:
+    post:
+      tags:
+        - 文章
+      summary: 点赞文章
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 点赞成功
+
+    delete:
+      tags:
+        - 文章
+      summary: 取消点赞
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 取消成功
+
+  /article/{id}/collect:
+    post:
+      tags:
+        - 文章
+      summary: 收藏文章
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 收藏成功
+
+    delete:
+      tags:
+        - 文章
+      summary: 取消收藏
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 取消成功
+
+  /article/user/collects:
+    get:
+      tags:
+        - 文章
+      summary: 我的收藏
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: 获取成功
+
+  /article/archive:
+    get:
+      tags:
+        - 文章
+      summary: 文章归档
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+
+  # ==================== 评论接口 ====================
+  /comment/list:
+    get:
+      tags:
+        - 评论
+      summary: 获取文章评论
+      parameters:
+        - name: articleId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 获取成功
+
+  /comment/{rootId}/replies:
+    get:
+      tags:
+        - 评论
+      summary: 获取评论回复
+      parameters:
+        - name: rootId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 获取成功
+
+  /comment:
+    post:
+      tags:
+        - 评论
+      summary: 创建评论
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                articleId:
+                  type: integer
+                content:
+                  type: string
+                parentId:
+                  type: integer
+                replyToUserId:
+                  type: integer
+      responses:
+        '200':
+          description: 创建成功
+
+  /comment/{id}:
+    delete:
+      tags:
+        - 评论
+      summary: 删除评论
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 删除成功
+
+  /comment/{id}/like:
+    post:
+      tags:
+        - 评论
+      summary: 点赞评论
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 点赞成功
+
+    delete:
+      tags:
+        - 评论
+      summary: 取消点赞评论
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 取消成功
+
+  /comment/pending:
+    get:
+      tags:
+        - 评论
+      summary: 待审核评论
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+
+  /comment/{id}/approve:
+    put:
+      tags:
+        - 评论
+      summary: 审核通过评论
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 审核成功
+
+  /comment/{id}/reject:
+    put:
+      tags:
+        - 评论
+      summary: 拒绝评论
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 拒绝成功
+
+  # ==================== 分类接口 ====================
+  /category/list:
+    get:
+      tags:
+        - 分类
+      summary: 分类列表
+      responses:
+        '200':
+          description: 获取成功
+
+  /category/{id}:
+    get:
+      tags:
+        - 分类
+      summary: 获取分类详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 获取成功
+
+    put:
+      tags:
+        - 分类
+      summary: 更新分类
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                categoryName:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: 更新成功
+
+    delete:
+      tags:
+        - 分类
+      summary: 删除分类
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 删除成功
+
+  /category:
+    post:
+      tags:
+        - 分类
+      summary: 创建分类
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                categoryName:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: 创建成功
+
+  # ==================== 标签接口 ====================
+  /tag/list:
+    get:
+      tags:
+        - 标签
+      summary: 标签列表
+      responses:
+        '200':
+          description: 获取成功
+
+  /tag/hot:
+    get:
+      tags:
+        - 标签
+      summary: 热门标签
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+
+  /tag/{id}:
+    get:
+      tags:
+        - 标签
+      summary: 获取标签详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 获取成功
+
+    delete:
+      tags:
+        - 标签
+      summary: 删除标签
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 删除成功
+
+  /tag:
+    post:
+      tags:
+        - 标签
+      summary: 创建标签
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: color
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 创建成功
+
+  # ==================== 通知接口 ====================
+  /notification/list:
+    get:
+      tags:
+        - 通知
+      summary: 通知列表
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+
+  /notification/unread-count:
+    get:
+      tags:
+        - 通知
+      summary: 未读数量
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+
+  /notification/{id}/read:
+    put:
+      tags:
+        - 通知
+      summary: 标记已读
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 操作成功
+
+  /notification/read-all:
+    put:
+      tags:
+        - 通知
+      summary: 全部已读
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 操作成功
+
+  /notification/{id}:
+    delete:
+      tags:
+        - 通知
+      summary: 删除通知
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 删除成功
+
+  # ==================== 文件接口 ====================
+  /file/upload:
+    post:
+      tags:
+        - 文件
+      summary: 上传文件
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                categoryId:
+                  type: integer
+      responses:
+        '200':
+          description: 上传成功
+
+  /file/upload/image:
+    post:
+      tags:
+        - 文件
+      summary: 上传图片
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 上传成功
+
+  /file/{id}:
+    delete:
+      tags:
+        - 文件
+      summary: 删除文件
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 删除成功
+
+  /file/list:
+    get:
+      tags:
+        - 文件
+      summary: 文件列表
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+        - name: fileType
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+
+  /file/images:
+    get:
+      tags:
+        - 文件
+      summary: 图片列表
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+
+  /file/{id}/url:
+    get:
+      tags:
+        - 文件
+      summary: 获取文件URL
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 获取成功
+
+  /file/{id}/download:
+    post:
+      tags:
+        - 文件
+      summary: 记录下载
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 操作成功
+
+  /file/category:
+    post:
+      tags:
+        - 文件
+      summary: 创建分类
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: description
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 创建成功
+
+  /file/category/{id}:
+    delete:
+      tags:
+        - 文件
+      summary: 删除分类
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 删除成功
+
+  /file/category/list:
+    get:
+      tags:
+        - 文件
+      summary: 分类列表
+      responses:
+        '200':
+          description: 获取成功
+
+  # ==================== 搜索接口 ====================
+  /search/articles:
+    get:
+      tags:
+        - 搜索
+      summary: 搜索文章
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: 获取成功
+
+  /search/global:
+    get:
+      tags:
+        - 搜索
+      summary: 全局搜索
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: 获取成功
+
+  /search/suggestions:
+    get:
+      tags:
+        - 搜索
+      summary: 搜索建议
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: 获取成功
+
+  /search/hot-keywords:
+    get:
+      tags:
+        - 搜索
+      summary: 热门搜索词
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: 获取成功
+
+  # ==================== 数据分析接口 ====================
+  /analytics/pv:
+    post:
+      tags:
+        - 数据分析
+      summary: 记录页面访问
+      description: 限流120次/分钟
+      parameters:
+        - name: pageUrl
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 记录成功
+
+  /analytics/overview:
+    get:
+      tags:
+        - 数据分析
+      summary: 数据概览
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+
+  /analytics/trend:
+    get:
+      tags:
+        - 数据分析
+      summary: 趋势数据
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 获取成功
+
+  /analytics/device:
+    get:
+      tags:
+        - 数据分析
+      summary: 设备统计
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+
+  /analytics/source:
+    get:
+      tags:
+        - 数据分析
+      summary: 来源统计
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+
+  /analytics/hot-articles:
+    get:
+      tags:
+        - 数据分析
+      summary: 热门文章
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: 获取成功
+
+  /analytics/realtime:
+    get:
+      tags:
+        - 数据分析
+      summary: 实时数据
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+
+  # ==================== 博客设置接口 ====================
+  /blog/setting/detail:
+    get:
+      tags:
+        - 博客设置
+      summary: 获取博客详情
+      responses:
+        '200':
+          description: 获取成功
+
+  # ==================== 管理接口 ====================
+  /admin/dashboard:
+    get:
+      tags:
+        - 管理
+      summary: 仪表盘数据
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+
+  /admin/users:
+    get:
+      tags:
+        - 管理
+      summary: 用户列表
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: keyword
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 获取成功
+
+    post:
+      tags:
+        - 管理
+      summary: 创建用户
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '200':
+          description: 创建成功
+
+  /admin/users/{id}/status:
+    put:
+      tags:
+        - 管理
+      summary: 修改用户状态
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: status
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 修改成功
+
+  /admin/users/{id}:
+    delete:
+      tags:
+        - 管理
+      summary: 删除用户
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 删除成功
+
+  /admin/users/{id}/roles:
+    put:
+      tags:
+        - 管理
+      summary: 分配角色
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: integer
+      responses:
+        '200':
+          description: 分配成功
+
+  /admin/settings:
+    get:
+      tags:
+        - 管理
+      summary: 获取设置
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+
+  /admin/settings/{key}:
+    put:
+      tags:
+        - 管理
+      summary: 更新设置
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: value
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 更新成功
+
+  # ==================== 健康检查 ====================
+  /health:
+    get:
+      tags:
+        - 健康检查
+      summary: 健康检查
+      responses:
+        '200':
+          description: 服务正常
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Result:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: success
+        data:
+          type: object
+
+    ArticleCreate:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        description:
+          type: string
+        titleImage:
+          type: string
+        categoryId:
+          type: integer
+        tagIds:
+          type: array
+          items:
+            type: integer
+        status:
+          type: integer
+        commentStatus:
+          type: integer
+        viewStatus:
+          type: integer

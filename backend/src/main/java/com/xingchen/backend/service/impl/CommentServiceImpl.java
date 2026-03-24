@@ -1,0 +1,239 @@
+package com.xingchen.backend.service.impl;
+
+import com.xingchen.backend.common.BusinessException;
+import com.xingchen.backend.common.ErrorCode;
+import com.xingchen.backend.common.PageResult;
+import com.xingchen.backend.dto.CommentCreateDTO;
+import com.xingchen.backend.entity.Article;
+import com.xingchen.backend.entity.Comment;
+import com.xingchen.backend.entity.CommentLike;
+import com.xingchen.backend.entity.User;
+import com.xingchen.backend.mapper.ArticleMapper;
+import com.xingchen.backend.mapper.CommentLikeMapper;
+import com.xingchen.backend.mapper.CommentMapper;
+import com.xingchen.backend.mapper.UserMapper;
+import com.xingchen.backend.service.CommentService;
+import com.xingchen.backend.vo.CommentVO;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class CommentServiceImpl implements CommentService {
+
+    private final CommentMapper commentMapper;
+    private final ArticleMapper articleMapper;
+    private final CommentLikeMapper commentLikeMapper;
+    private final UserMapper userMapper;
+
+    @Override
+    public List<CommentVO> getCommentTreeByArticleId(Long articleId, Long userId) {
+        List<Comment> allComments = commentMapper.selectByArticleId(articleId);
+        return buildCommentTree(allComments, userId);
+    }
+
+    @Override
+    public List<CommentVO> getRepliesByRootId(Long rootId, Long userId) {
+        List<Comment> replies = commentMapper.selectRepliesByRootId(rootId);
+        return replies.stream()
+                .map(c -> convertToVO(c, userId))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Deprecated
+    public List<CommentVO> getArticleComments(Long articleId) {
+        List<Comment> comments = commentMapper.selectByArticleId(articleId);
+        return comments.stream()
+                .map(c -> convertToVO(c, null))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class, timeout = 30)
+    public CommentVO createComment(Long userId, CommentCreateDTO dto, String ip, String device) {
+        Article article = articleMapper.selectOneById(dto.getArticleId());
+        if (article == null || article.getIsDeleted() == 1) {
+            throw new BusinessException(ErrorCode.ARTICLE_NOT_FOUND);
+        }
+
+        if (article.getCommentStatus() != 1) {
+            throw new BusinessException(ErrorCode.COMMENT_DISABLED);
+        }
+
+        Comment comment = new Comment();
+        comment.setArticleId(dto.getArticleId());
+        comment.setUserId(userId);
+        comment.setContent(dto.getContent());
+        
+        Long parentId = dto.getParentId();
+        if (parentId != null && parentId > 0) {
+            Comment parentComment = commentMapper.selectOneById(parentId);
+            if (parentComment != null) {
+                comment.setRootId(parentComment.getRootId() == 0 ? parentId : parentComment.getRootId());
+                comment.setParentId(parentId);
+            } else {
+                comment.setRootId(0L);
+                comment.setParentId(0L);
+            }
+        } else {
+            comment.setRootId(0L);
+            comment.setParentId(0L);
+        }
+        
+        comment.setStatus(1);
+        comment.setDeviceType(device);
+        comment.setCreateTime(LocalDateTime.now());
+
+        commentMapper.insert(comment);
+
+        articleMapper.incrementCommentNum(dto.getArticleId());
+
+        log.info("用户 {} 评论成功，评论ID: {}", userId, comment.getId());
+
+        return convertToVO(comment, userId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class, timeout = 30)
+    public void deleteComment(Long userId, Long id) {
+        Comment comment = commentMapper.selectOneById(id);
+        if (comment == null || comment.getIsDeleted() == 1) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "评论不存在");
+        }
+        if (!comment.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.COMMENT_DELETE_NO_PERMISSION);
+        }
+        comment.setStatus(2);
+        commentMapper.update(comment);
+        articleMapper.decrementCommentNum(comment.getArticleId());
+        log.info("用户 {} 删除评论成功，评论ID: {}", userId, id);
+    }
+
+    @Override
+    @Transactional
+    public void likeComment(Long userId, Long id) {
+        CommentLike existing = commentLikeMapper.selectByCommentAndUser(id, userId);
+        if (existing != null) {
+            return;
+        }
+
+        CommentLike like = new CommentLike();
+        like.setCommentId(id);
+        like.setUserId(userId);
+        commentLikeMapper.insert(like);
+        commentMapper.incrementLikeNum(id);
+    }
+
+    @Override
+    @Transactional
+    public void unlikeComment(Long userId, Long id) {
+        commentLikeMapper.deleteByCommentAndUser(id, userId);
+        commentMapper.decrementLikeNum(id);
+    }
+
+    @Override
+    public List<CommentVO> getPendingComments(Integer page, Integer size) {
+        List<Comment> comments = commentMapper.selectPendingComments();
+        return comments.stream()
+                .map(c -> convertToVO(c, null))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void approveComment(Long id) {
+        Comment comment = commentMapper.selectOneById(id);
+        if (comment == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "评论不存在");
+        }
+        comment.setStatus(1);
+        comment.setAuditTime(LocalDateTime.now());
+        commentMapper.update(comment);
+    }
+
+    @Override
+    @Transactional
+    public void rejectComment(Long id) {
+        Comment comment = commentMapper.selectOneById(id);
+        if (comment == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "评论不存在");
+        }
+        comment.setStatus(3);
+        comment.setAuditTime(LocalDateTime.now());
+        commentMapper.update(comment);
+    }
+
+    @Override
+    public PageResult<CommentVO> getUserComments(Long userId, Integer page, Integer size) {
+        int offset = (page - 1) * size;
+        List<Comment> comments = commentMapper.selectByUserId(userId, offset, size);
+        long total = commentMapper.countByUserId(userId);
+        List<CommentVO> voList = comments.stream()
+                .map(c -> convertToVO(c, userId))
+                .collect(Collectors.toList());
+        int pages = (int) Math.ceil((double) total / size);
+        return PageResult.of(voList, total, pages, page, size);
+    }
+
+    private List<CommentVO> buildCommentTree(List<Comment> comments, Long userId) {
+        Map<Long, CommentVO> voMap = new LinkedHashMap<>();
+        List<CommentVO> rootComments = new ArrayList<>();
+
+        for (Comment comment : comments) {
+            CommentVO vo = convertToVO(comment, userId);
+            voMap.put(comment.getId(), vo);
+        }
+
+        for (Comment comment : comments) {
+            CommentVO vo = voMap.get(comment.getId());
+            if (comment.getRootId() == 0) {
+                rootComments.add(vo);
+            } else {
+                CommentVO parentVO = voMap.get(comment.getRootId());
+                if (parentVO != null) {
+                    if (parentVO.getReplies() == null) {
+                        parentVO.setReplies(new ArrayList<>());
+                    }
+                    parentVO.getReplies().add(vo);
+                }
+            }
+        }
+
+        return rootComments;
+    }
+
+    private CommentVO convertToVO(Comment comment, Long currentUserId) {
+        CommentVO vo = new CommentVO();
+        vo.setId(comment.getId());
+        vo.setArticleId(comment.getArticleId());
+        vo.setUserId(comment.getUserId());
+        vo.setContent(comment.getContent());
+        vo.setRootId(comment.getRootId());
+        vo.setParentId(comment.getParentId());
+        vo.setStatus(String.valueOf(comment.getStatus()));
+        vo.setDevice(comment.getDeviceType());
+        vo.setCreatedTime(comment.getCreateTime());
+
+        User user = userMapper.selectOneById(comment.getUserId());
+        if (user != null) {
+            vo.setUsername(user.getUsername());
+            vo.setNickname(user.getNickname());
+            vo.setAvatar(user.getAvatar());
+        }
+
+        if (currentUserId != null) {
+            CommentLike like = commentLikeMapper.selectByCommentAndUser(comment.getId(), currentUserId);
+            vo.setIsLiked(like != null);
+        }
+
+        return vo;
+    }
+}

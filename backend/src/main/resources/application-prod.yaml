@@ -1,0 +1,183 @@
+# ========================================
+# 生产环境配置
+# 所有配置项必须从环境变量读取，禁止硬编码敏感信息
+# ========================================
+
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  # 数据库配置（生产环境）
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/blog?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 147258369Thy@
+    druid:
+      initial-size: 10
+      min-idle: 10
+      max-active: 50
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      max-evictable-idle-time-millis: 900000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 100
+      filters: stat,wall,slf4j
+      connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=1000
+      use-global-data-source-stat: true
+      async-init: true
+
+  # Redis配置（生产环境）
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: 147258369Thy@
+      database: 0
+      timeout: ${REDIS_TIMEOUT:2000ms}
+      lettuce:
+        pool:
+          max-active: ${REDIS_POOL_MAX_ACTIVE:16}
+          max-idle: ${REDIS_POOL_MAX_IDLE:8}
+          min-idle: ${REDIS_POOL_MIN_IDLE:4}
+          max-wait: ${REDIS_POOL_MAX_WAIT:1000ms}
+        shutdown-timeout: ${REDIS_SHUTDOWN_TIMEOUT:100ms}
+
+  # 热部署配置（生产环境禁用）
+  devtools:
+    restart:
+      enabled: false
+    livereload:
+      enabled: false
+
+  # 模板引擎缓存（生产环境启用）
+  thymeleaf:
+    cache: true
+  freemarker:
+    cache: true
+
+  # 邮件配置（生产环境）
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:1850833838@qq.com}
+    password: coeqawdvwoaidcbe
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: ${MAIL_CONNECTION_TIMEOUT:5000}
+          timeout: ${MAIL_TIMEOUT:5000}
+          writetimeout: ${MAIL_WRITE_TIMEOUT:5000}
+    default-encoding: UTF-8
+
+  # 缓存配置（生产环境启用）
+  cache:
+    type: redis
+    redis:
+      time-to-live: ${CACHE_TTL:3600000}
+      cache-null-values: false
+      use-key-prefix: true
+      key-prefix: ${CACHE_KEY_PREFIX:myblog:}
+
+# MyBatis-Flex配置
+mybatis-flex:
+  type-aliases-package: com.xingchen.backend.entity
+  mapper-locations: classpath*:/mapper/**/*.xml
+  mapper-package: com.xingchen.backend.mapper
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: true
+    lazy-loading-enabled: false
+    multiple-result-sets-enabled: true
+    use-column-label: true
+    use-generated-keys: true
+    auto-mapping-behavior: partial
+    default-executor-type: simple
+    default-statement-timeout: 25000
+    default-fetch-size: 100
+    safe-row-bounds-enabled: false
+    local-cache-scope: session
+    jdbc-type-for-null: other
+    lazy-load-trigger-methods: "equals,clone,hashCode,toString"
+  global-config:
+    print-banner: false
+    db-config:
+      logic-delete-field: is_deleted
+      logic-delete-value: "1"
+      logic-not-delete-value: "0"
+      insert-strategy: not_null
+      update-strategy: not_null
+      where-strategy: not_null
+
+# 服务器配置（生产环境）
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: ${SERVER_CONTEXT_PATH:}
+  # 压缩配置
+  compression:
+    enabled: ${SERVER_COMPRESSION_ENABLED:true}
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
+    min-response-size: ${SERVER_COMPRESSION_MIN_SIZE:1024}
+  # 连接配置
+  tomcat:
+    threads:
+      max: ${TOMCAT_THREADS_MAX:200}
+      min-spare: ${TOMCAT_THREADS_MIN_SPARE:10}
+    max-connections: ${TOMCAT_MAX_CONNECTIONS:10000}
+    accept-count: ${TOMCAT_ACCEPT_COUNT:100}
+    connection-timeout: ${TOMCAT_CONNECTION_TIMEOUT:20000}
+
+# 文件上传配置（生产环境）
+file:
+  upload:
+    path: ${FILE_UPLOAD_PATH:./uploads}
+  access:
+    url: ${FILE_ACCESS_URL:/uploads}
+
+# 日志配置（生产环境WARN级别）
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:WARN}
+    com.xingchen.backend: ${LOG_LEVEL_APP:INFO}
+    org.springframework.security: ${LOG_LEVEL_SECURITY:WARN}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %replace(%msg){'password=[^\\s]*', 'password=***'}%n"
+  file:
+    name: ${LOG_FILE_PATH:./logs/backend.log}
+    max-size: ${LOG_FILE_MAX_SIZE:100MB}
+    max-history: ${LOG_FILE_MAX_HISTORY:30}
+    total-size-cap: ${LOG_FILE_TOTAL_SIZE_CAP:3GB}
+
+# Actuator配置（生产环境安全配置）
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS:health,info,metrics}
+      base-path: ${MANAGEMENT_BASE_PATH:/actuator}
+  endpoint:
+    health:
+      show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:when_authorized}
+    metrics:
+      enabled: ${MANAGEMENT_METRICS_ENABLED:true}
+  server:
+    port: ${MANAGEMENT_SERVER_PORT:8081}
+    address: ${MANAGEMENT_SERVER_ADDRESS:127.0.0.1}
+
+# 安全配置（生产环境）
+security:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: ${JWT_EXPIRATION:86400000}

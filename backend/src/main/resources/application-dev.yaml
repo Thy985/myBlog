@@ -1,0 +1,159 @@
+
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  # 数据库配置（开发环境）
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/myblog?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&cachePrepStmts=true&prepStmtCacheSize=250&prepStmtCacheSqlLimit=2048&useServerPrepStmts=true
+    username: root
+    password: 123456
+    druid:
+      # 连接池配置
+      initial-size: 10
+      min-idle: 10
+      max-active: 50
+      max-wait: 5000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      max-evictable-idle-time-millis: 900000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 100
+      filters: stat,wall,slf4j
+      connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=1000
+      use-global-data-source-stat: true
+      async-init: true
+      # Druid监控配置（开发环境启用）
+      web-stat-filter:
+        enabled: true
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*"
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+        login-username: admin
+        login-password: admin
+        allow: 127.0.0.1
+        reset-enable: false
+
+  # Redis配置（开发环境）
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 147258369Thy@
+      database: 0
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 1000ms
+
+  # RabbitMQ 配置
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: admin123
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: auto
+        concurrency: 5
+        max-concurrency: 10
+
+  # 热部署配置（开发环境启用）
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: src/main/java
+      exclude: static/**,public/**,templates/**
+    livereload:
+      enabled: true
+
+  # 模板引擎缓存（开发环境关闭）
+  thymeleaf:
+    cache: false
+  freemarker:
+    cache: false
+  groovy:
+    template:
+      cache: false
+
+  # 邮件配置
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: ""
+    password: ""
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+    default-encoding: UTF-8
+
+# 服务器配置（开发环境）
+server:
+  port: 8080
+  servlet:
+    context-path: ""
+
+# 文件上传配置（开发环境）
+file:
+  upload:
+    path: ./uploads
+  access:
+    url: /uploads
+
+# Qdrant 向量数据库配置
+qdrant:
+  host: localhost
+  port: 6333
+  collection: myblog_articles
+  vector-size: 384
+
+# OpenSearch 配置
+opensearch:
+  host: localhost
+  port: 9201
+  username: admin
+  password: OpenSearch@2024!
+  index: myblog_search
+
+# AI 模型配置
+ai:
+  models:
+    default: glm-4-flash
+    fallback: glm-4-air
+    premium: glm-4-plus
+  params:
+    default:
+      temperature: 0.7
+      max-tokens: 4096
+    code:
+      temperature: 0.2
+    creative:
+      temperature: 0.8
+
+glm:
+  api:
+    base-url: https://open.bigmodel.cn/api/paas/v4
+    key: ${GLM_API_KEY:}
+
+# 日志配置（开发环境DEBUG级别）
+logging:
+  level:
+    root: INFO
+    com.xingchen.backend: DEBUG
+    com.alibaba.druid: DEBUG

@@ -1,0 +1,1 @@
+{"name":"星辰博客","short_name":"星辰博客","start_url":"/","display":"standalone","background_color":"#ffffff","lang":"en","scope":"/","description":"一个基于 Vue3 + Vite 的个人博客系统","theme_color":"#3b82f6","icons":[{"src":"/favicon.ico","sizes":"48x48","type":"image/x-icon"}]}

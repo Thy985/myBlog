@@ -1,0 +1,1 @@
+import{i as t}from"./index-CVeX_GGy.js";function r(){return t.get("/category/list")}function e(){return t.get("/category/discover")}function n(){return t.get("/category/user")}function a(r={}){return t.get("/article/list",{params:r})}export{a,e as b,n as c,r as g};
