@@ -245,3 +245,13 @@ debug.png
 assistant-page.png
 read_pdfs.py
 start_server.py
+
+# Deployment files
+*.bat
+*.ps1
+*.tar
+*.tar.gz
+nginx.conf
+nginx_api.conf
+deploy*
+!deploy/.gitkeep
