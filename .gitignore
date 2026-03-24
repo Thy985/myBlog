@@ -164,3 +164,60 @@ dist
 # Temporary folders
 tmp/
 temp/
+
+# Test files and scripts
+*.sh
+test_*.sh
+verify*.sh
+health.sh
+full_check.sh
+install_env.sh
+mail_log.sh
+reload_nginx.sh
+restart*.sh
+run.sh
+send*.sh
+start.sh
+status.sh
+view.sh
+
+# Documentation and specs
+.trae/specs/
+*.pdf
+*.doc
+*.docx
+
+# Server info reports
+server_info_temp/
+
+# Large data files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Frontend build output (already built)
+frontend/
+
+# Backend target folder
+backend/target/
+backend/logs/
+backend/*.db
+backend/data/
+backend/uploads/
+
+# Local configuration
+application-*.yml
+!application.yml
+
+# Node modules
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
