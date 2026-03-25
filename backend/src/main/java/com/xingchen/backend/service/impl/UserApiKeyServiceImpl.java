@@ -1,19 +1,21 @@
 package com.xingchen.backend.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.xingchen.backend.entity.UserApiKey;
 import com.xingchen.backend.mapper.UserApiKeyMapper;
 import com.xingchen.backend.service.UserApiKeyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
@@ -21,12 +23,20 @@ import java.util.Map;
 public class UserApiKeyServiceImpl implements UserApiKeyService {
 
     private final UserApiKeyMapper userApiKeyMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${agent.default-provider:BAIDU}")
     private String defaultProvider;
 
     @Value("${baidu.api.key:}")
     private String systemDefaultApiKey;
+
+    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    private static final OkHttpClient client = new OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build();
 
     private static final Map<String, List<String>> PROVIDER_MODELS = Map.of(
             "OPENAI", Arrays.asList("gpt-4o", "gpt-4o-mini", "gpt-4-turbo"),
@@ -55,14 +65,29 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
 
     @Override
     public UserApiKey saveOrUpdate(UserApiKey userApiKey) {
-        // 保存前加密 API Key
-        if (userApiKey.getApiKey() != null && !userApiKey.getApiKey().startsWith("ENC:")) {
-            userApiKey.setApiKey(com.xingchen.backend.util.ApiKeyEncryptor.encrypt(userApiKey.getApiKey()));
+        // 处理 API Key 加密
+        // 优先使用 apiKeyPlain 字段（前端传入的明文）
+        if (userApiKey.getApiKeyPlain() != null && !userApiKey.getApiKeyPlain().isBlank()) {
+            userApiKey.setApiKeyEncrypted(userApiKey.getApiKeyPlain());
+        } else if (userApiKey.getApiKey() != null && !userApiKey.getApiKey().startsWith("ENC:")) {
+            // 兼容旧逻辑：直接传入 apiKey 字段的明文
+            userApiKey.setApiKeyEncrypted(userApiKey.getApiKey());
         }
+        // 清除临时明文，确保安全
+        userApiKey.setApiKeyPlain(null);
 
         UserApiKey existing = getByUserId(userApiKey.getUserId());
-        
+
         if (existing != null) {
+            if (userApiKey.getTemperature() != null) {
+                existing.setTemperature(userApiKey.getTemperature());
+            }
+            if (userApiKey.getMaxTokens() != null) {
+                existing.setMaxTokens(userApiKey.getMaxTokens());
+            }
+            if (userApiKey.getTopP() != null) {
+                existing.setTopP(userApiKey.getTopP());
+            }
             userApiKey.setId(existing.getId());
             userApiKey.setUpdateTime(LocalDateTime.now());
             userApiKeyMapper.update(userApiKey);
@@ -120,8 +145,8 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
                 return systemDefaultApiKey;
             }
             
-            // 解密后返回
-            return com.xingchen.backend.util.ApiKeyEncryptor.decrypt(apiKey.getApiKey());
+            // 解密后返回（使用新的 AesUtil）
+            return apiKey.getDecryptedApiKey();
         }
         
         return systemDefaultApiKey;
@@ -146,7 +171,12 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
     public List<String> getAvailableModels(String provider) {
         return PROVIDER_MODELS.getOrDefault(provider, Arrays.asList());
     }
-    
+
+    @Override
+    public List<UserApiKey> getAllForAdmin() {
+        return userApiKeyMapper.selectAll();
+    }
+
     public String getBaseUrl(String provider) {
         return PROVIDER_BASE_URLS.getOrDefault(provider, "");
     }
@@ -154,5 +184,117 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
     public String getProvider() {
         UserApiKey apiKey = getByUserId(StpUtil.getLoginIdAsLong());
         return apiKey != null ? apiKey.getProvider() : defaultProvider;
+    }
+
+    @Override
+    public Map<String, Object> validateApiKey(String provider, String apiKey, String baseUrl, String model) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", false);
+        result.put("valid", false);
+
+        try {
+            String requestBody = buildValidationRequest(provider, model);
+            if (requestBody == null) {
+                result.put("message", "不支持的 provider: " + provider);
+                return result;
+            }
+
+            String actualBaseUrl = (baseUrl != null && !baseUrl.isEmpty()) ? baseUrl : PROVIDER_BASE_URLS.get(provider);
+            if (actualBaseUrl == null || actualBaseUrl.isEmpty()) {
+                result.put("message", "provider 或 baseUrl 未配置");
+                return result;
+            }
+
+            Request request = buildValidationRequest(provider, apiKey, actualBaseUrl, model, requestBody);
+            if (request == null) {
+                result.put("message", "构建请求失败");
+                return result;
+            }
+
+            try (Response response = client.newCall(request).execute()) {
+                if (response.isSuccessful()) {
+                    result.put("success", true);
+                    result.put("valid", true);
+                    result.put("message", "API Key 有效");
+                } else {
+                    String errorBody = response.body() != null ? response.body().string() : "Unknown error";
+                    result.put("message", "验证失败: " + response.code() + " - " + errorBody);
+                    result.put("valid", false);
+                }
+            }
+        } catch (IOException e) {
+            log.error("验证 API Key 失败", e);
+            result.put("message", "连接失败: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("验证 API Key 异常", e);
+            result.put("message", "验证异常: " + e.getMessage());
+        }
+
+        return result;
+    }
+
+    private String buildValidationRequest(String provider, String model) {
+        try {
+            Map<String, Object> requestMap = new HashMap<>();
+            requestMap.put("model", model != null ? model : getDefaultModel(provider));
+            requestMap.put("messages", Arrays.asList(
+                    Map.of("role", "user", "content", "Hi")
+            ));
+            requestMap.put("max_tokens", 5);
+            return objectMapper.writeValueAsString(requestMap);
+        } catch (Exception e) {
+            log.error("构建请求体失败", e);
+            return null;
+        }
+    }
+
+    private Request buildValidationRequest(String provider, String apiKey, String baseUrl, String model, String requestBody) {
+        String chatEndpoint = getChatEndpoint(provider);
+        String url = baseUrl + chatEndpoint;
+
+        Request.Builder requestBuilder = new Request.Builder()
+                .url(url)
+                .post(RequestBody.create(requestBody, JSON));
+
+        switch (provider.toUpperCase()) {
+            case "OPENAI":
+                requestBuilder.addHeader("Authorization", "Bearer " + apiKey);
+                break;
+            case "ANTHROPIC":
+                requestBuilder.addHeader("x-api-key", apiKey)
+                        .addHeader("anthropic-version", "2023-06-01");
+                break;
+            case "ZHIPU":
+                requestBuilder.addHeader("Authorization", "Bearer " + apiKey);
+                break;
+            case "BAIDU":
+                requestBuilder.addHeader("Authorization", "Bearer " + apiKey)
+                        .addHeader("Content-Type", "application/json");
+                break;
+            case "AZURE":
+                requestBuilder.addHeader("api-key", apiKey);
+                break;
+            case "CUSTOM":
+                requestBuilder.addHeader("Authorization", "Bearer " + apiKey);
+                break;
+            default:
+                return null;
+        }
+
+        return requestBuilder.build();
+    }
+
+    private String getChatEndpoint(String provider) {
+        return switch (provider.toUpperCase()) {
+            case "OPENAI", "ZHIPU", "AZURE" -> "/chat/completions";
+            case "ANTHROPIC" -> "/v1/messages";
+            case "BAIDU" -> "/chat/completions";
+            default -> "/v1/chat/completions";
+        };
+    }
+
+    private String getDefaultModel(String provider) {
+        List<String> models = PROVIDER_MODELS.get(provider.toUpperCase());
+        return models != null && !models.isEmpty() ? models.get(0) : "gpt-3.5-turbo";
     }
 }

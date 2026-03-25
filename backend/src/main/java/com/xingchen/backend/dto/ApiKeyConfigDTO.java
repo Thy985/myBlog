@@ -9,4 +9,7 @@ public class ApiKeyConfigDTO {
     private String baseUrl;
     private String defaultModel;
     private Integer quota;
+    private Double temperature;
+    private Integer maxTokens;
+    private Double topP;
 }

@@ -80,6 +80,14 @@ ai:
     budget: 8000
   system:
     prompt: "你是一个智能助手，帮助用户完成各种任务。"
+  cache:
+    enabled: true
+
+# 模型缓存配置（Caffeine）
+model:
+  cache:
+    ttl: 30
+    max-size: 100
 
 # GLM AI 配置（加密存储）
 glm:

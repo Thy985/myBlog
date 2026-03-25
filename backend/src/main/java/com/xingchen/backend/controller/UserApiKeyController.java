@@ -1,6 +1,7 @@
 package com.xingchen.backend.controller;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.stp.StpUtil;
 import com.xingchen.backend.common.Result;
 import com.xingchen.backend.dto.ApiKeyConfigDTO;
@@ -17,6 +18,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/user/apikey")
 @RequiredArgsConstructor
+@SaCheckRole("ADMIN")
 public class UserApiKeyController {
 
     private final UserApiKeyService userApiKeyService;
@@ -60,6 +62,9 @@ public class UserApiKeyController {
         apiKey.setBaseUrl(config.getBaseUrl());
         apiKey.setDefaultModel(config.getDefaultModel());
         apiKey.setQuota(config.getQuota());
+        apiKey.setTemperature(config.getTemperature());
+        apiKey.setMaxTokens(config.getMaxTokens());
+        apiKey.setTopP(config.getTopP());
 
         if (config.getApiKey() != null && !config.getApiKey().isEmpty()) {
             apiKey.setEnabled(1);
@@ -67,7 +72,6 @@ public class UserApiKeyController {
 
         userApiKeyService.saveOrUpdate(apiKey);
 
-        // 清除用户模型缓存，使新配置立即生效
         aiService.clearUserModelCache(userId);
 
         return Result.success();
@@ -105,16 +109,37 @@ public class UserApiKeyController {
     @PostMapping("/test")
     public Result<Map<String, Object>> testApiKey(@RequestBody ApiKeyConfigDTO config) {
         Map<String, Object> result = new HashMap<>();
-        
+
         if (config.getApiKey() == null || config.getApiKey().isEmpty()) {
             result.put("success", false);
             result.put("message", "API Key 不能为空");
             return Result.success(result);
         }
-        
+
         result.put("success", true);
         result.put("message", "API Key 格式验证通过！保存成功后即可使用。");
-        
+
+        return Result.success(result);
+    }
+
+    @SaCheckLogin
+    @GetMapping("/admin/list")
+    public Result<List<Map<String, Object>>> listAllApiKeys() {
+        List<UserApiKey> apiKeys = userApiKeyService.getAllForAdmin();
+
+        List<Map<String, Object>> result = apiKeys.stream().map(key -> {
+            Map<String, Object> info = new HashMap<>();
+            info.put("userId", key.getUserId());
+            info.put("provider", key.getProvider());
+            info.put("defaultModel", key.getDefaultModel());
+            info.put("enabled", key.getEnabled());
+            info.put("quota", key.getQuota());
+            info.put("used", key.getUsed());
+            info.put("expireAt", key.getExpireAt());
+            info.put("hasApiKey", key.getApiKey() != null && !key.getApiKey().isEmpty());
+            return info;
+        }).toList();
+
         return Result.success(result);
     }
 }

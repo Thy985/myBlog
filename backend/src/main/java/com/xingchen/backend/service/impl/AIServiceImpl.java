@@ -417,7 +417,7 @@ public class AIServiceImpl implements AIService {
             return defaultChatModel;
         }
 
-        String apiKey = com.xingchen.backend.util.ApiKeyEncryptor.decrypt(config.getApiKey());
+        String apiKey = config.getDecryptedApiKey();
         String baseUrl = config.getBaseUrl();
         String model = config.getDefaultModel();
 

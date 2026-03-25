@@ -21,22 +21,21 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.output.Response;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import com.github.benmanes.caffeine.cache.Cache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
  * AI 服务实现 V3（生产级）
- * 
+ *
  * 新增特性：
  * 1. 智能缓存 - 减少重复调用成本
  * 2. 成本追踪 - Token 消耗统计
@@ -57,15 +56,13 @@ public class AIServiceImplV3 implements AIService {
     private final MetricsService metricsService;
     private final LightweightMetaOrchestrator metaOrchestrator;
     private final UserApiKeyService userApiKeyService;
+    private final Cache<Long, ChatLanguageModel> userModelCache;
 
     @Value("${ai.cache.enabled:true}")
     private boolean cacheEnabled;
 
     @Value("${ai.token.budget:8000}")
     private int tokenBudget;
-
-    // 用户模型缓存，避免重复创建
-    private final Map<Long, ChatLanguageModel> userModelCache = new ConcurrentHashMap<>();
 
     // 提供商基础URL映射
     private static final Map<String, String> PROVIDER_BASE_URLS = Map.of(
@@ -85,13 +82,13 @@ public class AIServiceImplV3 implements AIService {
             return modelRouter.getModel("default");
         }
 
-        // 检查缓存
-        ChatLanguageModel cachedModel = userModelCache.get(userId);
-        if (cachedModel != null) {
-            return cachedModel;
-        }
+        return userModelCache.get(userId, id -> createUserModel(id));
+    }
 
-        // 获取用户 API Key 配置
+    /**
+     * 为用户创建模型
+     */
+    private ChatLanguageModel createUserModel(Long userId) {
         UserApiKey userApiKey = userApiKeyService.getByUserId(userId);
         String effectiveApiKey = userApiKeyService.getEffectiveApiKey(userId);
 
@@ -100,7 +97,6 @@ public class AIServiceImplV3 implements AIService {
             return modelRouter.getModel("default");
         }
 
-        // 创建用户特定的模型
         try {
             String provider = userApiKey != null ? userApiKey.getProvider() : "ZHIPU";
             String baseUrl = getBaseUrl(provider, userApiKey);
@@ -108,19 +104,25 @@ public class AIServiceImplV3 implements AIService {
                     ? userApiKey.getDefaultModel()
                     : "glm-4-flash";
 
+            double temperature = userApiKey != null && userApiKey.getTemperature() != null
+                    ? userApiKey.getTemperature()
+                    : 0.7;
+            Integer maxTokens = userApiKey != null && userApiKey.getMaxTokens() != null
+                    ? userApiKey.getMaxTokens()
+                    : 4096;
+
             ChatLanguageModel model = OpenAiChatModel.builder()
                     .apiKey(effectiveApiKey)
                     .baseUrl(baseUrl)
                     .modelName(modelName)
-                    .temperature(0.7)
-                    .maxTokens(4096)
+                    .temperature(temperature)
+                    .maxTokens(maxTokens)
                     .timeout(Duration.ofSeconds(60))
                     .maxRetries(2)
                     .build();
 
-            // 缓存模型
-            userModelCache.put(userId, model);
-            log.info("为用户 {} 创建模型成功，提供商: {}, 模型: {}", userId, provider, modelName);
+            log.info("为用户 {} 创建模型成功，提供商: {}, 模型: {}, temperature: {}, maxTokens: {}",
+                    userId, provider, modelName, temperature, maxTokens);
 
             return model;
         } catch (Exception e) {
@@ -143,7 +145,7 @@ public class AIServiceImplV3 implements AIService {
      * 清除用户模型缓存（当用户更新 API Key 时调用）
      */
     public void clearUserModelCache(Long userId) {
-        userModelCache.remove(userId);
+        userModelCache.invalidate(userId);
         log.info("已清除用户 {} 的模型缓存", userId);
     }
 
