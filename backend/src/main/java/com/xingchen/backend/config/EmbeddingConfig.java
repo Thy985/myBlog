@@ -23,7 +23,8 @@ public class EmbeddingConfig {
     @Primary
     public EmbeddingModel embeddingModel() {
         try {
-            // 尝试加载 BGE-Small-ZH 中文 Embedding 模型
+            // 使用本地 BGE-Small-ZH 模型
+            log.info("使用本地 BGE-Small-ZH embedding 模型");
             return new BgeSmallZhEmbeddingModel();
         } catch (Exception e) {
             log.warn("无法加载本地 Embedding 模型，使用 Mock 实现: {}", e.getMessage());
@@ -36,11 +37,10 @@ public class EmbeddingConfig {
      */
     public static class MockEmbeddingModel implements EmbeddingModel {
         private final Random random = new Random(42);
-        private static final int VECTOR_SIZE = 384;
+        private static final int VECTOR_SIZE = 512;
 
         @Override
         public Response<Embedding> embed(String text) {
-            // 生成随机向量（实际项目中应该调用远程 API）
             float[] vector = new float[VECTOR_SIZE];
             for (int i = 0; i < VECTOR_SIZE; i++) {
                 vector[i] = random.nextFloat();

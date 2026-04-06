@@ -27,9 +27,9 @@ public class IdempotentAspect {
     private final StringRedisTemplate redisTemplate;
 
     // Lua脚本：原子性检查并设置状态
-    private static final String CHECK_AND_SET_SCRIPT = 
+    private static final String CHECK_AND_SET_SCRIPT =
         "if redis.call('exists', KEYS[1]) == 0 then " +
-        "    redis.call('setex', KEYS[1], ARGV[2], ARGV[1]); " +
+        "    redis.call('setex', KEYS[1], tonumber(ARGV[2]), ARGV[1]); " +
         "    return 1; " +
         "elseif redis.call('get', KEYS[1]) == ARGV[3] then " +
         "    return 2; " +  // 已完成状态，拒绝重复请求
@@ -38,9 +38,9 @@ public class IdempotentAspect {
         "end";
 
     // Lua脚本：原子性完成并设置延迟过期
-    private static final String COMPLETE_SCRIPT = 
+    private static final String COMPLETE_SCRIPT =
         "if redis.call('get', KEYS[1]) == ARGV[1] then " +
-        "    redis.call('setex', KEYS[1], ARGV[3], ARGV[2]); " +  // 设置为完成状态，延迟过期
+        "    redis.call('setex', KEYS[1], tonumber(ARGV[3]), ARGV[2]); " +  // 设置为完成状态，延迟过期
         "    return 1; " +
         "end; " +
         "return 0;";

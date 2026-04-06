@@ -30,7 +30,7 @@ public class RedisLockUtil {
     // Lua脚本：原子性尝试获取锁
     private static final String TRY_LOCK_SCRIPT =
         "if redis.call('exists', KEYS[1]) == 0 then " +
-        "    redis.call('setex', KEYS[1], ARGV[2], ARGV[1]); " +
+        "    redis.call('setex', KEYS[1], tonumber(ARGV[2]), ARGV[1]); " +
         "    return 1; " +
         "end; " +
         "return 0;";
@@ -46,7 +46,7 @@ public class RedisLockUtil {
     // Lua脚本：原子性标记完成并设置延迟过期
     private static final String COMPLETE_LOCK_SCRIPT =
         "if redis.call('get', KEYS[1]) == ARGV[1] then " +
-        "    redis.call('setex', KEYS[1], ARGV[3], ARGV[2]); " +
+        "    redis.call('setex', KEYS[1], tonumber(ARGV[3]), ARGV[2]); " +
         "    return 1; " +
         "end; " +
         "return 0;";

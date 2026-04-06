@@ -119,9 +119,9 @@ file:
 # Qdrant 向量数据库配置
 qdrant:
   host: localhost
-  port: 6333
+  port: 6334  # gRPC 端口（HTTP REST API 是 6333）
   collection: myblog_articles
-  vector-size: 384
+  vector-size: 512
 
 # OpenSearch 配置
 opensearch:
@@ -157,3 +157,11 @@ logging:
     root: INFO
     com.xingchen.backend: DEBUG
     com.alibaba.druid: DEBUG
+    com.xingchen.backend.util.AesUtil: DEBUG
+
+# 飞书机器人配置（开发环境启用）
+feishu:
+  bot:
+    enabled: true
+    app-id: "cli_a93671ba31b8dcb0"
+    app-secret: "2BtR6kLwNn29B9f6ym71YyErp5pZdfgU"
