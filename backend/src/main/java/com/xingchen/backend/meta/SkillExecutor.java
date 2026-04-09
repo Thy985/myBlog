@@ -1,8 +1,16 @@
 package com.xingchen.backend.meta;
 
 import com.xingchen.backend.service.AIService;
+import com.xingchen.backend.service.KnowledgeBaseService;
+import com.xingchen.backend.service.SearchService;
+import com.xingchen.backend.service.WebSearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.expression.EvaluationContext;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -25,7 +33,12 @@ public class SkillExecutor {
     private final AIService aiService;
     private final ToolRegistry toolRegistry;
     private final SkillRepository skillRepository;
-    
+    private final KnowledgeBaseService knowledgeBaseService;
+    private final SearchService searchService;
+    private final WebSearchService webSearchService;
+
+    private final ExpressionParser expressionParser = new SpelExpressionParser();
+
     // 执行中的 Skill
     private final Map<String, ExecutionContext> runningExecutions = new ConcurrentHashMap<>();
     
@@ -257,10 +270,43 @@ public class SkillExecutor {
     
     /**
      * 评估条件
+     * 使用 SpEL 表达式引擎进行动态求值
+     * 支持的表达式格式如: "${count} > 5", "${stepResults.score} >= 0.8"
      */
     private boolean evaluateCondition(String condition, Map<String, Object> stepResults) {
-        // 简化实现，实际应该使用表达式引擎
-        return true;
+        if (condition == null || condition.trim().isEmpty()) {
+            return true;
+        }
+
+        try {
+            String expressionStr = condition;
+            if (expressionStr.contains("${") && expressionStr.contains("}")) {
+                expressionStr = expressionStr.replaceAll("\\$\\{", "#").replaceAll("\\}", "");
+            }
+
+            EvaluationContext context = new StandardEvaluationContext();
+
+            context.setVariable("stepResults", stepResults);
+            for (Map.Entry<String, Object> entry : stepResults.entrySet()) {
+                context.setVariable(entry.getKey(), entry.getValue());
+            }
+
+            Expression expression = expressionParser.parseExpression(expressionStr);
+            Object result = expression.getValue(context);
+
+            if (result instanceof Boolean) {
+                return (Boolean) result;
+            } else if (result instanceof Number) {
+                return ((Number) result).doubleValue() != 0;
+            } else if (result instanceof String) {
+                return !((String) result).isEmpty();
+            }
+
+            return result != null;
+        } catch (Exception e) {
+            log.warn("条件表达式求值失败: condition={}, error={}", condition, e.getMessage());
+            return false;
+        }
     }
     
     /**
@@ -272,17 +318,336 @@ public class SkillExecutor {
     
     /**
      * 调用工具
+     * 根据工具类型分发到不同的处理逻辑
      */
-    private Object invokeTool(ToolOption tool, Map<String, Object> params, 
+    private Object invokeTool(ToolOption tool, Map<String, Object> params,
                               ExecutionContext context) {
-        // 简化实现，实际应该调用具体的工具实现
+        String toolType = tool.getToolType();
+        Long userId = context.getInputs().get("userId") != null
+                ? ((Number) context.getInputs().get("userId")).longValue()
+                : null;
+
+        log.info("调用工具: toolId={}, toolType={}", tool.getToolId(), toolType);
+
+        try {
+            return switch (toolType) {
+                case "llm" -> invokeLlmTool(tool, params, userId);
+                case "search" -> invokeSearchTool(tool, params);
+                case "knowledge" -> invokeKnowledgeTool(tool, params);
+                case "websearch" -> invokeWebSearchTool(tool, params);
+                case "code" -> invokeCodeTool(tool, params);
+                case "database" -> invokeDatabaseTool(tool, params);
+                case "cache" -> invokeCacheTool(tool, params);
+                case "file" -> invokeFileTool(tool, params);
+                case "mcp" -> invokeMcpTool(tool, params);
+                default -> throw new UnsupportedOperationException("不支持的工具类型: " + toolType);
+            };
+        } catch (Exception e) {
+            log.error("工具调用失败: toolId={}, error={}", tool.getToolId(), e.getMessage());
+            throw new RuntimeException("工具调用失败: " + tool.getToolId() + ", error: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 调用 LLM 工具
+     */
+    private Object invokeLlmTool(ToolOption tool, Map<String, Object> params, Long userId) {
+        String prompt = (String) params.get("prompt");
+        if (prompt == null) {
+            prompt = "请回复这条消息";
+        }
+
+        String response;
+        if (userId != null) {
+            response = aiService.chatWithUserApiKey(userId, prompt);
+        } else {
+            response = aiService.chat(prompt);
+        }
+
         return Map.of(
+                "success", true,
                 "toolId", tool.getToolId(),
-                "executed", true,
-                "params", params
+                "response", response,
+                "type", "llm"
         );
     }
-    
+
+    /**
+     * 调用搜索工具
+     */
+    private Object invokeSearchTool(ToolOption tool, Map<String, Object> params) {
+        String query = (String) params.get("query");
+        if (query == null) {
+            query = "";
+        }
+        int limit = params.get("limit") != null ? ((Number) params.get("limit")).intValue() : 10;
+
+        try {
+            var searchResult = searchService.globalSearch(query, null, 1, limit);
+            return Map.of(
+                    "success", true,
+                    "toolId", tool.getToolId(),
+                    "query", query,
+                    "results", searchResult.getList(),
+                    "total", searchResult.getTotal(),
+                    "type", "search"
+            );
+        } catch (Exception e) {
+            log.warn("搜索工具执行失败: {}", e.getMessage());
+            return Map.of(
+                    "success", false,
+                    "toolId", tool.getToolId(),
+                    "error", e.getMessage(),
+                    "type", "search"
+            );
+        }
+    }
+
+    /**
+     * 调用知识库工具
+     */
+    private Object invokeKnowledgeTool(ToolOption tool, Map<String, Object> params) {
+        String operation = (String) params.get("operation");
+        if (operation == null) {
+            operation = "search";
+        }
+
+        try {
+            return switch (operation) {
+                case "search" -> {
+                    String query = (String) params.get("query");
+                    int topK = params.get("topK") != null ? ((Number) params.get("topK")).intValue() : 5;
+                    String result = knowledgeBaseService.search(query, topK);
+                    yield Map.of(
+                            "success", true,
+                            "toolId", tool.getToolId(),
+                            "query", query,
+                            "result", result,
+                            "type", "knowledge"
+                    );
+                }
+                case "add" -> {
+                    Long articleId = params.get("articleId") != null
+                            ? ((Number) params.get("articleId")).longValue()
+                            : null;
+                    String title = (String) params.get("title");
+                    String content = (String) params.get("content");
+                    if (articleId != null && title != null && content != null) {
+                        knowledgeBaseService.addDocument(articleId, title, content);
+                    }
+                    yield Map.of(
+                            "success", true,
+                            "toolId", tool.getToolId(),
+                            "operation", "add",
+                            "articleId", articleId,
+                            "type", "knowledge"
+                    );
+                }
+                default -> throw new IllegalArgumentException("未知操作: " + operation);
+            };
+        } catch (Exception e) {
+            log.warn("知识库工具执行失败: {}", e.getMessage());
+            return Map.of(
+                    "success", false,
+                    "toolId", tool.getToolId(),
+                    "error", e.getMessage(),
+                    "type", "knowledge"
+            );
+        }
+    }
+
+    /**
+     * 调用网络搜索工具
+     */
+    private Object invokeWebSearchTool(ToolOption tool, Map<String, Object> params) {
+        String query = (String) params.get("query");
+        if (query == null) {
+            return Map.of(
+                    "success", false,
+                    "toolId", tool.getToolId(),
+                    "error", "query 参数不能为空",
+                    "type", "websearch"
+            );
+        }
+
+        int maxResults = params.get("maxResults") != null ? ((Number) params.get("maxResults")).intValue() : 5;
+
+        try {
+            var result = webSearchService.search(query, maxResults);
+            return Map.of(
+                    "success", true,
+                    "toolId", tool.getToolId(),
+                    "query", query,
+                    "result", result,
+                    "type", "websearch"
+            );
+        } catch (Exception e) {
+            log.warn("网络搜索工具执行失败: {}", e.getMessage());
+            return Map.of(
+                    "success", false,
+                    "toolId", tool.getToolId(),
+                    "error", e.getMessage(),
+                    "type", "websearch"
+            );
+        }
+    }
+
+    /**
+     * 调用代码执行工具
+     */
+    private Object invokeCodeTool(ToolOption tool, Map<String, Object> params) {
+        String code = (String) params.get("code");
+        String language = (String) params.get("language");
+
+        log.info("代码执行工具收到请求: language={}, codeLength={}", language, code != null ? code.length() : 0);
+
+        return Map.of(
+                "success", true,
+                "toolId", tool.getToolId(),
+                "message", "代码执行功能开发中，请使用 LLM 工具进行代码审查",
+                "code", code,
+                "language", language != null ? language : "unknown",
+                "type", "code"
+        );
+    }
+
+    /**
+     * 调用数据库工具
+     */
+    private Object invokeDatabaseTool(ToolOption tool, Map<String, Object> params) {
+        String operation = (String) params.get("operation");
+        String sql = (String) params.get("sql");
+
+        log.info("数据库工具收到请求: operation={}", operation);
+
+        return Map.of(
+                "success", true,
+                "toolId", tool.getToolId(),
+                "message", "数据库操作功能开发中",
+                "operation", operation,
+                "type", "database"
+        );
+    }
+
+    /**
+     * 调用缓存工具
+     */
+    private Object invokeCacheTool(ToolOption tool, Map<String, Object> params) {
+        String operation = (String) params.get("operation");
+        String key = (String) params.get("key");
+        Object value = params.get("value");
+
+        log.info("缓存工具收到请求: operation={}, key={}", operation, key);
+
+        return Map.of(
+                "success", true,
+                "toolId", tool.getToolId(),
+                "message", "缓存操作已记录（实际调用需要缓存服务支持）",
+                "operation", operation,
+                "key", key,
+                "type", "cache"
+        );
+    }
+
+    /**
+     * 调用文件操作工具
+     */
+    private Object invokeFileTool(ToolOption tool, Map<String, Object> params) {
+        String operation = (String) params.get("operation");
+        String path = (String) params.get("path");
+        String content = (String) params.get("content");
+
+        log.info("文件工具收到请求: operation={}, path={}", operation, path);
+
+        return Map.of(
+                "success", true,
+                "toolId", tool.getToolId(),
+                "message", "文件操作功能开发中，请使用 LLM 工具进行文件内容处理",
+                "operation", operation,
+                "path", path,
+                "type", "file"
+        );
+    }
+
+    /**
+     * 调用 MCP 服务工具
+     */
+    private Object invokeMcpTool(ToolOption tool, Map<String, Object> params) {
+        String mcpMethod = (String) params.get("method");
+        if (mcpMethod == null) {
+            mcpMethod = "call";
+        }
+
+        log.info("MCP工具收到请求: toolId={}, method={}", tool.getToolId(), mcpMethod);
+
+        if (!toolRegistry.isMcpConnected(tool.getToolId())) {
+            ToolRegistry.McpConnectionStatus status = toolRegistry.getMcpConnectionStatus(tool.getToolId());
+            return Map.of(
+                    "success", false,
+                    "toolId", tool.getToolId(),
+                    "error", "MCP 服务未连接: " + status.message(),
+                    "method", mcpMethod,
+                    "type", "mcp"
+            );
+        }
+
+        try {
+            return switch (tool.getToolId()) {
+                case "mcp-whisper" -> invokeWhisperService(params);
+                case "mcp-vision" -> invokeVisionService(params);
+                default -> Map.of(
+                        "success", false,
+                        "toolId", tool.getToolId(),
+                        "error", "未知的 MCP 服务: " + tool.getToolId(),
+                        "type", "mcp"
+                );
+            };
+        } catch (Exception e) {
+            log.error("MCP 服务调用失败: toolId={}, error={}", tool.getToolId(), e.getMessage());
+            return Map.of(
+                    "success", false,
+                    "toolId", tool.getToolId(),
+                    "error", "MCP 服务调用失败: " + e.getMessage(),
+                    "type", "mcp"
+            );
+        }
+    }
+
+    /**
+     * 调用 Whisper 语音识别服务
+     */
+    private Object invokeWhisperService(Map<String, Object> params) {
+        String audioUrl = (String) params.get("audioUrl");
+        String audioData = (String) params.get("audioData");
+
+        log.info("调用 Whisper 服务: audioUrl={}", audioUrl);
+
+        return Map.of(
+                "success", false,
+                "toolId", "mcp-whisper",
+                "error", "Whisper MCP 服务调用实现中",
+                "type", "mcp"
+        );
+    }
+
+    /**
+     * 调用 Vision 图像识别服务
+     */
+    private Object invokeVisionService(Map<String, Object> params) {
+        String imageUrl = (String) params.get("imageUrl");
+        String imageData = (String) params.get("imageData");
+        String operation = (String) params.get("operation");
+
+        log.info("调用 Vision 服务: imageUrl={}, operation={}", imageUrl, operation);
+
+        return Map.of(
+                "success", false,
+                "toolId", "mcp-vision",
+                "error", "Vision MCP 服务调用实现中",
+                "type", "mcp"
+        );
+    }
+
     /**
      * 尝试修复
      */

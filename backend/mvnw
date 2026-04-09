@@ -1,0 +1,18 @@
+#!/bin/sh
+# ----------------------------------------------------------------------------
+# Maven Wrapper Script
+# ----------------------------------------------------------------------------
+
+# Set the Maven home directory
+MAVEN_HOME="/d/java/maven/apache-maven-3.9.12"
+MAVEN_CMD="$MAVEN_HOME/bin/mvn"
+
+# Check if Maven exists
+if [ ! -f "$MAVEN_CMD" ]; then
+    echo "Error: Maven not found at $MAVEN_HOME"
+    echo "Please install Maven or set MAVEN_HOME correctly."
+    exit 1
+fi
+
+# Run Maven with all arguments
+exec "$MAVEN_CMD" "$@"

@@ -34,7 +34,8 @@ public class MemoryRepository {
                     ttl_days INTEGER DEFAULT 30,
                     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    expire_time TIMESTAMP
+                    expire_time TIMESTAMP,
+                    vector_id TEXT
                 )
             """);
             
@@ -47,10 +48,10 @@ public class MemoryRepository {
         }
     }
 
-    public void save(Memory memory) {
+    public Memory save(Memory memory) {
         String sql = """
-            INSERT INTO memories (user_id, content, embedding, category, confidence, ttl_days, create_time, update_time, expire_time)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO memories (user_id, content, embedding, category, confidence, ttl_days, create_time, update_time, expire_time, vector_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 content = excluded.content,
                 embedding = excluded.embedding,
@@ -58,9 +59,10 @@ public class MemoryRepository {
                 confidence = excluded.confidence,
                 ttl_days = excluded.ttl_days,
                 update_time = excluded.update_time,
-                expire_time = excluded.expire_time
+                expire_time = excluded.expire_time,
+                vector_id = excluded.vector_id
         """;
-        
+
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setLong(1, memory.getUserId());
             ps.setString(2, memory.getContent());
@@ -70,14 +72,24 @@ public class MemoryRepository {
             ps.setInt(6, memory.getTtlDays());
             ps.setTimestamp(7, Timestamp.valueOf(memory.getCreateTime()));
             ps.setTimestamp(8, Timestamp.valueOf(memory.getUpdateTime()));
-            
+
             LocalDateTime expireTime = memory.getCreateTime().plusDays(memory.getTtlDays());
             ps.setTimestamp(9, Timestamp.valueOf(expireTime));
-            
+            ps.setString(10, memory.getVectorId());
+
             ps.executeUpdate();
+
+            // 获取自动生成的 ID
+            try (Statement stmt = connection.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT last_insert_rowid()")) {
+                if (rs.next()) {
+                    memory.setId(rs.getLong(1));
+                }
+            }
         } catch (SQLException e) {
             throw new RuntimeException("保存记忆失败", e);
         }
+        return memory;
     }
 
     public List<Memory> findByUserId(Long userId) {
@@ -156,12 +168,14 @@ public class MemoryRepository {
         memory.setTtlDays(rs.getInt("ttl_days"));
         memory.setCreateTime(rs.getTimestamp("create_time").toLocalDateTime());
         memory.setUpdateTime(rs.getTimestamp("update_time").toLocalDateTime());
-        
+
         Timestamp expireTime = rs.getTimestamp("expire_time");
         if (expireTime != null) {
             memory.setExpireTime(expireTime.toLocalDateTime());
         }
-        
+
+        memory.setVectorId(rs.getString("vector_id"));
+
         return memory;
     }
 

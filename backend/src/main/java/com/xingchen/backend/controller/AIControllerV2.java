@@ -3,6 +3,7 @@ package com.xingchen.backend.controller;
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.stp.StpUtil;
 import com.xingchen.backend.common.Result;
+import com.xingchen.backend.memory.MemoryServiceV2;
 import com.xingchen.backend.prompt.PromptBuilder;
 import com.xingchen.backend.security.annotation.UserRateLimit;
 import com.xingchen.backend.service.AIService;
@@ -34,6 +35,7 @@ public class AIControllerV2 {
     private final AIService aiService;
     private final PromptBuilder promptBuilder;
     private final MemoryService memoryService;
+    private final MemoryServiceV2 memoryServiceV2;
 
     /**
      * 通用对话（带记忆和知识库）
@@ -43,24 +45,24 @@ public class AIControllerV2 {
     @UserRateLimit
     public Result<String> chat(@RequestBody ChatRequest request) {
         Long userId = StpUtil.getLoginIdAsLong();
-        
+
         // 构建动态提示词
         String systemPrompt = promptBuilder.buildChatPrompt(
-                userId, 
-                request.getMessage(), 
+                userId,
+                request.getMessage(),
                 request.getTaskType()
         );
-        
-        // 调用 AI
-        String response = aiService.chatWithContext(
+
+        // 调用 AI（使用用户配置的 API Key）
+        String response = aiService.chatWithUserApiKeyAndPrompt(
+                userId,
                 request.getMessage(),
-                request.getHistory(),
                 systemPrompt
         );
-        
+
         // 异步提取记忆
         extractMemoryAsync(userId, request.getMessage(), response);
-        
+
         return Result.success(response);
     }
 
@@ -149,27 +151,44 @@ public class AIControllerV2 {
     public SseEmitter streamChat(
             @RequestParam String message,
             @RequestParam(required = false) String taskType) {
-        
+
         Long userId = StpUtil.getLoginIdAsLong();
         SseEmitter emitter = new SseEmitter(120000L);
-        
-        try {
-            String systemPrompt = promptBuilder.buildChatPrompt(userId, message, taskType);
-            
-            StringBuilder fullResponse = new StringBuilder();
-            
-            aiService.streamChat(message, token -> {
-                fullResponse.append(token);
-            });
-            
-            // 流结束后提取记忆
-            extractMemoryAsync(userId, message, fullResponse.toString());
-            
-        } catch (Exception e) {
-            log.error("流式对话失败", e);
-            emitter.completeWithError(e);
-        }
-        
+
+        // 在异步线程中执行，避免阻塞
+        new Thread(() -> {
+            try {
+                String systemPrompt = promptBuilder.buildChatPrompt(userId, message, taskType);
+                StringBuilder fullResponse = new StringBuilder();
+
+                aiService.streamChat(message, token -> {
+                    try {
+                        // 将每个 token 发送给客户端
+                        emitter.send(SseEmitter.event()
+                                .name("message")
+                                .data(token));
+                        fullResponse.append(token);
+                    } catch (Exception e) {
+                        log.error("发送流式消息失败", e);
+                        emitter.completeWithError(e);
+                    }
+                });
+
+                // 发送完成事件
+                emitter.send(SseEmitter.event()
+                        .name("complete")
+                        .data("done"));
+                emitter.complete();
+
+                // 流结束后异步提取记忆
+                extractMemoryAsync(userId, message, fullResponse.toString());
+
+            } catch (Exception e) {
+                log.error("流式对话失败", e);
+                emitter.completeWithError(e);
+            }
+        }).start();
+
         return emitter;
     }
 
@@ -180,7 +199,7 @@ public class AIControllerV2 {
     @SaCheckLogin
     public Result<String> getUserMemory() {
         Long userId = StpUtil.getLoginIdAsLong();
-        String memory = memoryService.getUserMemoryContext(userId);
+        String memory = memoryServiceV2.getUserMemoryContext(userId);
         return Result.success(memory);
     }
 
@@ -192,7 +211,7 @@ public class AIControllerV2 {
     public Result<String> searchMemory(@RequestBody Map<String, String> request) {
         Long userId = StpUtil.getLoginIdAsLong();
         String query = request.get("query");
-        String memory = memoryService.retrieveMemory(userId, query, 5);
+        String memory = memoryServiceV2.retrieveMemory(userId, query, 5);
         return Result.success(memory);
     }
 
@@ -205,8 +224,8 @@ public class AIControllerV2 {
         Long userId = StpUtil.getLoginIdAsLong();
         String content = request.get("content");
         String type = request.getOrDefault("type", "GENERAL");
-        
-        memoryService.addMemory(userId, content, type);
+
+        memoryServiceV2.addMemory(userId, content, type);
         return Result.success();
     }
 
@@ -215,12 +234,12 @@ public class AIControllerV2 {
     private void extractMemoryAsync(Long userId, String userMessage, String aiResponse) {
         // 提取用户偏好
         if (containsPreference(userMessage)) {
-            memoryService.addMemory(userId, extractPreference(userMessage), "PREFERENCE");
+            memoryServiceV2.addMemory(userId, extractPreference(userMessage), "PREFERENCE");
         }
-        
+
         // 提取项目信息
         if (containsProjectInfo(userMessage)) {
-            memoryService.addMemory(userId, extractProjectInfo(userMessage), "PROJECT");
+            memoryServiceV2.addMemory(userId, extractProjectInfo(userMessage), "PROJECT");
         }
     }
 

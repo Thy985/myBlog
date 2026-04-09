@@ -220,45 +220,49 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public ArticleVO getArticleById(Long id, Long userId) {
-        String cacheKey = "article::" + id + "::" + (userId != null ? userId : "anonymous");
-        
-        Object cached = redisTemplate.opsForValue().get(cacheKey);
+        String cacheKey = "article::" + id;
+        String hashField = userId != null ? String.valueOf(userId) : "anonymous";
+
+        // 使用 Hash 结构缓存，hashField 为用户ID或anonymous
+        Object cached = redisTemplate.opsForHash().get(cacheKey, hashField);
         if (cached instanceof ArticleVO) {
-            log.debug("缓存命中：{}", cacheKey);
+            log.debug("缓存命中：{}[{}]", cacheKey, hashField);
             return (ArticleVO) cached;
         }
-        
-        if (cached instanceof NullObject) {
-            log.debug("缓存命中空对象：{}", cacheKey);
+
+        // 空值缓存（NullObject 已被移除，改用原生 null + Redis 缓存穿透保护）
+        if (cached == null && redisTemplate.opsForHash().hasKey(cacheKey, hashField)) {
+            log.debug("缓存命中空值：{}[{}]", cacheKey, hashField);
             return null;
         }
-        
+
         return redisLockUtil.executeWithLock(
             cacheKey,
             LOCK_EXPIRE_SECONDS,
             LOCK_RETRY_TIMES,
             LOCK_RETRY_INTERVAL_MS,
-            () -> loadArticleFromDB(id, userId, cacheKey)
+            () -> loadArticleFromDB(id, userId, cacheKey, hashField)
         );
     }
-    
-    private ArticleVO loadArticleFromDB(Long id, Long userId, String cacheKey) {
-        Object cached = redisTemplate.opsForValue().get(cacheKey);
+
+    private ArticleVO loadArticleFromDB(Long id, Long userId, String cacheKey, String hashField) {
+        // 双重检查缓存
+        Object cached = redisTemplate.opsForHash().get(cacheKey, hashField);
         if (cached instanceof ArticleVO) {
-            log.debug("双重检查缓存命中：{}", cacheKey);
+            log.debug("双重检查缓存命中：{}[{}]", cacheKey, hashField);
             return (ArticleVO) cached;
         }
-        
+
         Article article = articleMapper.selectOneById(id);
         if (article == null || article.getIsDeleted() == 1) {
-            redisTemplate.opsForValue().set(cacheKey, new NullObject(), CACHE_NULL_TTL_MINUTES, TimeUnit.MINUTES);
-            log.debug("文章不存在，缓存空对象：{}", cacheKey);
+            // 文章不存在，缓存 null 值（由 Redis enableCachingNullValues 处理，防止穿透）
+            log.debug("文章不存在，缓存空值：{}[{}]", cacheKey, hashField);
             return null;
         }
 
         if (article.getViewStatus() == 0 && (userId == null || !article.getUserId().equals(userId))) {
-            redisTemplate.opsForValue().set(cacheKey, new NullObject(), CACHE_NULL_TTL_MINUTES, TimeUnit.MINUTES);
-            log.debug("文章为私密状态，缓存空对象：{}", cacheKey);
+            // 文章为私密状态，缓存 null 值
+            log.debug("文章为私密状态，缓存空值：{}[{}]", cacheKey, hashField);
             return null;
         }
 
@@ -327,8 +331,9 @@ public class ArticleServiceImpl implements ArticleService {
         }
         
         long ttl = CACHE_ARTICLE_TTL_MINUTES + randomOffset(5);
-        redisTemplate.opsForValue().set(cacheKey, vo, ttl, TimeUnit.MINUTES);
-        log.info("文章详情已缓存到 DB，TTL={} 分钟：{}", ttl, cacheKey);
+        redisTemplate.opsForHash().put(cacheKey, hashField, vo);
+        redisTemplate.expire(cacheKey, ttl, TimeUnit.MINUTES);
+        log.info("文章详情已缓存到 DB，TTL={} 分钟：{}[{}]", ttl, cacheKey, hashField);
 
         return vo;
     }
@@ -541,69 +546,23 @@ public class ArticleServiceImpl implements ArticleService {
         int offset = (page - 1) * size;
         List<Long> articleIds = articleCollectMapper.selectArticleIdsByUserId(userId, offset, size);
         long total = articleCollectMapper.countByUserId(userId);
-        
-        List<ArticleListVO> result = new ArrayList<>();
-        for (Long articleId : articleIds) {
-            Article article = articleMapper.selectOneById(articleId);
-            if (article != null && article.getIsDeleted() == 0) {
-                result.add(convertToListVO(article));
-            }
-        }
+
+        // 优化N+1查询：批量查询文章
+        List<ArticleListVO> result = articleIds.isEmpty() ? new ArrayList<>()
+                : articleMapper.selectByIds(articleIds).stream()
+                .filter(a -> a.getIsDeleted() == 0)
+                .map(this::convertToListVO)
+                .collect(java.util.stream.Collectors.toList());
+
         return PageResult.of(result, total, page, size);
     }
 
     @Override
     public Map<String, Object> getArticleArchive(Integer page, Integer size) {
-        Map<String, Object> result = new HashMap<>();
         List<Article> articles = articleMapper.selectPublicArticles();
+        List<Map<String, Object>> archives = buildArchiveResult(articles);
 
-        Map<String, List<Article>> archiveMap = new LinkedHashMap<>();
-        
-        for (Article article : articles) {
-            LocalDateTime timeToUse = article.getPublishTime();
-            if (timeToUse == null) {
-                timeToUse = article.getCreatedTime();
-            }
-            if (timeToUse != null) {
-                String month = timeToUse.toLocalDate().toString().substring(0, 7);
-                archiveMap.computeIfAbsent(month, k -> new ArrayList<>()).add(article);
-            }
-        }
-        
-        List<Map<String, Object>> archives = new ArrayList<>();
-        
-        List<String> sortedMonths = new ArrayList<>(archiveMap.keySet());
-        sortedMonths.sort((a, b) -> b.compareTo(a));
-        
-        for (String month : sortedMonths) {
-            List<Article> monthArticles = archiveMap.get(month);
-            
-            monthArticles.sort((a, b) -> {
-                LocalDateTime timeA = a.getPublishTime() != null ? a.getPublishTime() : a.getCreatedTime();
-                LocalDateTime timeB = b.getPublishTime() != null ? b.getPublishTime() : b.getCreatedTime();
-                if (timeA == null && timeB == null) return 0;
-                if (timeA == null) return 1;
-                if (timeB == null) return -1;
-                return timeB.compareTo(timeA);
-            });
-            
-            Map<String, Object> monthData = new HashMap<>();
-            monthData.put("month", month);
-            monthData.put("articles", monthArticles.stream()
-                .map(a -> {
-                    Map<String, Object> articleMap = new HashMap<>();
-                    articleMap.put("id", a.getId());
-                    articleMap.put("title", a.getTitle());
-                    articleMap.put("titleImage", a.getTitleImage());
-                    articleMap.put("createTime", a.getCreatedTime());
-                    articleMap.put("publishTime", a.getPublishTime());
-                    articleMap.put("createMonth", month);
-                    return articleMap;
-                })
-                .collect(Collectors.toList()));
-            archives.add(monthData);
-        }
-
+        Map<String, Object> result = new HashMap<>();
         result.put("list", archives);
         result.put("total", (long) archives.size());
         result.put("page", page);
@@ -614,17 +573,29 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public Map<String, Object> getUserArticleArchive(Long userId, Integer page, Integer size) {
-        Map<String, Object> result = new HashMap<>();
-        
         QueryWrapper wrapper = QueryWrapper.create()
                 .from("t_article")
                 .where("user_id = ?", userId)
                 .and("status = 1")
                 .and("is_deleted = 0");
         List<Article> articles = articleMapper.selectListByQuery(wrapper);
+        List<Map<String, Object>> archives = buildArchiveResult(articles);
 
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", archives);
+        result.put("total", (long) archives.size());
+        result.put("page", page);
+        result.put("size", size);
+        result.put("pages", (int) Math.ceil((double) archives.size() / size));
+        return result;
+    }
+
+    /**
+     * 构建归档结果（复用逻辑）
+     */
+    private List<Map<String, Object>> buildArchiveResult(List<Article> articles) {
         Map<String, List<Article>> archiveMap = new LinkedHashMap<>();
-        
+
         for (Article article : articles) {
             LocalDateTime timeToUse = article.getPublishTime();
             if (timeToUse == null) {
@@ -635,15 +606,15 @@ public class ArticleServiceImpl implements ArticleService {
                 archiveMap.computeIfAbsent(month, k -> new ArrayList<>()).add(article);
             }
         }
-        
+
         List<Map<String, Object>> archives = new ArrayList<>();
-        
+
         List<String> sortedMonths = new ArrayList<>(archiveMap.keySet());
         sortedMonths.sort((a, b) -> b.compareTo(a));
-        
+
         for (String month : sortedMonths) {
             List<Article> monthArticles = archiveMap.get(month);
-            
+
             monthArticles.sort((a, b) -> {
                 LocalDateTime timeA = a.getPublishTime() != null ? a.getPublishTime() : a.getCreatedTime();
                 LocalDateTime timeB = b.getPublishTime() != null ? b.getPublishTime() : b.getCreatedTime();
@@ -652,7 +623,7 @@ public class ArticleServiceImpl implements ArticleService {
                 if (timeB == null) return -1;
                 return timeB.compareTo(timeA);
             });
-            
+
             Map<String, Object> monthData = new HashMap<>();
             monthData.put("month", month);
             monthData.put("articles", monthArticles.stream()
@@ -670,12 +641,7 @@ public class ArticleServiceImpl implements ArticleService {
             archives.add(monthData);
         }
 
-        result.put("list", archives);
-        result.put("total", (long) archives.size());
-        result.put("page", page);
-        result.put("size", size);
-        result.put("pages", (int) Math.ceil((double) archives.size() / size));
-        return result;
+        return archives;
     }
 
     private ArticleListVO convertToListVO(Article article) {
@@ -781,9 +747,13 @@ public class ArticleServiceImpl implements ArticleService {
     
     private void clearArticleCache(Long articleId) {
         try {
-            // 只删除精确的缓存键，避免 Redis 通配符查询的问题
-            String cacheKey = "article::" + articleId + "::anonymous";
+            // 使用 Hash 结构存储文章缓存，只需删除一个 key 即可清理所有用户缓存
+            String cacheKey = "article::" + articleId;
             redisTemplate.delete(cacheKey);
+            // 清理热门文章缓存（与文章阅读数相关）
+            redisTemplate.delete("hotArticles::10");
+            redisTemplate.delete("hotArticles::20");
+            redisTemplate.delete("hotArticles::50");
             log.debug("已清理文章缓存：{}", cacheKey);
         } catch (Exception e) {
             log.warn("清理文章缓存异常：{}", e.getMessage());
@@ -794,10 +764,6 @@ public class ArticleServiceImpl implements ArticleService {
         return new Random().nextInt((int) maxMinutes);
     }
     
-    private static class NullObject implements java.io.Serializable {
-        private static final long serialVersionUID = 1L;
-    }
-
     @Override
     public Map<String, Object> getArticleReadStats(Long id) {
         Map<String, Object> stats = new HashMap<>();
@@ -842,7 +808,11 @@ public class ArticleServiceImpl implements ArticleService {
             ? articleTags.stream().map(ArticleTag::getTagId).collect(Collectors.toList())
             : new ArrayList<>();
 
-        List<Article> allArticles = articleMapper.selectPublicArticles();
+        // 【优化】最多取 100 篇最新文章作为候选集，避免全表扫描
+        // 原代码：List<Article> allArticles = articleMapper.selectPublicArticles();
+        // 问题：所有已发布文章（可能数千篇）全部加载到内存，数据量大时内存暴涨
+        // 修复：限制候选集为 100 篇，兼顾相关性与性能
+        List<Article> allArticles = articleMapper.selectRecentPublicArticles(100);
         
         if (allArticles.isEmpty()) {
             return new ArrayList<>();

@@ -11,4 +11,8 @@ public interface BlogSettingMapper extends BaseMapper<BlogSetting> {
     // 根据key查询
     @Select("SELECT * FROM t_blog_setting WHERE setting_key = #{key}")
     BlogSetting selectByKey(@Param("key") String key);
+
+    // 查询第一条记录（避免全表扫描）
+    @Select("SELECT * FROM t_blog_setting LIMIT 1")
+    BlogSetting selectFirst();
 }

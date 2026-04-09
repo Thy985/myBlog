@@ -17,7 +17,7 @@ public class QdrantConfig {
     @Value("${qdrant.host:localhost}")
     private String host;
 
-    @Value("${qdrant.port:6333}")
+    @Value("${qdrant.port:6334}")
     private int port;
 
     @Bean

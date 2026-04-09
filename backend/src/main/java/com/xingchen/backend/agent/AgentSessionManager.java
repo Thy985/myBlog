@@ -44,35 +44,66 @@ public class AgentSessionManager {
     }
     
     /**
-     * 获取会话
+     * 获取会话（带用户权限校验）
+     *
+     * @param sessionId 会话ID
+     * @param userId    用户ID（用于权限校验）
+     * @return 会话状态，如果会话不存在或用户无权访问则返回 empty
      */
-    public Optional<AgentState> getSession(String sessionId) {
+    public Optional<AgentState> getSession(String sessionId, Long userId) {
+        Optional<AgentState> state = getSessionInternal(sessionId);
+        return state.filter(s -> s.getUserId().equals(userId));
+    }
+
+    /**
+     * 获取会话（内部方法，不带权限校验）
+     * 仅在服务层内部使用，不对外暴露
+     */
+    private Optional<AgentState> getSessionInternal(String sessionId) {
         // 1. 从本地缓存获取
         AgentState state = activeSessions.get(sessionId);
         if (state != null) {
             return Optional.of(state);
         }
-        
+
         // 2. 从 Redis 获取
         Optional<AgentState> cached = cacheService.get(
-                getSessionKey(sessionId), 
+                getSessionKey(sessionId),
                 AgentState.class
         );
-        
+
         // 恢复到本地缓存
         cached.ifPresent(s -> activeSessions.put(sessionId, s));
-        
+
         return cached;
+    }
+
+    /**
+     * 获取会话（已废弃，请使用带 userId 的版本）
+     * @deprecated 使用 {@link #getSession(String, Long)} 替代
+     */
+    @Deprecated
+    public Optional<AgentState> getSession(String sessionId) {
+        return getSessionInternal(sessionId);
     }
     
     /**
-     * 获取或创建会话
+     * 获取或创建会话（带用户权限校验）
+     *
+     * @param sessionId 会话ID
+     * @param userId    用户ID
+     * @return 现有会话（如果存在且属于该用户）或新创建的会话
      */
     public AgentState getOrCreateSession(String sessionId, Long userId) {
         if (sessionId != null && !sessionId.isEmpty()) {
-            Optional<AgentState> existing = getSession(sessionId);
+            Optional<AgentState> existing = getSession(sessionId, userId);
             if (existing.isPresent()) {
                 return existing.get();
+            }
+            // 会话存在但不属于该用户，记录警告
+            Optional<AgentState> unauthorizedSession = getSessionInternal(sessionId);
+            if (unauthorizedSession.isPresent()) {
+                log.warn("用户 {} 尝试访问不属于自己的会话 {}", userId, sessionId);
             }
         }
         return createSession(userId);
@@ -87,8 +118,30 @@ public class AgentSessionManager {
     }
     
     /**
-     * 结束会话
+     * 结束会话（带用户权限校验）
+     *
+     * @param sessionId 会话ID
+     * @param userId    用户ID（用于权限校验）
+     * @return true 如果成功结束，false 如果会话不存在或用户无权访问
      */
+    public boolean endSession(String sessionId, Long userId) {
+        Optional<AgentState> state = getSession(sessionId, userId);
+        if (state.isEmpty()) {
+            log.warn("用户 {} 尝试结束不属于自己的会话 {}", userId, sessionId);
+            return false;
+        }
+
+        activeSessions.remove(sessionId);
+        cacheService.delete(getSessionKey(sessionId));
+        log.info("结束 Agent 会话: sessionId={}, userId={}", sessionId, userId);
+        return true;
+    }
+
+    /**
+     * 结束会话（已废弃，请使用带 userId 的版本）
+     * @deprecated 使用 {@link #endSession(String, Long)} 替代
+     */
+    @Deprecated
     public void endSession(String sessionId) {
         activeSessions.remove(sessionId);
         cacheService.delete(getSessionKey(sessionId));

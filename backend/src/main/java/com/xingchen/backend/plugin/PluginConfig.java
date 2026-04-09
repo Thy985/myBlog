@@ -62,6 +62,9 @@ public class PluginConfig {
             return defaultValue;
         }
         Object value = properties.get(key);
+        if (value == null) {
+            return defaultValue;
+        }
         if (value instanceof Boolean) {
             return (Boolean) value;
         }

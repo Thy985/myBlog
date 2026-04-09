@@ -44,6 +44,7 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
             "ZHIPU", Arrays.asList("glm-4-flash", "glm-4-plus", "glm-4"),
             "BAIDU", Arrays.asList("qianfan-code-latest", "ernie-bot-4"),
             "AZURE", Arrays.asList("gpt-4o", "gpt-35-turbo"),
+            "DEEPSEEK", Arrays.asList("deepseek-chat", "deepseek-reasoner"),
             "CUSTOM", Arrays.asList()
     );
 
@@ -52,6 +53,7 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
             "ANTHROPIC", "https://api.anthropic.com",
             "ZHIPU", "https://open.bigmodel.cn/api/paas/v4",
             "BAIDU", "https://qianfan.baidubce.com/v2",
+            "DEEPSEEK", "https://api.deepseek.com",
             "CUSTOM", ""
     );
 
@@ -65,17 +67,6 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
 
     @Override
     public UserApiKey saveOrUpdate(UserApiKey userApiKey) {
-        // 处理 API Key 加密
-        // 优先使用 apiKeyPlain 字段（前端传入的明文）
-        if (userApiKey.getApiKeyPlain() != null && !userApiKey.getApiKeyPlain().isBlank()) {
-            userApiKey.setApiKeyEncrypted(userApiKey.getApiKeyPlain());
-        } else if (userApiKey.getApiKey() != null && !userApiKey.getApiKey().startsWith("ENC:")) {
-            // 兼容旧逻辑：直接传入 apiKey 字段的明文
-            userApiKey.setApiKeyEncrypted(userApiKey.getApiKey());
-        }
-        // 清除临时明文，确保安全
-        userApiKey.setApiKeyPlain(null);
-
         UserApiKey existing = getByUserId(userApiKey.getUserId());
 
         if (existing != null) {
@@ -88,17 +79,42 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
             if (userApiKey.getTopP() != null) {
                 existing.setTopP(userApiKey.getTopP());
             }
-            userApiKey.setId(existing.getId());
-            userApiKey.setUpdateTime(LocalDateTime.now());
-            userApiKeyMapper.update(userApiKey);
+            if (userApiKey.getProvider() != null) {
+                existing.setProvider(userApiKey.getProvider());
+            }
+            if (userApiKey.getBaseUrl() != null) {
+                existing.setBaseUrl(userApiKey.getBaseUrl());
+            }
+            if (userApiKey.getDefaultModel() != null) {
+                existing.setDefaultModel(userApiKey.getDefaultModel());
+            }
+            if (userApiKey.getQuota() != null) {
+                existing.setQuota(userApiKey.getQuota());
+            }
+
+            if (userApiKey.getApiKeyPlain() != null && !userApiKey.getApiKeyPlain().isBlank()) {
+                existing.setApiKeyEncrypted(userApiKey.getApiKeyPlain());
+            } else if (userApiKey.getApiKey() != null && !userApiKey.getApiKey().startsWith("ENC:")) {
+                existing.setApiKeyEncrypted(userApiKey.getApiKey());
+            }
+
+            existing.setUpdateTime(LocalDateTime.now());
+            userApiKeyMapper.update(existing);
+            return existing;
         } else {
+            if (userApiKey.getApiKeyPlain() != null && !userApiKey.getApiKeyPlain().isBlank()) {
+                userApiKey.setApiKeyEncrypted(userApiKey.getApiKeyPlain());
+            } else if (userApiKey.getApiKey() != null && !userApiKey.getApiKey().startsWith("ENC:")) {
+                userApiKey.setApiKeyEncrypted(userApiKey.getApiKey());
+            }
+            userApiKey.setApiKeyPlain(null);
             userApiKey.setCreateTime(LocalDateTime.now());
             userApiKey.setUpdateTime(LocalDateTime.now());
             userApiKey.setUsed(0);
             userApiKey.setEnabled(1);
             userApiKeyMapper.insert(userApiKey);
+            return userApiKey;
         }
-        return userApiKey;
     }
 
     @Override
@@ -131,24 +147,33 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
     @Override
     public String getEffectiveApiKey(Long userId) {
         UserApiKey apiKey = getByUserId(userId);
-        
-        if (apiKey != null && apiKey.getEnabled() == 1 && 
+
+        log.info(">>>>>>>>>>>>> getEffectiveApiKey called: userId={}, apiKey={}, enabled={}, apiKeyPlain={}",
+                userId, 
+                apiKey != null ? apiKey.getApiKeyForLog() : "null",
+                apiKey != null ? apiKey.getEnabled() : "null",
+                apiKey != null ? apiKey.getApiKeyPlain() : "null");
+
+        if (apiKey != null && apiKey.getEnabled() == 1 &&
             apiKey.getApiKey() != null && !apiKey.getApiKey().isEmpty()) {
-            
+
             if (apiKey.getExpireAt() != null && apiKey.getExpireAt().isBefore(LocalDateTime.now())) {
                 log.warn("用户 {} 的 API Key 已过期", userId);
                 return systemDefaultApiKey;
             }
-            
+
             if (apiKey.getQuota() != null && apiKey.getUsed() >= apiKey.getQuota()) {
                 log.warn("用户 {} 的 API Key 配额已用完", userId);
                 return systemDefaultApiKey;
             }
-            
-            // 解密后返回（使用新的 AesUtil）
-            return apiKey.getDecryptedApiKey();
+
+            String decrypted = apiKey.getDecryptedApiKey();
+            log.debug("API Key 解密结果: {}", decrypted != null ? "成功" : "失败");
+            return decrypted;
         }
-        
+
+        log.debug("用户 {} 未配置有效 API Key，使用系统默认. systemDefaultApiKey 配置: {}",
+                userId, systemDefaultApiKey != null && !systemDefaultApiKey.isEmpty() ? "有值" : "空");
         return systemDefaultApiKey;
     }
 
@@ -164,7 +189,7 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
 
     @Override
     public List<String> getAvailableProviders() {
-        return Arrays.asList("OPENAI", "ANTHROPIC", "ZHIPU", "BAIDU", "AZURE", "CUSTOM");
+        return Arrays.asList("OPENAI", "ANTHROPIC", "ZHIPU", "BAIDU", "AZURE", "DEEPSEEK", "CUSTOM");
     }
 
     @Override
@@ -274,6 +299,7 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
             case "AZURE":
                 requestBuilder.addHeader("api-key", apiKey);
                 break;
+            case "DEEPSEEK":
             case "CUSTOM":
                 requestBuilder.addHeader("Authorization", "Bearer " + apiKey);
                 break;
@@ -286,7 +312,7 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
 
     private String getChatEndpoint(String provider) {
         return switch (provider.toUpperCase()) {
-            case "OPENAI", "ZHIPU", "AZURE" -> "/chat/completions";
+            case "OPENAI", "ZHIPU", "AZURE", "DEEPSEEK" -> "/chat/completions";
             case "ANTHROPIC" -> "/v1/messages";
             case "BAIDU" -> "/chat/completions";
             default -> "/v1/chat/completions";

@@ -1,5 +1,6 @@
 package com.xingchen.backend.controller;
 
+import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.stp.StpUtil;
 import com.xingchen.backend.common.PageResult;
@@ -38,6 +39,7 @@ public class CommentController {
         return Result.success(commentService.getRepliesByRootId(rootId, userId));
     }
 
+    @SaCheckLogin
     @PostMapping
     public Result<CommentVO> createComment(@Valid @RequestBody CommentCreateDTO dto,
                                            HttpServletRequest request) {
@@ -47,6 +49,7 @@ public class CommentController {
         return Result.success(commentService.createComment(userId, dto, ip, device));
     }
 
+    @SaCheckLogin
     @DeleteMapping("/{id}")
     public Result<Void> deleteComment(@PathVariable Long id) {
         Long userId = StpUtil.getLoginIdAsLong();
@@ -54,6 +57,7 @@ public class CommentController {
         return Result.success();
     }
 
+    @SaCheckLogin
     @PostMapping("/{id}/like")
     public Result<Void> likeComment(@PathVariable Long id) {
         Long userId = StpUtil.getLoginIdAsLong();
@@ -61,6 +65,7 @@ public class CommentController {
         return Result.success();
     }
 
+    @SaCheckLogin
     @DeleteMapping("/{id}/like")
     public Result<Void> unlikeComment(@PathVariable Long id) {
         Long userId = StpUtil.getLoginIdAsLong();
@@ -91,6 +96,7 @@ public class CommentController {
         return Result.success();
     }
 
+    @SaCheckLogin
     @GetMapping("/user")
     public Result<PageResult<CommentVO>> getUserComments(
             @RequestParam(defaultValue = "1") @Min(1) Integer page,

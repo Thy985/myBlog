@@ -47,7 +47,7 @@ public class QdrantVectorService {
     /**
      * 创建 Collection（如果不存在）
      */
-    private void createCollectionIfNotExists() throws ExecutionException, InterruptedException {
+    public void createCollectionIfNotExists() throws ExecutionException, InterruptedException {
         createCollectionIfNotExists(collectionName, vectorSize);
     }
 
@@ -239,13 +239,64 @@ public class QdrantVectorService {
      */
     public void clearCollection() {
         try {
-            // 使用删除所有点的方式清空
             Points.Filter filter = Points.Filter.newBuilder().build();
             qdrantClient.deleteAsync(collectionName, filter).get();
             log.info("Collection 已清空: {}", collectionName);
         } catch (Exception e) {
             log.error("清空 Collection 失败", e);
             throw new RuntimeException("清空 Collection 失败", e);
+        }
+    }
+
+    /**
+     * 删除 Collection
+     */
+    public void deleteCollection() {
+        deleteCollection(collectionName);
+    }
+
+    /**
+     * 删除 Collection - 指定集合名称
+     */
+    public void deleteCollection(String collectionName) {
+        try {
+            boolean exists = qdrantClient.collectionExistsAsync(collectionName).get();
+            if (exists) {
+                qdrantClient.deleteCollectionAsync(collectionName).get();
+                log.info("Collection 已删除: {}", collectionName);
+            } else {
+                log.info("Collection 不存在，无需删除: {}", collectionName);
+            }
+        } catch (Exception e) {
+            log.error("删除 Collection 失败: {}", collectionName, e);
+            throw new RuntimeException("删除 Collection 失败", e);
+        }
+    }
+
+    /**
+     * 获取 Collection 信息
+     */
+    public Map<String, Object> getCollectionInfo() {
+        return getCollectionInfo(collectionName);
+    }
+
+    /**
+     * 获取 Collection 信息 - 指定集合名称
+     */
+    public Map<String, Object> getCollectionInfo(String collectionName) {
+        try {
+            boolean exists = qdrantClient.collectionExistsAsync(collectionName).get();
+            if (!exists) {
+                return Map.of("exists", false, "name", collectionName);
+            }
+            return Map.of(
+                    "exists", true,
+                    "name", collectionName,
+                    "vectorSize", vectorSize
+            );
+        } catch (Exception e) {
+            log.error("获取 Collection 信息失败: {}", collectionName, e);
+            throw new RuntimeException("获取 Collection 信息失败", e);
         }
     }
 

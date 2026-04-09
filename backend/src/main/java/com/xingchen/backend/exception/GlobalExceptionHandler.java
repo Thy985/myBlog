@@ -5,21 +5,21 @@ import com.xingchen.backend.common.Result;
 import com.xingchen.backend.security.UserRateLimitAspect;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-
 
 /**
  * 全局异常处理器
  * 统一处理各类异常，返回标准化错误响应
  */
 @RestControllerAdvice
-@Slf4j
 public class GlobalExceptionHandler {
+    
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
      * 业务异常
@@ -105,7 +105,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public Result<Void> handleException(Exception e) {
-        log.error("系统异常: ", e);
-        return Result.fail(500, "系统繁忙，请稍后再试");
+        // 记录完整异常堆栈，供调试使用
+        log.error("系统异常 [{}]: {}", e.getClass().getName(), e.getMessage(), e);
+        // 生产环境对用户隐藏具体错误，但返回错误码便于排查
+        return Result.fail(500, "系统繁忙，请稍后再试（错误码：" + e.getClass().getSimpleName() + "）");
     }
 }

@@ -158,19 +158,92 @@ public class FileServiceImpl implements FileService {
     
     private boolean isValidImageFile(MultipartFile file) {
         try (InputStream is = file.getInputStream()) {
-            byte[] header = new byte[8];
+            // 读取 32 字节用于魔数检测（比之前 8 字节更全面）
+            byte[] header = new byte[32];
             int read = is.read(header);
-            if (read < 2) return false;
-            
-            if (header[0] == (byte) 0xFF && header[1] == (byte) 0xD8) return true;
-            if (header[0] == (byte) 0x89 && header[1] == (byte) 0x50 && 
-                header[2] == (byte) 0x4E && header[3] == (byte) 0x47) return true;
-            if (header[0] == (byte) 0x47 && header[1] == (byte) 0x49 && 
-                header[2] == (byte) 0x46) return true;
-            if (header[0] == (byte) 0x42 && header[1] == (byte) 0x4D) return true;
-            if (header[0] == (byte) 0x52 && header[1] == (byte) 0x49 && 
-                header[2] == (byte) 0x46 && header[3] == (byte) 0x46) return true;
-            
+            if (read < 4) return false;
+
+            // ========== 魔数检测 ==========
+            // JPEG: FFD8FF (with optional additional bytes before SOI)
+            if (header[0] == (byte) 0xFF && header[1] == (byte) 0xD8 && header[2] == (byte) 0xFF) {
+                return true;
+            }
+
+            // PNG: 89 50 4E 47 0D 0A 1A 0A (8 bytes)
+            if (read >= 8 &&
+                header[0] == (byte) 0x89 && header[1] == (byte) 0x50 &&
+                header[2] == (byte) 0x4E && header[3] == (byte) 0x47 &&
+                header[4] == (byte) 0x0D && header[5] == (byte) 0x0A &&
+                header[6] == (byte) 0x1A && header[7] == (byte) 0x0A) {
+                return true;
+            }
+
+            // GIF87a: 47 49 46 38 37 61 (6 bytes)
+            if (read >= 6 &&
+                header[0] == (byte) 0x47 && header[1] == (byte) 0x49 &&
+                header[2] == (byte) 0x46 && header[3] == (byte) 0x38 &&
+                (header[4] == (byte) 0x37 || header[4] == (byte) 0x39) &&
+                header[5] == (byte) 0x61) {
+                return true;
+            }
+
+            // BMP: 42 4D (BM)
+            if (header[0] == (byte) 0x42 && header[1] == (byte) 0x4D) {
+                return true;
+            }
+
+            // WebP: 52 49 46 46 ... 57 45 42 50 (RIFF....WEBP)
+            // 需要读取到 32 字节来确认完整的 WebP 签名
+            if (read >= 16 &&
+                header[0] == (byte) 0x52 && header[1] == (byte) 0x49 &&
+                header[2] == (byte) 0x46 && header[3] == (byte) 0x46 &&
+                header[8] == (byte) 0x57 && header[9] == (byte) 0x45 &&
+                header[10] == (byte) 0x42 && header[11] == (byte) 0x50) {
+                return true;
+            }
+
+            // SVG: 开头是 <svg 或 <?xml (文本格式，需读取部分内容判断)
+            if (read >= 4 &&
+                header[0] == 0x3C) { // '<'
+                String start = new String(header, 0, Math.min(read, 32), java.nio.charset.StandardCharsets.UTF_8).trim();
+                if (start.startsWith("<svg") || start.startsWith("<?xml")) {
+                    return true;
+                }
+            }
+
+            // ========== 额外安全检测：验证文件扩展名与内容一致性 ==========
+            String fileName = file.getOriginalFilename();
+            String extension = getFileExtension(fileName);
+            if (extension != null) {
+                extension = extension.toLowerCase();
+                // 如果魔数检测失败，但文件声称是某类型，进行一致性检查
+                if ("jpg".equals(extension) || "jpeg".equals(extension)) {
+                    // JPEG 文件必须以 FFD8 开头
+                    if (header[0] != (byte) 0xFF || header[1] != (byte) 0xD8) return false;
+                } else if ("png".equals(extension)) {
+                    // PNG 必须符合完整 8 字节签名
+                    if (read < 8 ||
+                        !(header[0] == (byte) 0x89 && header[1] == (byte) 0x50 &&
+                          header[2] == (byte) 0x4E && header[3] == (byte) 0x47)) return false;
+                } else if ("gif".equals(extension)) {
+                    if (header[0] != (byte) 0x47 || header[1] != (byte) 0x49 || header[2] != (byte) 0x46) return false;
+                } else if ("bmp".equals(extension)) {
+                    if (header[0] != (byte) 0x42 || header[1] != (byte) 0x4D) return false;
+                } else if ("webp".equals(extension)) {
+                    if (read < 12 ||
+                        !(header[0] == (byte) 0x52 && header[1] == (byte) 0x49 &&
+                          header[2] == (byte) 0x46 && header[3] == (byte) 0x46) ||
+                        !(header[8] == (byte) 0x57 && header[9] == (byte) 0x45 &&
+                          header[10] == (byte) 0x42 && header[11] == (byte) 0x50)) return false;
+                } else if ("svg".equals(extension)) {
+                    // SVG 必须是有效的 XML 格式
+                    if (header[0] != 0x3C) return false;
+                    String content = new String(header, 0, Math.min(read, 32), java.nio.charset.StandardCharsets.UTF_8);
+                    if (!content.trim().startsWith("<svg") && !content.trim().startsWith("<?xml")) return false;
+                }
+            }
+
+            // 有魔数匹配才通过
             return false;
         } catch (IOException e) {
             log.warn("无法读取文件头进行验证: {}", e.getMessage());

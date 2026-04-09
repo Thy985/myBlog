@@ -7,7 +7,6 @@ import com.xingchen.backend.dto.CategoryCreateDTO;
 import com.xingchen.backend.service.CategoryService;
 import com.xingchen.backend.vo.CategoryVO;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,11 +14,14 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/category")
-@RequiredArgsConstructor
 @Validated
 public class CategoryController {
 
     private final CategoryService categoryService;
+    
+    public CategoryController(CategoryService categoryService) {
+        this.categoryService = categoryService;
+    }
 
     @GetMapping("/list")
     public Result<List<CategoryVO>> getCategoryList() {

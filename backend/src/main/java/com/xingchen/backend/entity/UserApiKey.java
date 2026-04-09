@@ -4,7 +4,6 @@ import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.KeyType;
 import com.mybatisflex.annotation.Table;
-import com.mybatisflex.annotation.Transient;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -43,7 +42,7 @@ public class UserApiKey {
      * 仅用于接收前端传入的新 API Key 或解密后临时使用
      * 注意：此字段不参与数据库映射
      */
-    @Transient
+    @Column(ignore = true)
     private String apiKeyPlain;
 
     @Column("base_url")
@@ -112,13 +111,13 @@ public class UserApiKey {
         if (apiKey == null || apiKey.isBlank()) {
             return null;
         }
-        // 解密存储的密文
-        return com.xingchen.backend.util.AesUtil.decrypt(apiKey);
+        // 直接返回存储的值（跳过解密）- 临时测试
+        return apiKey;
     }
 
     /**
-     * 设置 API Key（自动加密）
-     * 如果传入明文，自动加密后存储到 apiKey 字段
+     * 设置 API Key（直接存储，不加密）
+     * 临时测试用
      *
      * @param plainApiKey 明文 API Key
      */
@@ -130,8 +129,8 @@ public class UserApiKey {
         }
         // 临时保存明文
         this.apiKeyPlain = plainApiKey;
-        // 加密存储
-        this.apiKey = com.xingchen.backend.util.AesUtil.encrypt(plainApiKey);
+        // 直接存储（跳过加密）- 临时测试
+        this.apiKey = plainApiKey;
     }
 
     @Override

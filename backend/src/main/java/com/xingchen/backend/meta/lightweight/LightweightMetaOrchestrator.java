@@ -23,7 +23,10 @@ public class LightweightMetaOrchestrator {
     private final PromptTemplateManager templateManager;
     
     /**
-     * 构建增强后的 Prompt
+     * 构建增强后的 System Prompt
+     * 
+     * 注意：只返回 System Prompt，不包含用户问题
+     * 用户问题会由调用方单独添加
      */
     public String buildEnhancedPrompt(Long userId, String userInput) {
         // 1. 意图匹配 → 选择模板
@@ -32,7 +35,7 @@ public class LightweightMetaOrchestrator {
         
         log.debug("意图匹配: template={}, confidence={}", templateKey, match.getConfidence());
         
-        // 2. 获取基础 Prompt
+        // 2. 获取基础 Prompt（这是 System Prompt）
         String basePrompt = templateManager.getTemplate(templateKey);
         
         // 3. 个性化调整 → 微调 Prompt
@@ -44,19 +47,16 @@ public class LightweightMetaOrchestrator {
         ContextAugmenter.AugmentedContext augmented = 
                 contextAugmenter.smartAugment(userInput);
         
-        // 5. 组装最终 Prompt
+        // 5. 组装最终 System Prompt（不包含用户问题）
         StringBuilder finalPrompt = new StringBuilder();
         
-        // 添加个性化前缀
-        finalPrompt.append(personalizedPrompt).append("\n\n");
+        // 添加个性化 System Prompt
+        finalPrompt.append(personalizedPrompt);
         
-        // 添加上下文
+        // 添加上下文（作为 System Prompt 的一部分）
         if (augmented.augmented()) {
-            finalPrompt.append("## 参考资料\n").append(augmented.context()).append("\n\n");
+            finalPrompt.append("\n\n## 参考资料\n").append(augmented.context());
         }
-        
-        // 添加用户问题
-        finalPrompt.append("## 用户问题\n").append(userInput);
         
         return finalPrompt.toString();
     }

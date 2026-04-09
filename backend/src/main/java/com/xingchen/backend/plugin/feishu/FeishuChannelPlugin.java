@@ -53,20 +53,25 @@ public class FeishuChannelPlugin extends AbstractChannelPlugin {
 
         // 加载配置
         PluginConfig config = context.getConfig();
+        log.info("飞书插件加载配置: config={}", config);
+        
         if (config != null) {
+            log.info("飞书插件配置属性: properties={}", config.getProperties());
             this.appId = config.getString("appId", "");
             this.appSecret = config.getString("appSecret", "");
             this.encryptEnabled = config.getBoolean("encryptEnabled", false);
             this.encryptKey = config.getString("encryptKey", "");
+            log.info("飞书插件配置读取: appId={}, appSecret={}", 
+                    appId != null ? "***" : "null", 
+                    appSecret != null ? "***" : "null");
+        } else {
+            log.warn("飞书插件配置为空");
         }
 
-        // 验证配置
-        if (appId.isEmpty() || appSecret.isEmpty()) {
-            throw new IllegalStateException("飞书配置不完整: appId 或 appSecret 为空");
+        // 验证 appId 必须有，appSecret 可以在 initialize 阶段再获取
+        if (appId == null || appId.isEmpty()) {
+            throw new IllegalStateException("飞书配置不完整: appId 不能为空");
         }
-
-        // 创建 HTTP 客户端
-        this.httpClient = new Client.Builder(appId, appSecret).build();
 
         log.info("飞书通道插件加载完成");
     }
@@ -74,6 +79,24 @@ public class FeishuChannelPlugin extends AbstractChannelPlugin {
     @Override
     public void initialize() {
         super.initialize();
+        
+        // 检查是否需要延迟加载 appSecret
+        if ((appSecret == null || appSecret.isEmpty()) && context != null && context.getConfig() != null) {
+            if (Boolean.TRUE.equals(context.getConfig().getProperties().get("_needLazyLoadSecret"))) {
+                log.info("飞书插件 appSecret 将延迟加载，等待 ApplicationReadyEvent");
+                // 不创建 HTTP 客户端，等待后续刷新
+                return;
+            }
+        }
+        
+        // 验证配置完整性
+        if (appSecret == null || appSecret.isEmpty()) {
+            throw new IllegalStateException("飞书配置不完整: appSecret 不能为空");
+        }
+        
+        // 创建 HTTP 客户端
+        this.httpClient = new Client.Builder(appId, appSecret).build();
+        
         log.info("飞书事件处理器初始化完成");
     }
 
@@ -87,6 +110,18 @@ public class FeishuChannelPlugin extends AbstractChannelPlugin {
     public void stop() {
         super.stop();
         log.info("飞书插件已停止");
+    }
+    
+    /**
+     * 更新 appSecret（用于延迟加载）
+     */
+    public void updateAppSecret(String newAppSecret) {
+        this.appSecret = newAppSecret;
+        // 重新创建 HTTP 客户端
+        if (this.appId != null && !this.appId.isEmpty() && this.appSecret != null && !this.appSecret.isEmpty()) {
+            this.httpClient = new Client.Builder(appId, appSecret).build();
+            log.info("飞书插件 HTTP 客户端已更新");
+        }
     }
 
     @Override

@@ -1,7 +1,10 @@
 package com.xingchen.backend.util;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -14,8 +17,14 @@ import java.util.Base64;
 /**
  * AES-256 加密工具类
  * 用于 API Key 等敏感数据的加密存储
+ * <p>
+ * 安全说明：
+ * 1. 使用配置的主密钥（encryption.master-key）派生加密密钥
+ * 2. 支持密钥轮换（通过更新配置并重新加密数据）
+ * 3. 每台服务器应配置独立的 master-key
  */
 @Slf4j
+@Component
 public class AesUtil {
 
     private static final String ALGORITHM = "AES/GCM/NoPadding";
@@ -23,19 +32,53 @@ public class AesUtil {
     private static final int IV_LENGTH = 12;
     private static final int KEY_LENGTH = 32; // 256 bits
 
-    // 基于机器信息生成稳定的密钥
-    private static final byte[] SECRET_KEY;
+    // 从配置读取主密钥
+    @Value("${encryption.master-key:${random.uuid}}")
+    private String masterKeyConfig;
 
-    static {
+    // 派生后的加密密钥
+    private static byte[] SECRET_KEY;
+
+    // 单例实例（用于静态方法调用）
+    private static AesUtil instance;
+
+    @PostConstruct
+    public void init() {
         try {
-            String machineId = System.getProperty("user.name", "default")
-                    + System.getProperty("os.name", "unknown")
-                    + System.getProperty("user.home", "/tmp");
+            log.debug("===========================================");
+            log.debug("AesUtil.init() 被调用!");
+            log.debug("masterKeyConfig = {}", masterKeyConfig);
+            log.debug("===========================================");
+
+            String masterKey = masterKeyConfig != null && !masterKeyConfig.isBlank()
+                    ? masterKeyConfig
+                    : System.getProperty("user.name", "default") + System.currentTimeMillis();
+
             MessageDigest md = MessageDigest.getInstance("SHA-256");
-            SECRET_KEY = Arrays.copyOf(md.digest(machineId.getBytes(StandardCharsets.UTF_8)), KEY_LENGTH);
+            SECRET_KEY = Arrays.copyOf(md.digest(masterKey.getBytes(StandardCharsets.UTF_8)), KEY_LENGTH);
+
+            instance = this;
+            
+            String keySource = masterKeyConfig != null && !masterKeyConfig.contains("${") 
+                    ? "配置文件" : "系统属性/随机生成";
+            log.info("===========================================");
+            log.info("AES-256-GCM 加密工具初始化完成");
+            log.info("密钥来源: {}", keySource);
+            log.info("主密钥: {}", masterKey.length() > 20 ? masterKey.substring(0, 10) + "..." : masterKey);
+            log.info("===========================================");
         } catch (Exception e) {
             throw new RuntimeException("AES 加密初始化失败", e);
         }
+    }
+
+    /**
+     * 获取实例（用于非 Spring 管理的类）
+     */
+    public static AesUtil getInstance() {
+        if (instance == null) {
+            throw new IllegalStateException("AesUtil 尚未初始化");
+        }
+        return instance;
     }
 
     /**
@@ -144,7 +187,6 @@ public class AesUtil {
             plainText = apiKey;
         }
 
-        // 掩码处理：保留前 3 位和后 4 位
         if (plainText.length() <= 10) {
             return "***";
         }

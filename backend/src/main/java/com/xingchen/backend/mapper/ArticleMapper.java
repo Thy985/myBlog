@@ -38,12 +38,15 @@ public interface ArticleMapper extends BaseMapper<Article> {
     List<Article> selectByUserId(@Param("userId") Long userId, @Param("offset") int offset, @Param("size") int size);
 
     // 按关键字分页查询已发布文章（标题+描述）
+    // 注意：LIKE '%xxx%'（前后都有通配符）无法使用索引，数据量大时性能差
+    // 生产环境建议使用 OpenSearch 全文搜索（SearchService 中已集成）
     @Select("SELECT * FROM t_article WHERE status = 1 AND view_status = 1 AND is_deleted = 0 " +
             "AND (title LIKE CONCAT('%', #{keyword}, '%') OR description LIKE CONCAT('%', #{keyword}, '%')) " +
             "ORDER BY top_status DESC, publish_time DESC LIMIT #{offset}, #{size}")
     List<Article> selectByKeyword(@Param("keyword") String keyword, @Param("offset") int offset, @Param("size") int size);
 
     // 搜索文章（标题+描述+内容）
+    // 注意：同上，前后通配符 LIKE 无法命中索引
     @Select("SELECT * FROM t_article WHERE status = 1 AND view_status = 1 AND is_deleted = 0 " +
             "AND (title LIKE CONCAT('%', #{keyword}, '%') OR description LIKE CONCAT('%', #{keyword}, '%') OR content LIKE CONCAT('%', #{keyword}, '%')) " +
             "ORDER BY top_status DESC, publish_time DESC LIMIT #{offset}, #{size}")
@@ -168,6 +171,10 @@ public interface ArticleMapper extends BaseMapper<Article> {
     @Select("SELECT * FROM t_article WHERE status = 1 AND view_status = 1 AND is_deleted = 0 ORDER BY top_status DESC, publish_time DESC")
     List<Article> selectPublicArticles();
 
+    // 查询有限数量的最新公开文章（避免全表扫描，用于相关文章候选集）
+    @Select("SELECT * FROM t_article WHERE status = 1 AND view_status = 1 AND is_deleted = 0 ORDER BY top_status DESC, publish_time DESC LIMIT #{limit}")
+    List<Article> selectRecentPublicArticles(@Param("limit") Integer limit);
+
     // 分页查询已发布文章
     @Select("SELECT * FROM t_article WHERE status = 1 AND view_status = 1 AND is_deleted = 0 ORDER BY top_status DESC, publish_time DESC LIMIT #{offset}, #{size}")
     List<Article> selectPublicArticlesPage(@Param("offset") int offset, @Param("size") int size);
@@ -223,4 +230,10 @@ public interface ArticleMapper extends BaseMapper<Article> {
      */
     @Select("SELECT * FROM t_article WHERE status = 1 AND is_deleted = 0")
     List<Article> selectAllPublished();
+
+    /**
+     * 根据ID列表批量查询文章
+     */
+    @Select("<script>SELECT * FROM t_article WHERE id IN <foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach> AND is_deleted = 0</script>")
+    List<Article> selectByIds(@Param("ids") List<Long> ids);
 }

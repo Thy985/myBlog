@@ -61,7 +61,13 @@ public class FeishuBotServiceImpl implements FeishuBotService {
                 log.warn("用户 {} 没有配置飞书应用", id);
                 return null;
             }
-            return Client.newBuilder(config.getAppId(), config.getAppSecret())
+            // 解密 App Secret
+            String appSecret = config.getDecryptedAppSecret();
+            if (appSecret == null) {
+                log.error("用户 {} 的飞书 App Secret 解密失败", id);
+                return null;
+            }
+            return Client.newBuilder(config.getAppId(), appSecret)
                     .logReqAtDebug(true)
                     .build();
         });

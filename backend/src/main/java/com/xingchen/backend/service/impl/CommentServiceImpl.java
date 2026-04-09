@@ -184,11 +184,29 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private List<CommentVO> buildCommentTree(List<Comment> comments, Long userId) {
+        if (comments == null || comments.isEmpty()) {
+            return new ArrayList<>();
+        }
+
         Map<Long, CommentVO> voMap = new LinkedHashMap<>();
         List<CommentVO> rootComments = new ArrayList<>();
 
+        // 优化N+1查询：预先批量查询所有用户
+        List<Long> userIds = comments.stream()
+                .map(Comment::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, User> userMap = userMapper.selectByIds(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        // 优化N+1查询：预先批量查询点赞状态
+        List<Long> commentIds = comments.stream()
+                .map(Comment::getId)
+                .collect(Collectors.toList());
+        Map<Long, Boolean> likeMap = commentLikeMapper.selectLikedCommentIds(userId, commentIds);
+
         for (Comment comment : comments) {
-            CommentVO vo = convertToVO(comment, userId);
+            CommentVO vo = convertToVO(comment, userId, userMap, likeMap);
             voMap.put(comment.getId(), vo);
         }
 
@@ -210,7 +228,11 @@ public class CommentServiceImpl implements CommentService {
         return rootComments;
     }
 
-    private CommentVO convertToVO(Comment comment, Long currentUserId) {
+    /**
+     * 优化后的convertToVO，使用预查询的数据
+     */
+    private CommentVO convertToVO(Comment comment, Long currentUserId,
+                                   Map<Long, User> userMap, Map<Long, Boolean> likeMap) {
         CommentVO vo = new CommentVO();
         vo.setId(comment.getId());
         vo.setArticleId(comment.getArticleId());
@@ -222,18 +244,34 @@ public class CommentServiceImpl implements CommentService {
         vo.setDevice(comment.getDeviceType());
         vo.setCreatedTime(comment.getCreateTime());
 
-        User user = userMapper.selectOneById(comment.getUserId());
+        // 使用预查询的用户数据
+        User user = userMap.get(comment.getUserId());
         if (user != null) {
             vo.setUsername(user.getUsername());
             vo.setNickname(user.getNickname());
             vo.setAvatar(user.getAvatar());
         }
 
+        // 使用预查询的点赞状态
         if (currentUserId != null) {
-            CommentLike like = commentLikeMapper.selectByCommentAndUser(comment.getId(), currentUserId);
-            vo.setIsLiked(like != null);
+            vo.setIsLiked(Boolean.TRUE.equals(likeMap.get(comment.getId())));
         }
 
         return vo;
+    }
+
+    /**
+     * 原来的convertToVO，保持兼容性（用于单条转换场景）
+     */
+    private CommentVO convertToVO(Comment comment, Long currentUserId) {
+        User user = userMapper.selectOneById(comment.getUserId());
+        Map<Long, User> userMap = new HashMap<>();
+        if (user != null) {
+            userMap.put(user.getId(), user);
+        }
+        Map<Long, Boolean> likeMap = currentUserId != null
+                ? commentLikeMapper.selectLikedCommentIds(currentUserId, List.of(comment.getId()))
+                : new HashMap<>();
+        return convertToVO(comment, currentUserId, userMap, likeMap);
     }
 }

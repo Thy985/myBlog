@@ -2,6 +2,7 @@ package com.xingchen.backend.controller;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.stp.StpUtil;
 import com.xingchen.backend.common.Result;
 import com.xingchen.backend.dto.ChatClearDTO;
 import com.xingchen.backend.dto.ChatRequest;
@@ -9,8 +10,11 @@ import com.xingchen.backend.entity.Article;
 import com.xingchen.backend.entity.ArticleContent;
 import com.xingchen.backend.mapper.ArticleContentMapper;
 import com.xingchen.backend.mapper.ArticleMapper;
+import com.xingchen.backend.memory.MemoryServiceV2;
+import com.xingchen.backend.prompt.PromptBuilder;
 import com.xingchen.backend.service.AIService;
 import com.xingchen.backend.service.ChatSessionService;
+import com.xingchen.backend.vector.QdrantVectorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -36,13 +40,18 @@ public class AIController {
     private final ChatSessionService chatSessionService;
     private final ArticleMapper articleMapper;
     private final ArticleContentMapper articleContentMapper;
+    private final QdrantVectorService qdrantVectorService;
+    private final PromptBuilder promptBuilder;
+    private final MemoryServiceV2 memoryServiceV2;
 
+    @SaCheckLogin
     @PostMapping("/chat")
     public Result<Map<String, Object>> chat(@RequestBody ChatRequest req) {
         if (req.getMessage() == null || req.getMessage().trim().isEmpty()) {
             return Result.error(400, "消息不能为空");
         }
 
+        Long userId = StpUtil.getLoginIdAsLong();
         String sessionId = req.getSessionId() != null ? req.getSessionId() : "default";
         List<Map<String, String>> history = chatSessionService.getHistory(sessionId);
 
@@ -50,10 +59,18 @@ public class AIController {
         if (Boolean.TRUE.equals(req.getUseRag())) {
             response = aiService.chatWithRagAndContext(req.getMessage(), history);
         } else {
-            response = aiService.chatWithContext(req.getMessage(), history);
+            // 使用 PromptBuilder 构建带记忆的提示词
+            String systemPrompt = promptBuilder.buildChatPrompt(userId, req.getMessage(), "default");
+            response = aiService.chatWithUserApiKeyAndPrompt(userId, req.getMessage(), systemPrompt);
         }
 
         chatSessionService.asyncSaveConversation(sessionId, req.getMessage(), response);
+
+        // 异步提取并保存记忆
+        if (req.getMessage().contains("喜欢") || req.getMessage().contains("偏好") ||
+            req.getMessage().contains("项目") || req.getMessage().contains("技术")) {
+            memoryServiceV2.addMemory(userId, req.getMessage(), "PREFERENCE");
+        }
 
         Map<String, Object> result = new HashMap<>();
         result.put("response", response);
@@ -166,5 +183,38 @@ public class AIController {
     public Result<Void> clearKnowledgeBase() {
         aiService.clearKnowledgeBase();
         return Result.success(null);
+    }
+
+    @SaCheckRole("admin")
+    @GetMapping("/vector/info")
+    public Result<Map<String, Object>> getVectorInfo() {
+        Map<String, Object> info = qdrantVectorService.getCollectionInfo();
+        return Result.success(info);
+    }
+
+    @SaCheckRole("admin")
+    @PostMapping("/vector/delete")
+    public Result<Void> deleteVectorCollection(@RequestParam(required = false, defaultValue = "false") boolean confirm) {
+        if (!confirm) {
+            return Result.fail(400, "请确认删除操作：添加 ?confirm=true 参数");
+        }
+        qdrantVectorService.deleteCollection();
+        return Result.success(null);
+    }
+
+    @SaCheckRole("admin")
+    @PostMapping("/vector/recreate")
+    public Result<String> recreateVectorCollection(@RequestParam(required = false, defaultValue = "false") boolean confirm) {
+        if (!confirm) {
+            return Result.fail(400, "请确认重建操作：添加 ?confirm=true 参数");
+        }
+        try {
+            qdrantVectorService.deleteCollection();
+            qdrantVectorService.createCollectionIfNotExists();
+            aiService.indexAllArticles();
+            return Result.success("Collection 已重建并重新索引");
+        } catch (Exception e) {
+            return Result.fail(500, "重建失败: " + e.getMessage());
+        }
     }
 }

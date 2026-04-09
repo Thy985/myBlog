@@ -226,11 +226,8 @@ public class AdminServiceImpl implements AdminService {
      * 获取或创建博客设置（复用方法，避免重复查询）
      */
     private BlogSetting getOrCreateBlogSetting() {
-        List<BlogSetting> settings = blogSettingMapper.selectAll();
-        if (settings.isEmpty()) {
-            return new BlogSetting();
-        }
-        return settings.get(0);
+        BlogSetting setting = blogSettingMapper.selectFirst();
+        return setting != null ? setting : new BlogSetting();
     }
 
     /**

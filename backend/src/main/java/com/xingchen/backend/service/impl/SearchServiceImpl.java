@@ -8,6 +8,7 @@ import com.xingchen.backend.mapper.SearchHistoryMapper;
 import com.xingchen.backend.service.SearchService;
 import com.xingchen.backend.vo.ArticleListVO;
 import com.xingchen.backend.vo.SearchResultVO;
+import cn.hutool.http.HtmlUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -38,6 +39,7 @@ public class SearchServiceImpl implements SearchService {
         List<Article> articles = articleMapper.searchByKeyword(keyword, offset, size);
         List<ArticleListVO> voList = articles.stream()
                 .map(this::convertToListVO)
+                .map(this::escapeSearchResult)
                 .collect(Collectors.toList());
 
         Long total = articleMapper.countByKeyword(keyword);
@@ -57,8 +59,9 @@ public class SearchServiceImpl implements SearchService {
                 SearchResultVO vo = new SearchResultVO();
                 vo.setType("article");
                 vo.setId(article.getId());
-                vo.setTitle(article.getTitle());
-                vo.setContent(article.getDescription());
+                // XSS 防护：HTML 转义搜索结果中的标题和描述
+                vo.setTitle(HtmlUtil.escape(article.getTitle() != null ? article.getTitle() : ""));
+                vo.setContent(HtmlUtil.escape(article.getDescription() != null ? article.getDescription() : ""));
                 results.add(vo);
             }
         }
@@ -117,6 +120,19 @@ public class SearchServiceImpl implements SearchService {
     private ArticleListVO convertToListVO(Article article) {
         ArticleListVO vo = new ArticleListVO();
         BeanUtils.copyProperties(article, vo);
+        return vo;
+    }
+
+    /**
+     * XSS 防护：对搜索结果中的标题和摘要进行 HTML 转义
+     */
+    private ArticleListVO escapeSearchResult(ArticleListVO vo) {
+        if (vo.getTitle() != null) {
+            vo.setTitle(HtmlUtil.escape(vo.getTitle()));
+        }
+        if (vo.getDescription() != null) {
+            vo.setDescription(HtmlUtil.escape(vo.getDescription()));
+        }
         return vo;
     }
 }

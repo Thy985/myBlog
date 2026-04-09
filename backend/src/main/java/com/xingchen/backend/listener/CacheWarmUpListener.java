@@ -32,7 +32,9 @@ public class CacheWarmUpListener implements ApplicationListener<ApplicationReady
             warmUpArticleList();
             log.info("缓存预热完成");
         } catch (Exception e) {
-            log.error("缓存预热失败：{}", e.getMessage(), e);
+            log.error("缓存预热失败：{} - {}", e.getClass().getName(), e.getMessage(), e);
+            // 缓存预热失败不应导致应用退出，只记录错误
+            log.warn("缓存预热失败，应用将继续启动");
         }
     }
 

@@ -1,5 +1,6 @@
 package com.xingchen.backend.controller;
 
+import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.stp.StpUtil;
 import com.xingchen.backend.aspect.RateLimit;
 import com.xingchen.backend.common.PageResult;
@@ -29,18 +30,21 @@ public class ArticleController {
     private final ArticleService articleService;
     private final SearchService searchService;
 
+    @SaCheckLogin
     @PostMapping
     public Result<ArticleVO> createArticle(@Valid @RequestBody ArticleCreateDTO dto) {
         Long userId = StpUtil.getLoginIdAsLong();
         return Result.success(articleService.createArticle(userId, dto));
     }
 
+    @SaCheckLogin
     @PutMapping("/{id}")
     public Result<ArticleVO> updateArticle(@PathVariable Long id, @Valid @RequestBody ArticleUpdateDTO dto) {
         Long userId = StpUtil.getLoginIdAsLong();
         return Result.success(articleService.updateArticle(userId, id, dto));
     }
 
+    @SaCheckLogin
     @DeleteMapping("/{id}")
     public Result<Void> deleteArticle(@PathVariable Long id) {
         Long userId = StpUtil.getLoginIdAsLong();
@@ -77,6 +81,7 @@ public class ArticleController {
         return Result.success(articleService.getHotArticles(limit));
     }
 
+    @SaCheckLogin
     @PostMapping("/{id}/publish")
     public Result<Void> publishArticle(@PathVariable Long id) {
         Long userId = StpUtil.getLoginIdAsLong();
@@ -84,6 +89,7 @@ public class ArticleController {
         return Result.success();
     }
 
+    @SaCheckLogin
     @PostMapping("/{id}/offline")
     @RateLimit(perMinute = 10, message = "下线操作过于频繁")
     public Result<Void> offlineArticle(@PathVariable Long id) {
@@ -92,6 +98,7 @@ public class ArticleController {
         return Result.success();
     }
 
+    @SaCheckLogin
     @PostMapping("/{id}/top")
     public Result<Void> topArticle(@PathVariable Long id, @RequestParam Boolean isTop) {
         Long userId = StpUtil.getLoginIdAsLong();
@@ -99,6 +106,7 @@ public class ArticleController {
         return Result.success();
     }
 
+    @SaCheckLogin
     @PostMapping("/{id}/like")
     public Result<Void> likeArticle(@PathVariable Long id) {
         Long userId = StpUtil.getLoginIdAsLong();
@@ -106,6 +114,7 @@ public class ArticleController {
         return Result.success();
     }
 
+    @SaCheckLogin
     @DeleteMapping("/{id}/like")
     public Result<Void> unlikeArticle(@PathVariable Long id) {
         Long userId = StpUtil.getLoginIdAsLong();
@@ -113,6 +122,7 @@ public class ArticleController {
         return Result.success();
     }
 
+    @SaCheckLogin
     @PostMapping("/{id}/collect")
     public Result<Void> collectArticle(@PathVariable Long id) {
         Long userId = StpUtil.getLoginIdAsLong();
@@ -120,6 +130,7 @@ public class ArticleController {
         return Result.success();
     }
 
+    @SaCheckLogin
     @DeleteMapping("/{id}/collect")
     public Result<Void> uncollectArticle(@PathVariable Long id) {
         Long userId = StpUtil.getLoginIdAsLong();
@@ -127,6 +138,7 @@ public class ArticleController {
         return Result.success();
     }
 
+    @SaCheckLogin
     @GetMapping("/user/collects")
     public Result<PageResult<ArticleListVO>> getUserCollects(
             @RequestParam(defaultValue = "1") @Min(1) Integer page,
@@ -142,6 +154,7 @@ public class ArticleController {
         return Result.success(articleService.getArticleArchive(page, size));
     }
 
+    @SaCheckLogin
     @GetMapping("/user/archive")
     public Result<Map<String, Object>> getUserArticleArchive(
             @RequestParam(defaultValue = "1") @Min(1) Integer page,
@@ -150,7 +163,8 @@ public class ArticleController {
         return Result.success(articleService.getUserArticleArchive(userId, page, size));
     }
 
-    @PutMapping("/{id}/read")
+    @SaCheckLogin
+    @PostMapping("/{id}/read")
     public Result<Void> updateReadNum(@PathVariable Long id) {
         articleService.updateReadNum(id);
         return Result.success();
@@ -161,11 +175,11 @@ public class ArticleController {
         return Result.success(articleService.getArticleReadStats(id));
     }
 
-    @GetMapping("/{id}/related")
+    @GetMapping("/related")
     public Result<List<ArticleListVO>> getRelatedArticles(
-            @PathVariable Long id,
+            @RequestParam Long articleId,
             @RequestParam(defaultValue = "5") @Min(1) @Max(20) Integer limit) {
-        return Result.success(articleService.getRelatedArticles(id, limit));
+        return Result.success(articleService.getRelatedArticles(articleId, limit));
     }
 
     @GetMapping("/search")

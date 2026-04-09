@@ -5,7 +5,7 @@ import com.xingchen.backend.entity.FeishuAppConfig;
 import com.xingchen.backend.mapper.FeishuAppConfigMapper;
 import com.xingchen.backend.service.FeishuAppConfigService;
 import com.xingchen.backend.service.FeishuWebSocketManager;
-import com.xingchen.backend.util.ApiKeyEncryptor;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,14 +27,7 @@ public class FeishuAppConfigServiceImpl implements FeishuAppConfigService {
                         .where(FeishuAppConfig::getUserId).eq(userId)
         );
 
-        // 解密 App Secret
-        if (config != null && config.getAppSecret() != null && !config.getAppSecret().isEmpty()) {
-            try {
-                config.setAppSecret(ApiKeyEncryptor.decrypt(config.getAppSecret()));
-            } catch (Exception e) {
-                log.warn("解密飞书 App Secret 失败: {}", e.getMessage());
-            }
-        }
+        // App Secret 保持加密状态，需要时通过 getDecryptedAppSecret() 解密
 
         return config;
     }
@@ -43,9 +36,10 @@ public class FeishuAppConfigServiceImpl implements FeishuAppConfigService {
     public FeishuAppConfig saveOrUpdate(FeishuAppConfig config) {
         FeishuAppConfig existing = getByUserId(config.getUserId());
 
-        // 加密 App Secret
-        if (config.getAppSecret() != null && !config.getAppSecret().isEmpty()) {
-            config.setAppSecret(ApiKeyEncryptor.encrypt(config.getAppSecret()));
+        // 加密 App Secret（如果传入的是明文）
+        if (config.getAppSecret() != null && !config.getAppSecret().isEmpty()
+                && !config.getAppSecret().startsWith("ENC:")) {
+            config.setAppSecretEncrypted(config.getAppSecret());
         }
 
         if (existing != null) {
@@ -68,15 +62,7 @@ public class FeishuAppConfigServiceImpl implements FeishuAppConfigService {
         if (config.getEnabled() != null && config.getEnabled() == 1) {
             // 启用状态，启动连接
             String appId = config.getAppId();
-            String appSecret = config.getAppSecret();
-            // 解密 App Secret 用于连接
-            if (appSecret != null && !appSecret.isEmpty()) {
-                try {
-                    appSecret = ApiKeyEncryptor.decrypt(appSecret);
-                } catch (Exception e) {
-                    log.error("解密 App Secret 失败: {}", e.getMessage());
-                }
-            }
+            String appSecret = config.getDecryptedAppSecret();
             feishuWebSocketManager.startConnection(userId, appId, appSecret);
             config.setConnectionStatus("CONNECTED");
             config.setLastConnectedAt(LocalDateTime.now());
@@ -106,7 +92,7 @@ public class FeishuAppConfigServiceImpl implements FeishuAppConfigService {
             return false;
         }
 
-        // TODO: 实现实际的连接测试
+        // 实际的连接测试待实现
         // 这里可以调用飞书 API 测试凭证是否有效
 
         return config.getAppId() != null && !config.getAppId().isEmpty()

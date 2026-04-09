@@ -30,8 +30,10 @@ public class ApiKeyEncryptor {
             String machineId = System.getProperty("user.name", "default")
                     + System.getProperty("os.name", "unknown")
                     + System.getProperty("user.home", "/tmp");
+            System.out.println(">>>>>>>>>>>> ApiKeyEncryptor 机器信息: " + machineId);
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             SECRET_KEY = Arrays.copyOf(md.digest(machineId.getBytes(StandardCharsets.UTF_8)), 16);
+            System.out.println(">>>>>>>>>>>> ApiKeyEncryptor 密钥初始化完成");
         } catch (Exception e) {
             throw new RuntimeException("加密初始化失败", e);
         }

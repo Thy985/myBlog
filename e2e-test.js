@@ -3,7 +3,6 @@ const { chromium } = require('playwright');
 const API_URL = 'http://localhost:8080/api';
 const ADMIN_USER = 'admin';
 const ADMIN_PASS = '147258369Thy@';
-
 let authToken = '';
 
 async function sleep(ms) {

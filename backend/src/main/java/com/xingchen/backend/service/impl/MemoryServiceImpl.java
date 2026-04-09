@@ -72,7 +72,9 @@ public class MemoryServiceImpl implements MemoryService {
                         ## 经验教训
                         """);
             }
-            initSqlite(userId);
+            try (Connection conn = getConnection(userId)) {
+                initSqlite(conn);
+            }
         } catch (Exception e) {
             log.error("初始化记忆失败: {}", userId, e);
         }
@@ -300,11 +302,12 @@ public class MemoryServiceImpl implements MemoryService {
         Path dbPath = getUserDir(userId).resolve("memory.db");
         Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
         conn.createStatement().execute("PRAGMA journal_mode=WAL");
+        initSqlite(conn);
         return conn;
     }
 
-    private void initSqlite(Long userId) {
-        try (Connection conn = getConnection(userId); Statement stmt = conn.createStatement()) {
+    private void initSqlite(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
             stmt.execute("CREATE TABLE IF NOT EXISTS conversation (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT, content TEXT, created_at TEXT)");
             stmt.execute("CREATE TABLE IF NOT EXISTS entity (name TEXT PRIMARY KEY, type TEXT, content TEXT, updated_at TEXT)");
             stmt.execute("CREATE TABLE IF NOT EXISTS preference (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT)");
@@ -314,13 +317,121 @@ public class MemoryServiceImpl implements MemoryService {
     }
 
     private void cleanupOld(Long userId) {
-        String sql = "DELETE FROM conversation WHERE id NOT IN (SELECT id FROM conversation ORDER BY id DESC LIMIT ?)";
+        // 1. 按数量清理 - 保留最近 maxRounds * 2 条
+        String sqlCount = "DELETE FROM conversation WHERE id NOT IN (SELECT id FROM conversation ORDER BY id DESC LIMIT ?)";
         try (Connection conn = getConnection(userId);
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sqlCount)) {
             stmt.setInt(1, maxRounds * 2);
-            stmt.executeUpdate();
+            int deleted = stmt.executeUpdate();
+            if (deleted > 0) {
+                log.debug("用户 {} 清理旧对话 {} 条（数量限制）", userId, deleted);
+            }
         } catch (Exception e) {
             log.error("清理旧对话失败: {}", e.getMessage(), e);
+        }
+
+        // 2. 按时间清理 - 删除超过 90 天的对话
+        String sqlTime = "DELETE FROM conversation WHERE created_at < datetime('now', '-90 days')";
+        try (Connection conn = getConnection(userId);
+             PreparedStatement stmt = conn.prepareStatement(sqlTime)) {
+            int deleted = stmt.executeUpdate();
+            if (deleted > 0) {
+                log.info("用户 {} 归档旧对话 {} 条（超过90天）", userId, deleted);
+            }
+        } catch (Exception e) {
+            log.error("按时间清理对话失败: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 归档旧记忆（超过保留期的数据）
+     * 由定时任务调用
+     */
+    @Override
+    public void archiveOldMemories(Long userId, int retentionDays) {
+        String cutoffDate = java.time.LocalDateTime.now()
+                .minusDays(retentionDays)
+                .toString();
+
+        // 1. 归档对话历史到文件
+        String selectSql = "SELECT role, content, created_at FROM conversation WHERE created_at < ? ORDER BY created_at";
+        String archiveFileName = "conversation_archive_" + userId + "_" + java.time.LocalDate.now() + ".json";
+
+        try (Connection conn = getConnection(userId);
+             PreparedStatement stmt = conn.prepareStatement(selectSql)) {
+            stmt.setString(1, cutoffDate);
+            ResultSet rs = stmt.executeQuery();
+
+            java.util.List<java.util.Map<String, Object>> archivedConversations = new java.util.ArrayList<>();
+            while (rs.next()) {
+                archivedConversations.add(java.util.Map.of(
+                        "role", rs.getString("role"),
+                        "content", rs.getString("content"),
+                        "created_at", rs.getString("created_at")
+                ));
+            }
+
+            if (!archivedConversations.isEmpty()) {
+                // 写入归档文件
+                Path archiveDir = getUserDir(userId).resolve("archives");
+                Files.createDirectories(archiveDir);
+                Path archiveFile = archiveDir.resolve(archiveFileName);
+
+                String json = new com.fasterxml.jackson.databind.ObjectMapper()
+                        .writerWithDefaultPrettyPrinter()
+                        .writeValueAsString(archivedConversations);
+                Files.writeString(archiveFile, json);
+
+                // 删除已归档的数据
+                String deleteSql = "DELETE FROM conversation WHERE created_at < ?";
+                try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
+                    deleteStmt.setString(1, cutoffDate);
+                    int deleted = deleteStmt.executeUpdate();
+                    log.info("用户 {} 归档 {} 条对话到 {}", userId, deleted, archiveFileName);
+                }
+            }
+        } catch (Exception e) {
+            log.error("归档记忆失败: {}", e.getMessage(), e);
+        }
+
+        // 2. 清理 MEMORY.md 中过期的条目（可选）
+        cleanupOldMemoryEntries(userId, retentionDays);
+    }
+
+    /**
+     * 清理 MEMORY.md 中过期的条目
+     */
+    private void cleanupOldMemoryEntries(Long userId, int retentionDays) {
+        try {
+            Path memFile = getUserDir(userId).resolve("MEMORY.md");
+            if (!Files.exists(memFile)) return;
+
+            String content = Files.readString(memFile);
+            java.time.LocalDate cutoffDate = java.time.LocalDate.now().minusDays(retentionDays);
+
+            // 简单清理：删除包含过期日期的行（格式: (YYYY-MM-DD)）
+            String[] lines = content.split("\n");
+            StringBuilder cleaned = new StringBuilder();
+            int removedCount = 0;
+
+            for (String line : lines) {
+                java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("\\((\\d{4}-\\d{2}-\\d{2})\\)").matcher(line);
+                if (matcher.find()) {
+                    java.time.LocalDate entryDate = java.time.LocalDate.parse(matcher.group(1));
+                    if (entryDate.isBefore(cutoffDate)) {
+                        removedCount++;
+                        continue; // 跳过过期条目
+                    }
+                }
+                cleaned.append(line).append("\n");
+            }
+
+            if (removedCount > 0) {
+                Files.writeString(memFile, cleaned.toString());
+                log.info("用户 {} 清理 MEMORY.md 中 {} 条过期条目", userId, removedCount);
+            }
+        } catch (Exception e) {
+            log.warn("清理 MEMORY.md 失败: {}", e.getMessage());
         }
     }
 

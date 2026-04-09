@@ -190,7 +190,7 @@ public class ArticleGenerationServiceImpl implements ArticleGenerationService {
     @Override
     @Transactional
     public Article generateArticleByTask(Long userId, Long taskId) {
-        // TODO: 根据任务ID获取任务配置并生成文章
+        // 根据任务ID获取任务配置并生成文章功能待实现
         throw new UnsupportedOperationException("根据任务生成文章功能尚未实现");
     }
 }

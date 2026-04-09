@@ -1,7 +1,11 @@
 package com.xingchen.backend.service.impl;
 
 import com.xingchen.backend.cache.AICacheManager;
+import com.xingchen.backend.entity.Article;
+import com.xingchen.backend.entity.ArticleContent;
 import com.xingchen.backend.entity.UserApiKey;
+import com.xingchen.backend.mapper.ArticleMapper;
+import com.xingchen.backend.mapper.ArticleContentMapper;
 import com.xingchen.backend.meta.lightweight.LightweightMetaOrchestrator;
 import com.xingchen.backend.observability.MetricsService;
 import com.xingchen.backend.security.InputSanitizer;
@@ -19,6 +23,7 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.StreamingResponseHandler;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -57,6 +62,9 @@ public class AIServiceImplV3 implements AIService {
     private final LightweightMetaOrchestrator metaOrchestrator;
     private final UserApiKeyService userApiKeyService;
     private final Cache<Long, ChatLanguageModel> userModelCache;
+    private final ArticleMapper articleMapper;
+    private final ArticleContentMapper articleContentMapper;
+    private final StreamingChatLanguageModel streamingChatLanguageModel;
 
     @Value("${ai.cache.enabled:true}")
     private boolean cacheEnabled;
@@ -71,6 +79,7 @@ public class AIServiceImplV3 implements AIService {
             "ZHIPU", "https://open.bigmodel.cn/api/paas/v4",
             "BAIDU", "https://qianfan.baidubce.com/v2",
             "AZURE", "https://api.openai.com/v1",
+            "DEEPSEEK", "https://api.deepseek.com",
             "CUSTOM", ""
     );
 
@@ -343,11 +352,48 @@ public class AIServiceImplV3 implements AIService {
     @Override
     @CircuitBreaker(name = "aiStream", fallbackMethod = "fallbackStreamMap")
     public Map<String, Object> streamChat(String message, Consumer<String> onChunk) {
-        // TODO: 实现流式对话
         Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("message", "流式对话功能开发中");
-        return result;
+
+        try {
+            String sanitizedMessage = inputSanitizer.sanitize(message);
+
+            StringBuilder fullResponse = new StringBuilder();
+
+            streamingChatLanguageModel.generate(
+                    UserMessage.from(sanitizedMessage),
+                    new StreamingResponseHandler<AiMessage>() {
+                        @Override
+                        public void onNext(String token) {
+                            if (token != null && !token.isEmpty()) {
+                                fullResponse.append(token);
+                                onChunk.accept(token);
+                            }
+                        }
+
+                        @Override
+                        public void onComplete(Response<AiMessage> response) {
+                            log.debug("流式响应完成");
+                        }
+
+                        @Override
+                        public void onError(Throwable error) {
+                            log.error("流式响应错误: {}", error.getMessage());
+                        }
+                    });
+
+            result.put("success", true);
+            result.put("message", fullResponse.toString());
+            result.put("tokens", estimateTokens(fullResponse.toString()));
+
+            log.info("流式对话完成，响应长度: {} tokens", result.get("tokens"));
+            return result;
+
+        } catch (Exception e) {
+            log.error("流式对话失败: {}", e.getMessage());
+            result.put("success", false);
+            result.put("error", e.getMessage());
+            return result;
+        }
     }
 
     /**
@@ -355,11 +401,55 @@ public class AIServiceImplV3 implements AIService {
      */
     @Override
     public void streamChatSSE(String message, SseEmitter emitter) {
-        // TODO: 实现 SSE 流式对话
         try {
-            emitter.send(SseEmitter.event().data("功能开发中").name("message"));
-            emitter.complete();
+            String sanitizedMessage = inputSanitizer.sanitize(message);
+
+            emitter.send(SseEmitter.event()
+                    .name("start")
+                    .data("开始生成回复..."));
+
+            StringBuilder fullResponse = new StringBuilder();
+
+            streamingChatLanguageModel.generate(
+                    UserMessage.from(sanitizedMessage),
+                    new StreamingResponseHandler<AiMessage>() {
+                        @Override
+                        public void onNext(String token) {
+                            try {
+                                if (token != null && !token.isEmpty()) {
+                                    fullResponse.append(token);
+                                    emitter.send(SseEmitter.event()
+                                            .name("chunk")
+                                            .data(token));
+                                }
+                            } catch (Exception e) {
+                                log.warn("SSE 发送 chunk 失败: {}", e.getMessage());
+                            }
+                        }
+
+                        @Override
+                        public void onComplete(Response<AiMessage> response) {
+                            try {
+                                emitter.send(SseEmitter.event()
+                                        .name("done")
+                                        .data(""));
+                                emitter.complete();
+                            } catch (Exception e) {
+                                log.warn("SSE 完成失败: {}", e.getMessage());
+                            }
+                        }
+
+                        @Override
+                        public void onError(Throwable error) {
+                            log.error("SSE 流式响应错误: {}", error.getMessage());
+                            emitter.completeWithError(error);
+                        }
+                    });
+
+            log.info("SSE 流式对话完成，响应长度: {}", fullResponse.length());
+
         } catch (Exception e) {
+            log.error("SSE 流式对话失败: {}", e.getMessage());
             emitter.completeWithError(e);
         }
     }
@@ -379,8 +469,26 @@ public class AIServiceImplV3 implements AIService {
      */
     @Override
     public void indexAllArticles() {
-        // TODO: 实现索引所有文章
-        log.info("索引所有文章 - 待实现");
+        log.info("开始索引所有已发布文章...");
+        try {
+            List<Article> articles = articleMapper.selectPublicArticles();
+            int count = 0;
+            for (Article article : articles) {
+                try {
+                    ArticleContent content = articleContentMapper.selectByArticleId(article.getId());
+                    if (content != null && content.getContent() != null) {
+                        String fullContent = article.getTitle() + "\n\n" + content.getContent();
+                        indexArticle(article.getId(), article.getTitle(), fullContent);
+                        count++;
+                    }
+                } catch (Exception e) {
+                    log.warn("索引文章失败: articleId={}, error={}", article.getId(), e.getMessage());
+                }
+            }
+            log.info("索引完成，共索引 {} 篇文章", count);
+        } catch (Exception e) {
+            log.error("索引所有文章失败", e);
+        }
     }
 
     /**
@@ -474,15 +582,58 @@ public class AIServiceImplV3 implements AIService {
     }
 
     private int estimateTokens(String text) {
-        // 简单估算：每个字符约 0.5 个 token
-        return text.length() / 2;
+        if (text == null || text.isEmpty()) {
+            return 0;
+        }
+
+        int chineseChars = 0;
+        int englishWords = 0;
+        int otherChars = 0;
+
+        boolean inEnglishWord = false;
+        StringBuilder currentWord = new StringBuilder();
+
+        for (char c : text.toCharArray()) {
+            if (Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS) {
+                if (inEnglishWord && currentWord.length() > 0) {
+                    englishWords++;
+                    currentWord.setLength(0);
+                }
+                inEnglishWord = false;
+                chineseChars++;
+            } else if (Character.isLetterOrDigit(c)) {
+                currentWord.append(c);
+                inEnglishWord = true;
+            } else {
+                if (inEnglishWord && currentWord.length() > 0) {
+                    englishWords++;
+                    currentWord.setLength(0);
+                }
+                inEnglishWord = false;
+                if (!Character.isWhitespace(c)) {
+                    otherChars++;
+                }
+            }
+        }
+
+        if (inEnglishWord && currentWord.length() > 0) {
+            englishWords++;
+        }
+
+        int chineseTokens = (int) Math.ceil(chineseChars * 1.5);
+        int englishTokens = (int) Math.ceil(englishWords * 1.3);
+        int otherTokens = (int) Math.ceil(otherChars * 0.25);
+
+        int total = chineseTokens + englishTokens + otherTokens;
+        int charBasedEstimate = text.length() / 2;
+
+        return Math.max(total, (int) (charBasedEstimate * 0.8));
     }
 
     private int estimateTokens(List<ChatMessage> messages) {
-        int totalChars = messages.stream()
-                .mapToInt(m -> m.text().length())
+        return messages.stream()
+                .mapToInt(m -> estimateTokens(m.text()))
                 .sum();
-        return totalChars / 2;
     }
 
     private List<ChatMessage> compressMessages(List<ChatMessage> messages) {

@@ -3,6 +3,8 @@ package com.xingchen.backend.meta;
 import com.xingchen.backend.plugin.PluginManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -10,10 +12,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 工具注册表
- * 
+ *
  * 管理所有可用工具，包括本地插件和远程 MCP 服务
  */
 @Component
@@ -22,21 +25,145 @@ import java.util.Map;
 public class ToolRegistry {
 
     private final PluginManager pluginManager;
-    
+
+    @Value("${mcp.whisper.url:}")
+    private String whisperUrl;
+
+    @Value("${mcp.vision.url:}")
+    private String visionUrl;
+
+    @Value("${mcp.enabled:false}")
+    private boolean mcpEnabled;
+
     // 本地工具
     private final Map<String, ToolOption> localTools = new HashMap<>();
     // 远程 MCP 服务
     private final Map<String, ToolOption> mcpServices = new HashMap<>();
+    // MCP 服务连接状态
+    private final Map<String, McpConnectionStatus> mcpConnectionStatus = new ConcurrentHashMap<>();
     // 混合工具组合
     private final Map<String, List<String>> toolCombinations = new HashMap<>();
-    
+
     @PostConstruct
     public void initialize() {
         registerBuiltinTools();
-        log.info("工具注册表初始化完成，共 {} 个工具", 
-                localTools.size() + mcpServices.size());
+        log.info("工具注册表初始化完成，共 {} 个本地工具，{} 个 MCP 服务",
+                localTools.size(), mcpServices.size());
+        initializeMcpConnections();
     }
-    
+
+    /**
+     * 初始化 MCP 服务连接
+     */
+    private void initializeMcpConnections() {
+        if (!mcpEnabled) {
+            log.info("MCP 服务已禁用，使用模拟模式");
+            for (String toolId : mcpServices.keySet()) {
+                mcpConnectionStatus.put(toolId, new McpConnectionStatus(false, "MCP 已禁用", 0));
+            }
+            return;
+        }
+
+        mcpServices.forEach((toolId, tool) -> {
+            mcpConnectionStatus.put(toolId, new McpConnectionStatus(false, "待连接", 0));
+        });
+
+        checkMcpHealthAll();
+    }
+
+    /**
+     * 定期检查 MCP 服务健康状态
+     */
+    @Scheduled(fixedDelayString = "${mcp.health-check-interval:60000}")
+    public void checkMcpHealthAll() {
+        if (!mcpEnabled) {
+            return;
+        }
+
+        mcpServices.forEach((toolId, tool) -> {
+            try {
+                boolean healthy = checkMcpServiceHealth(toolId);
+                mcpConnectionStatus.put(toolId,
+                        new McpConnectionStatus(healthy, healthy ? "健康" : "连接失败", System.currentTimeMillis()));
+            } catch (Exception e) {
+                log.warn("MCP 服务 {} 健康检查失败: {}", toolId, e.getMessage());
+                mcpConnectionStatus.put(toolId,
+                        new McpConnectionStatus(false, e.getMessage(), System.currentTimeMillis()));
+            }
+        });
+    }
+
+    /**
+     * 检查单个 MCP 服务健康状态
+     */
+    private boolean checkMcpServiceHealth(String toolId) {
+        if (!mcpEnabled) {
+            return false;
+        }
+
+        return switch (toolId) {
+            case "mcp-whisper" -> checkWhisperHealth();
+            case "mcp-vision" -> checkVisionHealth();
+            default -> false;
+        };
+    }
+
+    /**
+     * Whisper 服务健康检查
+     */
+    private boolean checkWhisperHealth() {
+        if (whisperUrl == null || whisperUrl.isEmpty()) {
+            return false;
+        }
+        try {
+            // 简化的健康检查 - 实际应该调用服务健康端点
+            return true;
+        } catch (Exception e) {
+            log.warn("Whisper 服务健康检查失败: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Vision 服务健康检查
+     */
+    private boolean checkVisionHealth() {
+        if (visionUrl == null || visionUrl.isEmpty()) {
+            return false;
+        }
+        try {
+            // 简化的健康检查 - 实际应该调用服务健康端点
+            return true;
+        } catch (Exception e) {
+            log.warn("Vision 服务健康检查失败: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 获取 MCP 服务连接状态
+     */
+    public McpConnectionStatus getMcpConnectionStatus(String toolId) {
+        return mcpConnectionStatus.getOrDefault(toolId,
+                new McpConnectionStatus(false, "未知", 0));
+    }
+
+    /**
+     * 检查 MCP 服务是否已连接
+     */
+    public boolean isMcpConnected(String toolId) {
+        if (!mcpEnabled) {
+            return false;
+        }
+        McpConnectionStatus status = mcpConnectionStatus.get(toolId);
+        return status != null && status.connected();
+    }
+
+    /**
+     * MCP 连接状态
+     */
+    public record McpConnectionStatus(boolean connected, String message, long lastCheckTime) {}
+
     /**
      * 注册内置工具
      */

@@ -7,7 +7,8 @@ import com.xingchen.backend.dto.CommandDTO;
 import com.xingchen.backend.service.*;
 import com.xingchen.backend.service.impl.MemoryServiceImpl;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -20,9 +21,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-@Slf4j
 @RequiredArgsConstructor
 public class AssistantWebSocketHandler extends TextWebSocketHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(AssistantWebSocketHandler.class);
 
     private final AIService aiService;
     private final CommandParserService commandParserService;

@@ -57,4 +57,14 @@ public interface MemoryService {
     default void addMemory(Long userId, String content, String type) {
         appendToMemory(userId, content);
     }
+
+    /**
+     * 归档旧记忆（超过保留期的数据）
+     *
+     * @param userId 用户ID
+     * @param retentionDays 保留天数，超过此天数的数据将被归档
+     */
+    default void archiveOldMemories(Long userId, int retentionDays) {
+        // 默认实现为空，由具体实现类覆盖
+    }
 }

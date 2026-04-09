@@ -113,6 +113,18 @@
             <artifactId>hutool-captcha</artifactId>
             <version>5.8.25</version>
         </dependency>
+        <!-- 添加 Hutool Core 依赖（HtmlUtil 等工具类） -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-core</artifactId>
+            <version>5.8.25</version>
+        </dependency>
+        <!-- 添加 Hutool HTTP 依赖（HtmlUtil 在 5.x 位于 hutool-http 模块） -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-http</artifactId>
+            <version>5.8.25</version>
+        </dependency>
         <!-- 添加邮件发送依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -141,6 +153,19 @@
             <groupId>io.qdrant</groupId>
             <artifactId>client</artifactId>
             <version>1.11.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-protobuf-lite</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- grpc-protobuf (full) - 解决 MapFieldReflectionAccessor 缺失问题 -->
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-protobuf</artifactId>
+            <version>1.65.1</version>
         </dependency>
 
         <!-- OpenSearch 客户端 -->

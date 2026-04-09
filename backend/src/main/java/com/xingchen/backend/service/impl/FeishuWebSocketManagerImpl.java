@@ -2,6 +2,7 @@ package com.xingchen.backend.service.impl;
 
 import com.lark.oapi.event.EventDispatcher;
 import com.lark.oapi.service.im.v1.model.P2MessageReceiveV1;
+import com.lark.oapi.service.im.v1.model.P2MessageReadV1;
 import com.lark.oapi.ws.Client;
 import com.xingchen.backend.service.FeishuBotService;
 import com.xingchen.backend.service.FeishuWebSocketManager;
@@ -42,20 +43,32 @@ public class FeishuWebSocketManagerImpl implements FeishuWebSocketManager {
         try {
             updateStatus(userId, "CONNECTING");
 
+            // 解密 App Secret（如果是加密格式）
+            String decryptedSecret = appSecret;
+            if (appSecret.startsWith("ENC:")) {
+                decryptedSecret = com.xingchen.backend.util.AesUtil.getInstance().decrypt(appSecret);
+            }
+
             // 构建事件处理器
             final Long currentUserId = userId; // 捕获 userId 供内部类使用
-            EventDispatcher eventDispatcher = EventDispatcher.newBuilder(appId, appSecret)
+            final String finalAppSecret = decryptedSecret;
+            EventDispatcher eventDispatcher = EventDispatcher.newBuilder(appId, finalAppSecret)
                     .onP2MessageReceiveV1(new com.lark.oapi.service.im.ImService.P2MessageReceiveV1Handler() {
                         @Override
                         public void handle(P2MessageReceiveV1 event) throws Exception {
-                            // 传递用户ID到消息处理器
                             feishuBotService.handleMessageEvent(event, currentUserId);
+                        }
+                    })
+                    .onP2MessageReadV1(new com.lark.oapi.service.im.ImService.P2MessageReadV1Handler() {
+                        @Override
+                        public void handle(P2MessageReadV1 event) throws Exception {
+                            log.debug("收到消息已读事件: userId={}, event={}", currentUserId, event);
                         }
                     })
                     .build();
 
             // 建立 WebSocket 长连接
-            Client wsClient = new Client.Builder(appId, appSecret)
+            Client wsClient = new Client.Builder(appId, finalAppSecret)
                     .eventHandler(eventDispatcher)
                     .build();
 
