@@ -58,7 +58,7 @@ public class UserController {
     @SaCheckLogin
     public Result<FileVO> uploadAvatar(@RequestParam("file") MultipartFile file) {
         Long userId = StpUtil.getLoginIdAsLong();
-        FileVO fileVO = fileService.uploadImage(userId, file);
+        FileVO fileVO = fileService.uploadAvatar(userId, file);
 
         UserUpdateDTO dto = new UserUpdateDTO();
         dto.setAvatar(fileVO.getFileUrl());

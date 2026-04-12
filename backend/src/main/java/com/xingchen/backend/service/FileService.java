@@ -10,6 +10,11 @@ public interface FileService {
 
     FileVO uploadImage(Long userId, MultipartFile file);
 
+    /**
+     * 上传头像图片 - 不允许 SVG（防止 XSS 攻击）
+     */
+    FileVO uploadAvatar(Long userId, MultipartFile file);
+
     void deleteFile(Long userId, Long id);
 
     List<FileVO> getFileList(Long userId, Long categoryId, String fileType, Integer page, Integer size);
