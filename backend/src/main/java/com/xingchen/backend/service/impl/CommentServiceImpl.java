@@ -1,6 +1,6 @@
 package com.xingchen.backend.service.impl;
 
-import com.xingchen.backend.common.BusinessException;
+import com.xingchen.backend.exception.BusinessException;
 import com.xingchen.backend.common.ErrorCode;
 import com.xingchen.backend.common.PageResult;
 import com.xingchen.backend.dto.CommentCreateDTO;
@@ -60,11 +60,11 @@ public class CommentServiceImpl implements CommentService {
     @Transactional(rollbackFor = Exception.class, timeout = 30)
     public CommentVO createComment(Long userId, CommentCreateDTO dto, String ip, String device) {
         Article article = articleMapper.selectOneById(dto.getArticleId());
-        if (article == null || article.getIsDeleted() == 1) {
+        if (article == null || java.util.Objects.equals(1, article.getIsDeleted())) {
             throw new BusinessException(ErrorCode.ARTICLE_NOT_FOUND);
         }
 
-        if (article.getCommentStatus() != 1) {
+        if (!java.util.Objects.equals(1, article.getCommentStatus())) {
             throw new BusinessException(ErrorCode.COMMENT_DISABLED);
         }
 
@@ -94,6 +94,19 @@ public class CommentServiceImpl implements CommentService {
 
         commentMapper.insert(comment);
 
+        // MyBatis-Flex Auto Key 可能未回填，使用 LAST_INSERT_ID
+        if (comment.getId() == null) {
+            Long lastId = commentMapper.selectLastInsertId();
+            if (lastId != null && lastId > 0) {
+                comment.setId(lastId);
+            }
+        }
+
+        // 仍然无法获取 ID，直接返回错误
+        if (comment.getId() == null) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "评论创建失败：无法获取评论ID");
+        }
+
         articleMapper.incrementCommentNum(dto.getArticleId());
 
         log.info("用户 {} 评论成功，评论ID: {}", userId, comment.getId());
@@ -105,7 +118,7 @@ public class CommentServiceImpl implements CommentService {
     @Transactional(rollbackFor = Exception.class, timeout = 30)
     public void deleteComment(Long userId, Long id) {
         Comment comment = commentMapper.selectOneById(id);
-        if (comment == null || comment.getIsDeleted() == 1) {
+        if (comment == null || java.util.Objects.equals(1, comment.getIsDeleted())) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "评论不存在");
         }
         if (!comment.getUserId().equals(userId)) {

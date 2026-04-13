@@ -14,7 +14,7 @@ class AgentWorkflowTest {
 
     @BeforeEach
     void setUp() {
-        agentWorkflow = new AgentWorkflow(null);
+        agentWorkflow = new AgentWorkflow(null, null);
     }
 
     @Test

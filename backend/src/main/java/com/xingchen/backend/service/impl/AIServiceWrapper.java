@@ -90,6 +90,22 @@ public class AIServiceWrapper implements AIService {
     }
 
     @Override
+    public Map<String, Object> streamChatWithUserApiKey(Long userId, String message, Consumer<String> onChunk) {
+        // 流式输出也需要过滤
+        Consumer<String> filteredConsumer = token -> {
+            OutputFilter.FilterResult result = outputFilter.filter(token);
+            if (result.isSafe()) {
+                onChunk.accept(result.content());
+            } else {
+                log.warn("用户流式输出检测到不安全内容: {}, userId={}", result.reason(), userId);
+                onChunk.accept("[内容已过滤]");
+            }
+        };
+
+        return delegate.streamChatWithUserApiKey(userId, message, filteredConsumer);
+    }
+
+    @Override
     public void streamChatSSE(String message, SseEmitter emitter) {
         delegate.streamChatSSE(message, emitter);
     }

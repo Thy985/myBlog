@@ -1,6 +1,6 @@
 package com.xingchen.backend.service.impl;
 
-import com.xingchen.backend.common.BusinessException;
+import com.xingchen.backend.exception.BusinessException;
 import com.xingchen.backend.common.ErrorCode;
 import com.xingchen.backend.common.PageResult;
 import com.xingchen.backend.entity.Notification;

@@ -18,7 +18,8 @@ import java.util.stream.Collectors;
 @Primary
 @Slf4j
 @RequiredArgsConstructor
-public class KnowledgeBaseServiceImplV2 implements KnowledgeBaseService {
+public class
+KnowledgeBaseServiceImplV2 implements KnowledgeBaseService {
 
     private final HybridSearchService hybridSearchService;
     private final EmbeddingProducer embeddingProducer;

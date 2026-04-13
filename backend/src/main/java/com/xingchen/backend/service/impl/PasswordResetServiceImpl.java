@@ -1,7 +1,7 @@
 package com.xingchen.backend.service.impl;
 
 import cn.hutool.crypto.digest.BCrypt;
-import com.xingchen.backend.common.BusinessException;
+import com.xingchen.backend.exception.BusinessException;
 import com.xingchen.backend.common.ErrorCode;
 import com.xingchen.backend.entity.User;
 import com.xingchen.backend.mapper.UserMapper;

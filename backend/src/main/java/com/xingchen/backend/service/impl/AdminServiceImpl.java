@@ -2,7 +2,7 @@ package com.xingchen.backend.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.crypto.digest.BCrypt;
-import com.xingchen.backend.common.BusinessException;
+import com.xingchen.backend.exception.BusinessException;
 import com.xingchen.backend.common.ErrorCode;
 import com.xingchen.backend.dto.UserCreateDTO;
 import com.xingchen.backend.entity.*;

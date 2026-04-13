@@ -1,7 +1,7 @@
 package com.xingchen.backend.service.impl;
 
 import com.mybatisflex.core.query.QueryWrapper;
-import com.xingchen.backend.common.BusinessException;
+import com.xingchen.backend.exception.BusinessException;
 import com.xingchen.backend.common.ErrorCode;
 import com.xingchen.backend.entity.Article;
 import com.xingchen.backend.entity.ArticleTag;

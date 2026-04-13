@@ -1,203 +1,203 @@
 package com.xingchen.backend.agent;
 
 import com.xingchen.backend.cache.CacheService;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
-import java.time.Duration;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.time.Instant;
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Agent 会话管理器
- * 
- * 管理多轮对话会话状态
+ * 管理用户的 Agent 会话，确保权限隔离
  */
-@Service
+@Component
 @Slf4j
 @RequiredArgsConstructor
 public class AgentSessionManager {
 
     private final CacheService cacheService;
-    
-    // 本地缓存（活跃会话）
-    private final Map<String, AgentState> activeSessions = new ConcurrentHashMap<>();
-    
-    // 会话过期时间（30分钟）
-    private static final Duration SESSION_TTL = Duration.ofMinutes(30);
-    
+
+    // 本地会话缓存，用于快速访问（带过期时间）
+    private final Map<String, SessionEntry> sessionCache = new ConcurrentHashMap<>();
+    // 用户会话映射，用于统计用户的活跃会话
+    private final Map<Long, Set<String>> userSessionMap = new ConcurrentHashMap<>();
+
+    private static final long SESSION_TTL_MINUTES = 60;
+    private static final long CLEANUP_INTERVAL_MINUTES = 10;
+
+    /**
+     * 会话条目（包含过期时间）
+     */
+    private record SessionEntry(AgentState state, long expiresAt) {
+        boolean isExpired() {
+            return System.currentTimeMillis() > expiresAt;
+        }
+    }
+
+    @PostConstruct
+    public void init() {
+        log.info("AgentSessionManager 初始化，SESSION_TTL={}分钟", SESSION_TTL_MINUTES);
+    }
+
+    @PreDestroy
+    public void destroy() {
+        sessionCache.clear();
+        userSessionMap.clear();
+        log.info("AgentSessionManager 已清理");
+    }
+
+    /**
+     * 定时清理过期会话
+     */
+    @Scheduled(fixedRate = CLEANUP_INTERVAL_MINUTES * 60 * 1000)
+    public void cleanupExpiredSessions() {
+        int before = sessionCache.size();
+        long now = System.currentTimeMillis();
+
+        var expiredKeys = sessionCache.entrySet().stream()
+                .filter(e -> e.getValue().isExpired())
+                .map(Map.Entry::getKey)
+                .toList();
+
+        for (String sessionId : expiredKeys) {
+            SessionEntry entry = sessionCache.remove(sessionId);
+            if (entry != null) {
+                Long userId = entry.state().getUserId();
+                Set<String> userSessions = userSessionMap.get(userId);
+                if (userSessions != null) {
+                    userSessions.remove(sessionId);
+                    if (userSessions.isEmpty()) {
+                        userSessionMap.remove(userId);
+                    }
+                }
+            }
+        }
+
+        int cleaned = expiredKeys.size();
+        if (cleaned > 0) {
+            log.info("清理过期会话: 清理 {} 个，剩余 {} 个", cleaned, sessionCache.size());
+        }
+    }
+
     /**
      * 创建新会话
      */
     public AgentState createSession(Long userId) {
-        String sessionId = generateSessionId();
+        String sessionId = "agent_" + UUID.randomUUID().toString().replace("-", "");
         AgentState state = new AgentState(sessionId, userId);
-        
-        activeSessions.put(sessionId, state);
-        persistSession(state);
-        
-        log.info("创建 Agent 会话: sessionId={}, userId={}", sessionId, userId);
+
+        long expiresAt = System.currentTimeMillis() + SESSION_TTL_MINUTES * 60 * 1000L;
+        sessionCache.put(sessionId, new SessionEntry(state, expiresAt));
+        userSessionMap.computeIfAbsent(userId, k -> ConcurrentHashMap.newKeySet()).add(sessionId);
+
+        log.info("创建新会话: sessionId={}, userId={}, expiresAt={}", sessionId, userId,
+                Instant.ofEpochMilli(expiresAt));
         return state;
     }
-    
+
     /**
-     * 获取会话（带用户权限校验）
-     *
-     * @param sessionId 会话ID
-     * @param userId    用户ID（用于权限校验）
-     * @return 会话状态，如果会话不存在或用户无权访问则返回 empty
+     * 获取会话（带权限检查），同时刷新 TTL
      */
     public Optional<AgentState> getSession(String sessionId, Long userId) {
-        Optional<AgentState> state = getSessionInternal(sessionId);
-        return state.filter(s -> s.getUserId().equals(userId));
-    }
+        SessionEntry entry = sessionCache.get(sessionId);
 
-    /**
-     * 获取会话（内部方法，不带权限校验）
-     * 仅在服务层内部使用，不对外暴露
-     */
-    private Optional<AgentState> getSessionInternal(String sessionId) {
-        // 1. 从本地缓存获取
-        AgentState state = activeSessions.get(sessionId);
-        if (state != null) {
-            return Optional.of(state);
+        if (entry == null || entry.isExpired()) {
+            if (entry != null) {
+                sessionCache.remove(sessionId);
+            }
+            return Optional.empty();
         }
 
-        // 2. 从 Redis 获取
-        Optional<AgentState> cached = cacheService.get(
-                getSessionKey(sessionId),
-                AgentState.class
-        );
+        AgentState state = entry.state();
+        if (!Objects.equals(state.getUserId(), userId)) {
+            return Optional.empty();
+        }
 
-        // 恢复到本地缓存
-        cached.ifPresent(s -> activeSessions.put(sessionId, s));
+        // 刷新 TTL
+        long newExpiresAt = System.currentTimeMillis() + SESSION_TTL_MINUTES * 60 * 1000L;
+        sessionCache.put(sessionId, new SessionEntry(state, newExpiresAt));
 
-        return cached;
+        return Optional.of(state);
     }
 
     /**
-     * 获取会话（已废弃，请使用带 userId 的版本）
-     * @deprecated 使用 {@link #getSession(String, Long)} 替代
-     */
-    @Deprecated
-    public Optional<AgentState> getSession(String sessionId) {
-        return getSessionInternal(sessionId);
-    }
-    
-    /**
-     * 获取或创建会话（带用户权限校验）
-     *
-     * @param sessionId 会话ID
-     * @param userId    用户ID
-     * @return 现有会话（如果存在且属于该用户）或新创建的会话
+     * 获取或创建会话
      */
     public AgentState getOrCreateSession(String sessionId, Long userId) {
-        if (sessionId != null && !sessionId.isEmpty()) {
-            Optional<AgentState> existing = getSession(sessionId, userId);
-            if (existing.isPresent()) {
-                return existing.get();
-            }
-            // 会话存在但不属于该用户，记录警告
-            Optional<AgentState> unauthorizedSession = getSessionInternal(sessionId);
-            if (unauthorizedSession.isPresent()) {
-                log.warn("用户 {} 尝试访问不属于自己的会话 {}", userId, sessionId);
-            }
+        Optional<AgentState> existingSession = getSession(sessionId, userId);
+        if (existingSession.isPresent()) {
+            return existingSession.get();
         }
         return createSession(userId);
     }
-    
+
     /**
-     * 更新会话
-     */
-    public void updateSession(AgentState state) {
-        activeSessions.put(state.getSessionId(), state);
-        persistSession(state);
-    }
-    
-    /**
-     * 结束会话（带用户权限校验）
-     *
-     * @param sessionId 会话ID
-     * @param userId    用户ID（用于权限校验）
-     * @return true 如果成功结束，false 如果会话不存在或用户无权访问
+     * 结束会话
      */
     public boolean endSession(String sessionId, Long userId) {
-        Optional<AgentState> state = getSession(sessionId, userId);
-        if (state.isEmpty()) {
-            log.warn("用户 {} 尝试结束不属于自己的会话 {}", userId, sessionId);
+        SessionEntry entry = sessionCache.get(sessionId);
+
+        if (entry == null || entry.isExpired()) {
+            sessionCache.remove(sessionId);
             return false;
         }
 
-        activeSessions.remove(sessionId);
-        cacheService.delete(getSessionKey(sessionId));
-        log.info("结束 Agent 会话: sessionId={}, userId={}", sessionId, userId);
+        AgentState state = entry.state();
+        if (!Objects.equals(state.getUserId(), userId)) {
+            return false;
+        }
+
+        sessionCache.remove(sessionId);
+        Set<String> userSessions = userSessionMap.get(userId);
+        if (userSessions != null) {
+            userSessions.remove(sessionId);
+            if (userSessions.isEmpty()) {
+                userSessionMap.remove(userId);
+            }
+        }
+
+        log.info("结束会话: sessionId={}, userId={}", sessionId, userId);
         return true;
     }
 
     /**
-     * 结束会话（已废弃，请使用带 userId 的版本）
-     * @deprecated 使用 {@link #endSession(String, Long)} 替代
-     */
-    @Deprecated
-    public void endSession(String sessionId) {
-        activeSessions.remove(sessionId);
-        cacheService.delete(getSessionKey(sessionId));
-        log.info("结束 Agent 会话: sessionId={}", sessionId);
-    }
-    
-    /**
-     * 清理过期会话
-     */
-    public void cleanupExpiredSessions() {
-        long now = System.currentTimeMillis();
-        int count = 0;
-        
-        for (Map.Entry<String, AgentState> entry : activeSessions.entrySet()) {
-            AgentState state = entry.getValue();
-            long lastUpdate = java.time.Duration.between(
-                    state.getLastUpdateTime(),
-                    java.time.LocalDateTime.now()
-            ).toMinutes();
-            
-            if (lastUpdate > SESSION_TTL.toMinutes()) {
-                activeSessions.remove(entry.getKey());
-                count++;
-            }
-        }
-        
-        if (count > 0) {
-            log.info("清理过期会话: {} 个", count);
-        }
-    }
-    
-    /**
-     * 获取用户活跃会话数
+     * 获取用户的活跃会话计数
      */
     public int getActiveSessionCount(Long userId) {
-        return (int) activeSessions.values().stream()
-                .filter(s -> s.getUserId().equals(userId))
-                .count();
+        Set<String> userSessions = userSessionMap.get(userId);
+        return userSessions != null ? userSessions.size() : 0;
     }
-    
+
     /**
-     * 获取所有活跃会话数
+     * 更新会话状态并刷新 TTL
      */
-    public int getTotalActiveSessions() {
-        return activeSessions.size();
+    public void updateSession(AgentState state) {
+        if (state == null || state.getSessionId() == null) {
+            return;
+        }
+
+        // 如果会话已过期，不更新
+        SessionEntry existing = sessionCache.get(state.getSessionId());
+        if (existing != null && existing.isExpired()) {
+            sessionCache.remove(state.getSessionId());
+            return;
+        }
+
+        long expiresAt = System.currentTimeMillis() + SESSION_TTL_MINUTES * 60 * 1000L;
+        sessionCache.put(state.getSessionId(), new SessionEntry(state, expiresAt));
+        log.debug("更新会话状态: sessionId={}, status={}", state.getSessionId(), state.getStatus());
     }
-    
-    private String generateSessionId() {
-        return "agent_" + UUID.randomUUID().toString().replace("-", "");
-    }
-    
-    private String getSessionKey(String sessionId) {
-        return "agent:session:" + sessionId;
-    }
-    
-    private void persistSession(AgentState state) {
-        cacheService.set(getSessionKey(state.getSessionId()), state, SESSION_TTL);
+
+    /**
+     * 获取缓存会话数（用于监控）
+     */
+    public int getCacheSize() {
+        return sessionCache.size();
     }
 }

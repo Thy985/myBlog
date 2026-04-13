@@ -103,6 +103,10 @@ public class MetricsService {
                 .register(meterRegistry));
     }
 
+    private Counter getCounter(String name) {
+        return getCounter(name, new String[0]);
+    }
+
     private Timer getTimer(String name, String... tags) {
         String key = name + String.join("", tags);
         return timers.computeIfAbsent(key, k -> Timer.builder(name)
@@ -122,5 +126,27 @@ public class MetricsService {
      */
     public void setQueueSize(int size) {
         meterRegistry.gauge("ai.queue.size", size);
+    }
+
+    /**
+     * 记录任务开始
+     */
+    public void recordTaskStart() {
+        getCounter("agent.task.start").increment();
+    }
+
+    /**
+     * 记录任务完成
+     */
+    public void recordTaskComplete(boolean success, long duration) {
+        getCounter("agent.task.complete", "status", success ? "success" : "failure").increment();
+        getTimer("agent.task.duration", "status", success ? "success" : "failure").record(duration, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * 记录错误
+     */
+    public void recordError(String errorType) {
+        getCounter("agent.error", "type", errorType).increment();
     }
 }

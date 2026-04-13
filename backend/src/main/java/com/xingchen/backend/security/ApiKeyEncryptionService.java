@@ -91,9 +91,12 @@ public class ApiKeyEncryptionService {
      * 判断是否为加密格式
      */
     public boolean isEncrypted(String text) {
+        if (text == null || text.length() <= 50) {
+            return false;
+        }
         try {
             Base64.getDecoder().decode(text);
-            return text.length() > 50; // 加密后的字符串通常较长
+            return true;
         } catch (IllegalArgumentException e) {
             return false;
         }

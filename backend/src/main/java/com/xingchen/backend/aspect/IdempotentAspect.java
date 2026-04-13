@@ -1,7 +1,7 @@
 package com.xingchen.backend.aspect;
 
 import cn.dev33.satoken.stp.StpUtil;
-import com.xingchen.backend.common.BusinessException;
+import com.xingchen.backend.exception.BusinessException;
 import com.xingchen.backend.common.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

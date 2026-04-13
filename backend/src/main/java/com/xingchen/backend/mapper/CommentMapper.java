@@ -16,6 +16,12 @@ public interface CommentMapper extends BaseMapper<Comment> {
     @Select("SELECT * FROM t_comment WHERE article_id = #{articleId} AND parent_id = 0 AND status = 1 AND is_deleted = 0 ORDER BY create_time DESC")
     List<Comment> selectRootCommentsByArticleId(@Param("articleId") Long articleId);
 
+    @Select("SELECT * FROM t_comment WHERE article_id = #{articleId} AND user_id = #{userId} AND status = 1 AND is_deleted = 0 ORDER BY id DESC LIMIT 1")
+    Comment selectLastByArticleAndUser(@Param("articleId") Long articleId, @Param("userId") Long userId);
+
+    @Select("SELECT LAST_INSERT_ID()")
+    Long selectLastInsertId();
+
     @Select("SELECT * FROM t_comment WHERE root_id = #{rootId} AND parent_id != 0 AND status = 1 AND is_deleted = 0 ORDER BY create_time ASC")
     List<Comment> selectRepliesByRootId(@Param("rootId") Long rootId);
 

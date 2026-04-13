@@ -1,5 +1,7 @@
 package com.xingchen.backend.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xingchen.backend.cache.AICacheManager;
 import com.xingchen.backend.entity.Article;
 import com.xingchen.backend.entity.ArticleContent;
@@ -36,7 +38,11 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+
+import okhttp3.*;
+import okio.BufferedSource;
 
 /**
  * AI 服务实现 V3（生产级）
@@ -65,12 +71,20 @@ public class AIServiceImplV3 implements AIService {
     private final ArticleMapper articleMapper;
     private final ArticleContentMapper articleContentMapper;
     private final StreamingChatLanguageModel streamingChatLanguageModel;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${ai.cache.enabled:true}")
     private boolean cacheEnabled;
 
     @Value("${ai.token.budget:8000}")
     private int tokenBudget;
+
+    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    private static final OkHttpClient client = new OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build();
 
     // 提供商基础URL映射
     private static final Map<String, String> PROVIDER_BASE_URLS = Map.of(
@@ -79,7 +93,7 @@ public class AIServiceImplV3 implements AIService {
             "ZHIPU", "https://open.bigmodel.cn/api/paas/v4",
             "BAIDU", "https://qianfan.baidubce.com/v2",
             "AZURE", "https://api.openai.com/v1",
-            "DEEPSEEK", "https://api.deepseek.com",
+            "DEEPSEEK", "https://api.deepseek.com/v1",
             "CUSTOM", ""
     );
 
@@ -393,6 +407,166 @@ public class AIServiceImplV3 implements AIService {
             result.put("success", false);
             result.put("error", e.getMessage());
             return result;
+        }
+    }
+
+    /**
+     * 使用用户 API Key 的流式对话（直接使用 OkHttp 实现）
+     */
+    @Override
+    public Map<String, Object> streamChatWithUserApiKey(Long userId, String message, Consumer<String> onChunk) {
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            UserApiKey userApiKey = userApiKeyService.getByUserId(userId);
+            String effectiveApiKey = userApiKeyService.getEffectiveApiKey(userId);
+
+            if (effectiveApiKey == null || effectiveApiKey.isEmpty()) {
+                log.warn("用户 {} 没有有效的 API Key", userId);
+                result.put("success", false);
+                result.put("error", "未配置 API Key");
+                return result;
+            }
+
+            String provider = userApiKey != null ? userApiKey.getProvider() : "DEEPSEEK";
+            String modelName = userApiKey != null && userApiKey.getDefaultModel() != null
+                    ? userApiKey.getDefaultModel() : "deepseek-chat";
+
+            String baseUrl = PROVIDER_BASE_URLS.getOrDefault(provider, "https://api.deepseek.com/v1");
+
+            StringBuilder fullResponse = new StringBuilder();
+
+            // 直接使用 OkHttp 进行 SSE 流式调用
+            Request request = new Request.Builder()
+                    .url(baseUrl + "/chat/completions")
+                    .post(RequestBody.create(
+                            "{\"model\":\"" + modelName + "\",\"messages\":[{\"role\":\"user\",\"content\":\"" +
+                            message.replace("\"", "\\\"") + "\"}],\"stream\":true}",
+                            MediaType.get("application/json; charset=utf-8")))
+                    .addHeader("Authorization", "Bearer " + effectiveApiKey)
+                    .addHeader("Content-Type", "application/json")
+                    .build();
+
+            try (okhttp3.Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    log.error("DeepSeek API 请求失败: {}", response);
+                    result.put("success", false);
+                    result.put("error", "API 请求失败: " + response);
+                    return result;
+                }
+
+                if (response.body() == null) {
+                    log.error("DeepSeek API 响应体为空");
+                    result.put("success", false);
+                    result.put("error", "响应体为空");
+                    return result;
+                }
+
+                BufferedSource source = response.body().source();
+                String line;
+
+                while ((line = source.readUtf8Line()) != null) {
+                    if (line.trim().isEmpty()) continue;
+                    if (line.startsWith("data:")) {
+                        String data = line.substring(5).trim();
+                        if ("[DONE]".equals(data)) {
+                            break;
+                        }
+                        // 解析 SSE 数据 - DeepSeek/OpenAI 格式
+                        // 格式: {"choices":[{"delta":{"content":"xxx"}}]}
+                        try {
+                            com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(data);
+                            com.fasterxml.jackson.databind.JsonNode delta = jsonNode.path("choices").get(0).path("delta");
+                            String content = delta.path("content").asText();
+                            if (content != null && !content.isEmpty()) {
+                                fullResponse.append(content);
+                                onChunk.accept(content);
+                            }
+                        } catch (Exception e) {
+                            log.warn("解析 SSE 数据失败: {}", e.getMessage());
+                        }
+                    }
+                }
+            }
+
+            result.put("success", true);
+            result.put("message", fullResponse.toString());
+            result.put("tokens", estimateTokens(fullResponse.toString()));
+
+            // 增加使用次数统计
+            if (userId != null) {
+                userApiKeyService.incrementUsage(userId);
+            }
+
+            log.info("用户流式对话完成，userId={}, 响应长度: {} tokens", userId, result.get("tokens"));
+            return result;
+
+        } catch (Exception e) {
+            log.error("用户流式对话失败: {}, userId={}", e.getMessage(), userId, e);
+            result.put("success", false);
+            result.put("error", e.getMessage());
+            return result;
+        }
+    }
+
+    /**
+     * 获取用户的流式 ChatLanguageModel
+     */
+    private StreamingChatLanguageModel getUserStreamingModel(Long userId) {
+        if (userId == null) {
+            log.warn("userId 为空，使用系统默认流式模型");
+            return streamingChatLanguageModel; // 使用系统默认
+        }
+
+        UserApiKey userApiKey = userApiKeyService.getByUserId(userId);
+        String effectiveApiKey = userApiKeyService.getEffectiveApiKey(userId);
+
+        log.info(">>>>>> getUserStreamingModel: userId={}, apiKey.provider={}, apiKey.model={}, effectiveApiKey={}",
+                userId,
+                userApiKey != null ? userApiKey.getProvider() : "null",
+                userApiKey != null ? userApiKey.getDefaultModel() : "null",
+                effectiveApiKey != null ? effectiveApiKey.substring(0, Math.min(10, effectiveApiKey.length())) + "..." : "null");
+
+        if (effectiveApiKey == null || effectiveApiKey.isEmpty()) {
+            log.warn("用户 {} 没有配置 API Key 或 API Key 为空，使用系统默认流式模型", userId);
+            return streamingChatLanguageModel;
+        }
+
+        try {
+            String provider = userApiKey != null ? userApiKey.getProvider() : "ZHIPU";
+            String baseUrl = getBaseUrl(provider, userApiKey);
+            String modelName = userApiKey != null && userApiKey.getDefaultModel() != null
+                    ? userApiKey.getDefaultModel()
+                    : "glm-4-flash";
+
+            double temperature = userApiKey != null && userApiKey.getTemperature() != null
+                    ? userApiKey.getTemperature()
+                    : 0.7;
+
+            // 直接创建用户流式模型
+            return createUserStreamingModel(userId, effectiveApiKey, baseUrl, modelName, temperature);
+        } catch (Exception e) {
+            log.error("为用户 {} 创建流式模型失败: {}", userId, e.getMessage());
+            return streamingChatLanguageModel;
+        }
+    }
+
+    /**
+     * 为用户创建流式模型
+     */
+    private StreamingChatLanguageModel createUserStreamingModel(Long userId, String apiKey, String baseUrl, String modelName, double temperature) {
+        try {
+            // 使用 OpenAI 兼容接口创建流式模型
+            return dev.langchain4j.model.openai.OpenAiStreamingChatModel.builder()
+                    .apiKey(apiKey)
+                    .baseUrl(baseUrl)
+                    .modelName(modelName)
+                    .temperature(temperature)
+                    .timeout(Duration.ofSeconds(120))
+                    .build();
+        } catch (Exception e) {
+            log.error("创建用户流式模型失败: {}, userId={}", e.getMessage(), userId);
+            return streamingChatLanguageModel;
         }
     }
 

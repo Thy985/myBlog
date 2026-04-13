@@ -12,6 +12,12 @@ spring:
       enabled: true
       max-file-size: ${MULTIPART_MAX_FILE_SIZE:10MB}
       max-request-size: ${MULTIPART_MAX_REQUEST_SIZE:100MB}
+    encoding:
+      enabled: true
+      charset: UTF-8
+      force: true
+      force-request: true
+      force-response: true
 
   task:
     scheduling:
@@ -86,6 +92,30 @@ ai:
     prompt: "你是一个智能助手，帮助用户完成各种任务。"
   cache:
     enabled: true
+  
+  # AI智能体V2配置
+  agent:
+    security:
+      max-input-length: 4000          # 最大输入长度
+      enable-prompt-injection-check: true  # 启用Prompt注入检测
+      enable-sensitive-word-check: true    # 启用敏感词检测
+    memory:
+      max-working-memory: 50          # 工作记忆最大条数
+      max-short-term-rounds: 100      # 短期记忆最大轮数
+      working-ttl-minutes: 30         # 工作记忆TTL
+      short-term-ttl-days: 7          # 短期记忆TTL
+    intent:
+      regex-threshold: 0.8            # 正则匹配阈值
+      embedding-threshold: 0.75       # Embedding匹配阈值
+    llm:
+      timeout-seconds: 60             # LLM调用超时
+      max-retries: 3                  # 最大重试次数
+      model-chain:                    # 模型降级链
+        - openai/gpt-4
+        - anthropic/claude-3-opus
+        - openai/gpt-4-turbo
+        - anthropic/claude-3-sonnet
+        - openai/gpt-3.5-turbo
 
 # 模型缓存配置（Caffeine）
 model:
@@ -93,12 +123,51 @@ model:
     ttl: 30
     max-size: 100
 
-# GLM AI 配置（加密存储）
+# ============================================
+# LLM Provider配置
+# 只需配置你实际使用的Provider即可
+# 系统会自动检测并启用已配置的Provider
+# ============================================
+
+# 方案1: 智谱AI (GLM) - 推荐国内使用
+# 获取API Key: https://open.bigmodel.cn/
 glm:
   api:
     key: ${GLM_API_KEY:}
     base-url: ${GLM_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
     model: ${GLM_MODEL:glm-4-flash}
+
+# 方案2: OpenAI官方API
+# 获取API Key: https://platform.openai.com/api-keys
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+  model: ${OPENAI_MODEL:gpt-3.5-turbo}
+
+# 方案3: 百度文心一言
+# 获取API Key: https://cloud.baidu.com/doc/WENXINWORKSHOP/index.html
+baidu:
+  wenxin:
+    api-key: ${BAIDU_API_KEY:}
+    secret-key: ${BAIDU_SECRET_KEY:}
+    model: ${BAIDU_MODEL:ernie-bot-4}
+
+# 方案4: 本地模型 (Ollama)
+# 安装Ollama: https://ollama.com/
+# 启动: ollama serve
+# 拉取模型: ollama pull llama2
+ollama:
+  enabled: ${OLLAMA_ENABLED:false}
+  base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+  model: ${OLLAMA_MODEL:llama2}
+
+# 方案5: OpenRouter (可选)
+# 获取API Key: https://openrouter.ai/keys
+openrouter:
+  api-key: ${OPENROUTER_API_KEY:}
+  base-url: ${OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
+  default-model: ${OPENROUTER_DEFAULT_MODEL:openai/gpt-3.5-turbo}
+  timeout: ${OPENROUTER_TIMEOUT:60}
 
 # 加密配置
 encryption:
@@ -107,6 +176,15 @@ encryption:
 # Resilience4j 熔断配置
 resilience4j:
   circuitbreaker:
+    configs:
+      default:
+        failureRateThreshold: 50
+        slowCallRateThreshold: 80
+        slowCallDurationThreshold: 10s
+        permittedNumberOfCallsInHalfOpenState: 10
+        slidingWindowSize: 100
+        minimumNumberOfCalls: 10
+        waitDurationInOpenState: 30s
     instances:
       aiChat:
         registerHealthIndicator: true
@@ -129,6 +207,27 @@ resilience4j:
         slidingWindowSize: 10
         failureRateThreshold: 50
         waitDurationInOpenState: 30s
+      # AI智能体V2熔断器
+      OpenRouter:
+        slidingWindowSize: 50
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        slowCallDurationThreshold: 10s
+  ratelimiter:
+    configs:
+      default:
+        limitForPeriod: 60
+        limitRefreshPeriod: 1m
+        timeoutDuration: 100ms
+    instances:
+      ai-user:
+        limitForPeriod: 60
+        limitRefreshPeriod: 1m
+        timeoutDuration: 100ms
+      ai-global:
+        limitForPeriod: 100
+        limitRefreshPeriod: 1s
+        timeoutDuration: 100ms
   retry:
     instances:
       aiChat:
@@ -183,7 +282,7 @@ agent:
     max-rounds: ${AGENT_MEMORY_MAX_ROUNDS:50}
 
 # 百度千帆 AI 配置
-baidu:
+baidu-qianfan:
   api:
     key: ${BAIDU_API_KEY:bce-v3/ALTAKSP-W8fnSI7P0cqEcBxE6SYuM/94fd0c1e5615d09b244576df2d68dfd0739ed5f2}
     base-url: ${BAIDU_BASE_URL:https://qianfan.baidubce.com/v2/coding}

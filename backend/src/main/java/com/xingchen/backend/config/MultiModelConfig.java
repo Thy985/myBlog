@@ -156,6 +156,7 @@ public class MultiModelConfig {
         registry.register("creative", createModel("glm-4-air", creativeTemperature, 4096, 60));
         registry.register("creative-streaming", createStreamingModel("glm-4-air", creativeTemperature, 60));
 
+
         // 高级模型 - 复杂任务
         registry.register("premium", createModel(premiumModel, 0.7, 8192, 120));
         registry.register("premium-streaming", createStreamingModel(premiumModel, 0.7, 120));

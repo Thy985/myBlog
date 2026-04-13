@@ -1,4 +1,11 @@
 {
+  "scripts": {
+    "front:dev": "npm run dev --prefix front",
+    "front:build": "npm run build --prefix front",
+    "front:preview": "npm run preview --prefix front",
+    "test:agent-api": "node scripts/agent-api-full-test.mjs",
+    "test:agent-blog": "node e2e-test.js"
+  },
   "devDependencies": {
     "playwright": "^1.59.1"
   }

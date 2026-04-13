@@ -72,4 +72,36 @@ public class AnalyticsController {
     public Result<Map<String, Object>> getRealtimeStats() {
         return Result.success(analyticsService.getRealtimeStats());
     }
+
+    /**
+     * 性能指标上报
+     * @param data 包含 metrics 数组的数据
+     * @return 上报成功
+     */
+    @PostMapping("/performance")
+    @RateLimit(perMinute = 60, message = "上报过于频繁")
+    public Result<Boolean> recordPerformance(@RequestBody Map<String, Object> data) {
+        try {
+            analyticsService.recordPerformance(data);
+            return Result.success(true);
+        } catch (Exception e) {
+            return Result.success(true); // 即使失败也返回成功，避免前端报错
+        }
+    }
+
+    /**
+     * 性能错误上报
+     * @param data 包含 errors 数组的数据
+     * @return 上报成功
+     */
+    @PostMapping("/performance/errors")
+    @RateLimit(perMinute = 60, message = "上报过于频繁")
+    public Result<Boolean> recordPerformanceErrors(@RequestBody Map<String, Object> data) {
+        try {
+            analyticsService.recordPerformanceErrors(data);
+            return Result.success(true);
+        } catch (Exception e) {
+            return Result.success(true); // 即使失败也返回成功，避免前端报错
+        }
+    }
 }

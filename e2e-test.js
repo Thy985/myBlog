@@ -14,7 +14,9 @@ async function apiRequest(method, endpoint, data = null) {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'satoken': authToken
+      ...(authToken
+        ? { Authorization: `Bearer ${authToken}`, satoken: authToken }
+        : {}),
     }
   };
   if (data) {

@@ -146,6 +146,11 @@ ai:
     creative:
       temperature: 0.8
 
+# Tavily 搜索 API（用于智能体联网搜索）
+tavily:
+  api:
+    key: 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
+
 glm:
   api:
     base-url: https://open.bigmodel.cn/api/paas/v4

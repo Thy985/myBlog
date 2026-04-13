@@ -257,4 +257,14 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         
         return stats;
     }
+
+    @Override
+    public void recordPerformance(Map<String, Object> data) {
+        log.debug("收到性能指标上报: {}", data);
+    }
+
+    @Override
+    public void recordPerformanceErrors(Map<String, Object> data) {
+        log.debug("收到性能错误上报: {}", data);
+    }
 }

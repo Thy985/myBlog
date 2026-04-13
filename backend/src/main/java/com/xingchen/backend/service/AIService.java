@@ -43,6 +43,15 @@ public interface AIService {
 
     Map<String, Object> streamChat(String message, java.util.function.Consumer<String> onChunk);
 
+    /**
+     * 使用用户 API Key 的流式对话
+     * @param userId 用户ID
+     * @param message 消息内容
+     * @param onChunk 流式回调
+     * @return 结果Map
+     */
+    Map<String, Object> streamChatWithUserApiKey(Long userId, String message, java.util.function.Consumer<String> onChunk);
+
     void streamChatSSE(String message, SseEmitter emitter);
 
     void indexArticle(Long articleId, String title, String content);

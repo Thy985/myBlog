@@ -53,7 +53,7 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
             "ANTHROPIC", "https://api.anthropic.com",
             "ZHIPU", "https://open.bigmodel.cn/api/paas/v4",
             "BAIDU", "https://qianfan.baidubce.com/v2",
-            "DEEPSEEK", "https://api.deepseek.com",
+            "DEEPSEEK", "https://api.deepseek.com/v1",
             "CUSTOM", ""
     );
 
@@ -148,8 +148,12 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
     public String getEffectiveApiKey(Long userId) {
         UserApiKey apiKey = getByUserId(userId);
 
+        System.out.println(">>>>>>>>>>>>> [DEBUG] getEffectiveApiKey called: userId=" + userId +
+                ", apiKey=" + (apiKey != null ? apiKey.getApiKeyForLog() : "null") +
+                ", enabled=" + (apiKey != null ? apiKey.getEnabled() : "null") +
+                ", apiKeyLength=" + (apiKey != null && apiKey.getApiKey() != null ? apiKey.getApiKey().length() : "null"));
         log.info(">>>>>>>>>>>>> getEffectiveApiKey called: userId={}, apiKey={}, enabled={}, apiKeyPlain={}",
-                userId, 
+                userId,
                 apiKey != null ? apiKey.getApiKeyForLog() : "null",
                 apiKey != null ? apiKey.getEnabled() : "null",
                 apiKey != null ? apiKey.getApiKeyPlain() : "null");
@@ -168,10 +172,12 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
             }
 
             String decrypted = apiKey.getDecryptedApiKey();
+            System.out.println(">>>>>>>>>>>>> [DEBUG] API Key decrypted, length=" + (decrypted != null ? decrypted.length() : "null"));
             log.debug("API Key 解密结果: {}", decrypted != null ? "成功" : "失败");
             return decrypted;
         }
 
+        System.out.println(">>>>>>>>>>>>> [DEBUG] API Key is null or empty, will use system default");
         log.debug("用户 {} 未配置有效 API Key，使用系统默认. systemDefaultApiKey 配置: {}",
                 userId, systemDefaultApiKey != null && !systemDefaultApiKey.isEmpty() ? "有值" : "空");
         return systemDefaultApiKey;

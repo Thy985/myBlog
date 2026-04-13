@@ -21,4 +21,8 @@ public interface AnalyticsService {
     List<Map<String, Object>> getHotArticles(Integer limit);
 
     Map<String, Object> getRealtimeStats();
+
+    void recordPerformance(Map<String, Object> data);
+
+    void recordPerformanceErrors(Map<String, Object> data);
 }
