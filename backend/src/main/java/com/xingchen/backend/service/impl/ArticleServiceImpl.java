@@ -708,6 +708,15 @@ public class ArticleServiceImpl implements ArticleService {
                 }
             }
 
+            // 获取文章标签
+            List<Tag> articleTags = tagMapper.selectByArticleId(article.getId());
+            if (articleTags != null && !articleTags.isEmpty()) {
+                List<String> tagNames = articleTags.stream()
+                    .map(Tag::getTagName)
+                    .collect(Collectors.toList());
+                vo.setTagNames(tagNames);
+            }
+
             result.add(vo);
         }
 
