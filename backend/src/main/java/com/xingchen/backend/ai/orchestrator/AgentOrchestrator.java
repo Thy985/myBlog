@@ -295,9 +295,14 @@ public class AgentOrchestrator {
         if (!toolResults.isEmpty()) {
             systemPrompt.append("【工具执行结果】\n");
             for (Tool.ToolResult result : toolResults) {
-                systemPrompt.append("- ").append(result.message()).append("\n");
+                systemPrompt.append("- 工具: ").append(result.success() ? "成功" : "失败").append("\n");
+                systemPrompt.append("  消息: ").append(result.message()).append("\n");
+                if (result.data() != null) {
+                    systemPrompt.append("  数据: ").append(result.data().toString()).append("\n");
+                }
             }
             systemPrompt.append("\n");
+            systemPrompt.append("请基于上述工具执行结果回答用户的问题。\n");
         }
 
         // 构建增强请求

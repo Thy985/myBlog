@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/notification")
 @RequiredArgsConstructor
@@ -55,6 +57,20 @@ public class NotificationController {
     public Result<Void> deleteNotification(@PathVariable Long id) {
         Long userId = StpUtil.getLoginIdAsLong();
         notificationService.deleteNotification(id, userId);
+        return Result.success();
+    }
+
+    @DeleteMapping("/batch")
+    public Result<Void> deleteNotifications(@RequestBody List<Long> ids) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        notificationService.deleteNotifications(ids, userId);
+        return Result.success();
+    }
+
+    @DeleteMapping("/clear-all")
+    public Result<Void> clearAllNotifications() {
+        Long userId = StpUtil.getLoginIdAsLong();
+        notificationService.clearAllNotifications(userId);
         return Result.success();
     }
 }

@@ -10,7 +10,7 @@ import java.util.List;
 public class ArticleListVO {
     private Long id;
     private String title;
-    private String summary;
+    // 注意: description 字段来自 Article.description (BeanUtils.copyProperties 自动映射)
     private String thumbnail;
     private String titleImage;
     private String status;

@@ -11,7 +11,7 @@ public class ArticleVO {
     private Long id;
     private Long userId;
     private String title;
-    private String summary;
+    private String description;
     private String content;
     private String contentHtml;
     private String thumbnail;

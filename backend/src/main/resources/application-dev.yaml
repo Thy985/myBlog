@@ -164,6 +164,23 @@ logging:
     com.alibaba.druid: DEBUG
     com.xingchen.backend.util.AesUtil: DEBUG
 
+# MCP 服务配置
+mcp:
+  enabled: true
+  whisper:
+    url: http://localhost:8001
+  vision:
+    url: http://localhost:8002
+  timeout: 30000
+  health-check-interval: 60000
+
+# 图片服务配置
+image:
+  unsplash:
+    access-key: ${UNSPLASH_ACCESS_KEY:}
+  service:
+    enabled: true
+
 # 飞书机器人配置（开发环境启用）
 feishu:
   bot:

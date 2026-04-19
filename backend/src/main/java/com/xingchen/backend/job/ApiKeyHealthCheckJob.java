@@ -6,6 +6,7 @@ import com.xingchen.backend.mapper.UserApiKeyMapper;
 import com.xingchen.backend.service.UserApiKeyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,7 @@ public class ApiKeyHealthCheckJob {
     private final UserApiKeyMapper userApiKeyMapper;
 
     @Scheduled(cron = "0 0 3 * * ?")
+    @SchedulerLock(name = "healthCheck", lockAtLeastFor = "5m", lockAtMostFor = "30m")
     public void healthCheck() {
         log.info("开始 API Key 健康检查任务");
         long startTime = System.currentTimeMillis();

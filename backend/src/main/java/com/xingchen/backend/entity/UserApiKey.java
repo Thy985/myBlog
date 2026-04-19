@@ -4,6 +4,7 @@ import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.KeyType;
 import com.mybatisflex.annotation.Table;
+import com.xingchen.backend.security.ApiKeyEncryptionService;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,6 +22,13 @@ import java.time.LocalDateTime;
 @Table(value = "user_api_key")
 @Slf4j
 public class UserApiKey {
+
+    private static ApiKeyEncryptionService encryptionService;
+
+    public static void setEncryptionService(ApiKeyEncryptionService service) {
+        encryptionService = service;
+    }
+
     @Id(keyType = KeyType.Auto)
     private Long id;
 
@@ -111,13 +119,17 @@ public class UserApiKey {
         if (apiKey == null || apiKey.isBlank()) {
             return null;
         }
-        // 直接返回存储的值（跳过解密）- 临时测试
+        // 使用加密服务解密
+        if (encryptionService != null) {
+            return encryptionService.decrypt(apiKey);
+        }
+        // 降级：返回密文（不应在生产环境发生）
+        log.warn("ApiKeyEncryptionService 未注入，返回密文");
         return apiKey;
     }
 
     /**
-     * 设置 API Key（直接存储，不加密）
-     * 临时测试用
+     * 设置 API Key（自动加密存储）
      *
      * @param plainApiKey 明文 API Key
      */
@@ -129,8 +141,14 @@ public class UserApiKey {
         }
         // 临时保存明文
         this.apiKeyPlain = plainApiKey;
-        // 直接存储（跳过加密）- 临时测试
-        this.apiKey = plainApiKey;
+        // 使用加密服务加密存储
+        if (encryptionService != null) {
+            this.apiKey = encryptionService.encrypt(plainApiKey);
+        } else {
+            // 降级：存储明文（不应在生产环境发生）
+            log.warn("ApiKeyEncryptionService 未注入，存储明文");
+            this.apiKey = plainApiKey;
+        }
     }
 
     @Override

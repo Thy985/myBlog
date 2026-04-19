@@ -95,6 +95,19 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
+        <!-- 添加 ShedLock 分布式锁依赖 -->
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+            <version>5.10.0</version>
+        </dependency>
+        <!-- ShedLock Redis 提供者 -->
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-redis-spring</artifactId>
+            <version>5.10.0</version>
+        </dependency>
+
         <!-- 添加 Logstash Logback 编码器依赖 -->
         <dependency>
             <groupId>net.logstash.logback</groupId>
@@ -314,6 +327,12 @@
             <version>2.1.0</version>
         </dependency>
 
+        <!-- MinIO 对象存储 SDK -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.7</version>
+        </dependency>
     </dependencies>
 
     <build>

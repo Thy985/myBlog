@@ -16,8 +16,8 @@ public class ArticleCreateDTO {
     @NotBlank(message = "文章内容不能为空")
     private String content;
 
-    @Size(max = 300, message = "文章描述不能超过300字符")
-    private String description;
+    @Size(max = 300, message = "文章摘要不能超过300字符")
+    private String summary;
 
     private String titleImage;
 

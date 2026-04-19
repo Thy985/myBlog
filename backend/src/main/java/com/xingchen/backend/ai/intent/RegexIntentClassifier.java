@@ -14,76 +14,122 @@ import java.util.regex.Pattern;
 @Component
 @Slf4j
 public class RegexIntentClassifier implements IntentClassifierInterface {
-    
+
     private final List<IntentPattern> patterns = List.of(
         // 创建文章
         new IntentPattern(
             Intent.IntentType.CREATE_ARTICLE,
             Pattern.compile(".*(写|生成|创作|draft).*(文章|article|blog|博客).*"),
-            0.9
+            0.9,
+            List.of("article_generator")
         ),
         // 编辑文章
         new IntentPattern(
             Intent.IntentType.EDIT_ARTICLE,
-            Pattern.compile(".*(编辑|修改|update|edit).*(文章|article).*"),
-            0.85
+            Pattern.compile(".*(编辑|修改|更新|update|edit).*(文章|article).*"),
+            0.85,
+            List.of("article_update")
         ),
         // 发布文章
         new IntentPattern(
             Intent.IntentType.PUBLISH_ARTICLE,
             Pattern.compile(".*(发布|publish|上线).*(文章|article).*"),
-            0.9
+            0.9,
+            List.of("article_publish")
+        ),
+        // 列出我的分类
+        new IntentPattern(
+            Intent.IntentType.LIST_CATEGORIES,
+            Pattern.compile(".*(列出|查看|显示|list|show).*(分类|category|分类列表).*"),
+            0.85,
+            List.of("category_manager")
+        ),
+        // 创建分类
+        new IntentPattern(
+            Intent.IntentType.CREATE_CATEGORY,
+            Pattern.compile(".*(创建|新建|新增|add).*(分类|category).*"),
+            0.85,
+            List.of("category_manager")
+        ),
+        // 列出我的标签
+        new IntentPattern(
+            Intent.IntentType.LIST_TAGS,
+            Pattern.compile(".*(列出|查看|显示|list|show).*(标签|tag|标签列表).*"),
+            0.85,
+            List.of("tag_manager")
+        ),
+        // 创建标签
+        new IntentPattern(
+            Intent.IntentType.CREATE_TAG,
+            Pattern.compile(".*(创建|新建|新增|add).*(标签|tag).*"),
+            0.85,
+            List.of("tag_manager")
+        ),
+        // 列出我的文章
+        new IntentPattern(
+            Intent.IntentType.LIST_ARTICLES,
+            Pattern.compile(".*(列出|查看|显示|list|show).*(我的)?(文章|article|博客).*"),
+            0.8,
+            List.of("article_query")
+        ),
+        // 搜索文章
+        new IntentPattern(
+            Intent.IntentType.SEARCH_ARTICLES,
+            Pattern.compile(".*(搜索|查找|search|find).*(文章|article|博客).*"),
+            0.8,
+            List.of("article_query")
         ),
         // 定时任务
         new IntentPattern(
             Intent.IntentType.SCHEDULE_TASK,
             Pattern.compile(".*(定时|每天|每周|schedule|cron).*(任务|task|写文章).*"),
-            0.85
+            0.85,
+            List.of()
         ),
         // 列出任务
         new IntentPattern(
             Intent.IntentType.LIST_TASKS,
             Pattern.compile(".*(列出|查看|显示|list|show).*(任务|task|所有任务).*"),
-            0.8
+            0.8,
+            List.of()
         ),
         // 取消任务
         new IntentPattern(
             Intent.IntentType.CANCEL_TASK,
             Pattern.compile(".*(取消|删除|cancel|delete|stop).*(任务|task).*"),
-            0.8
-        ),
-        // 搜索
-        new IntentPattern(
-            Intent.IntentType.SEARCH,
-            Pattern.compile(".*(搜索|查找|search|find|query).*(文章|内容|信息).*"),
-            0.75
+            0.8,
+            List.of()
         ),
         // 总结
         new IntentPattern(
             Intent.IntentType.SUMMARIZE,
             Pattern.compile(".*(总结|概括|summarize|summary).*(文章|内容|这段|这篇).*"),
-            0.8
+            0.8,
+            List.of()
         ),
         // 翻译
         new IntentPattern(
             Intent.IntentType.TRANSLATE,
             Pattern.compile(".*(翻译|translate).*(成|到|to).*"),
-            0.85
+            0.85,
+            List.of()
         ),
         // 代码生成
         new IntentPattern(
             Intent.IntentType.CODE_GENERATE,
             Pattern.compile(".*(写|生成|create).*(代码|code|程序|function).*"),
-            0.8
+            0.8,
+            List.of("code-executor")
         ),
         // 知识库查询
         new IntentPattern(
             Intent.IntentType.KNOWLEDGE_QUERY,
             Pattern.compile(".*(查询|搜索|find).*(知识库|knowledge|文档).*"),
-            0.75
+            0.75,
+            List.of("hybrid-search")
         )
     );
-    
+
     @Override
     public Intent classify(String message) {
         if (message == null || message.trim().isEmpty()) {
@@ -94,13 +140,15 @@ public class RegexIntentClassifier implements IntentClassifierInterface {
 
         for (IntentPattern pattern : patterns) {
             if (pattern.regex.matcher(lowerMessage).matches()) {
-                log.debug("正则匹配意图: type={}, confidence={}", pattern.type, pattern.confidence);
+                log.debug("正则匹配意图: type={}, confidence={}, tools={}",
+                    pattern.type, pattern.confidence, pattern.possibleTools);
                 return Intent.builder()
                         .type(pattern.type)
                         .confidence(pattern.confidence)
                         .originalMessage(message)
                         .requiresMemory(pattern.type != Intent.IntentType.CHAT)
-                        .requiresTool(isToolRequired(pattern.type))
+                        .requiresTool(!pattern.possibleTools.isEmpty())
+                        .possibleTools(pattern.possibleTools)
                         .build();
             }
         }
@@ -108,26 +156,21 @@ public class RegexIntentClassifier implements IntentClassifierInterface {
         // 无匹配，返回低置信度聊天
         return Intent.unknown(message, 0.3);
     }
-    
-    private boolean isToolRequired(Intent.IntentType type) {
-        return switch (type) {
-            case UNKNOWN, CHAT -> false;
-            case CREATE_ARTICLE, EDIT_ARTICLE, PUBLISH_ARTICLE,
-                 SCHEDULE_TASK, LIST_TASKS, CANCEL_TASK -> true;
-            default -> false;
-        };
-    }
-    
+
     @Override
     public String getName() {
         return "RegexClassifier";
     }
-    
+
     @Override
     public boolean isAvailable() {
-        // 基于正则的分类器始终可用
         return true;
     }
-    
-    private record IntentPattern(Intent.IntentType type, Pattern regex, double confidence) {}
+
+    private record IntentPattern(
+        Intent.IntentType type,
+        Pattern regex,
+        double confidence,
+        List<String> possibleTools
+    ) {}
 }

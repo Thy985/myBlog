@@ -15,5 +15,7 @@ public interface TagService {
 
     TagVO createTag(String name, String color);
 
+    TagVO updateTag(Long id, String name, String color);
+
     void deleteTag(Long id);
 }

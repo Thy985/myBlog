@@ -153,4 +153,28 @@ public interface PageViewMapper extends BaseMapper<PageView> {
     @Select("SELECT CASE WHEN referer IS NULL OR referer = '' THEN '直接访问' ELSE '外部链接' END as source, COUNT(*) as count " +
             "FROM t_page_view WHERE create_time >= #{startTime} GROUP BY source ORDER BY count DESC")
     List<Map<String, Object>> selectSourceStats(@Param("startTime") LocalDateTime startTime);
+
+    /**
+     * 统计指定文章在指定日期的阅读量
+     * @param articleId 文章ID
+     * @param date 日期
+     * @return 阅读量
+     */
+    @Select("SELECT COUNT(*) FROM t_page_view WHERE page_url LIKE CONCAT('%/article/', #{articleId}, '%') AND DATE(create_time) = #{date}")
+    Long countByArticleIdAndDate(@Param("articleId") Long articleId, @Param("date") LocalDate date);
+
+    /**
+     * 按来源统计指定文章在日期范围内的访问量
+     * @param articleId 文章ID
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 来源及其访问次数映射
+     */
+    @Select("SELECT referer, COUNT(*) as count FROM t_page_view " +
+            "WHERE page_url LIKE CONCAT('%/article/', #{articleId}, '%') " +
+            "AND DATE(create_time) >= #{startDate} AND DATE(create_time) <= #{endDate} " +
+            "GROUP BY referer")
+    Map<String, Long> countByArticleIdAndReferer(@Param("articleId") Long articleId, 
+                                                  @Param("startDate") LocalDate startDate, 
+                                                  @Param("endDate") LocalDate endDate);
 }

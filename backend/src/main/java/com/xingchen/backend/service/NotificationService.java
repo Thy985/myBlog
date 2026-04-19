@@ -27,4 +27,17 @@ public interface NotificationService {
     void sendLikeNotification(Long userId, Long articleId, Long likerId, String articleTitle);
     
     void sendSystemNotification(Long userId, String title, String content);
+
+    /**
+     * 批量删除通知
+     * @param ids 通知ID列表
+     * @param userId 用户ID
+     */
+    void deleteNotifications(List<Long> ids, Long userId);
+
+    /**
+     * 清空所有通知
+     * @param userId 用户ID
+     */
+    void clearAllNotifications(Long userId);
 }

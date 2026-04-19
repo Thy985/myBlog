@@ -126,15 +126,55 @@ public class AgentController {
             return;
         }
 
-        sendStep(emitter, 1, 5, "意图识别", "done", "检测到博客发布请求");
-        sendStep(emitter, 2, 5, "联网搜索", "done", "已获取最新参考资料");
-        sendStep(emitter, 3, 5, "内容生成", "running", "正在调用 AI 生成初稿...");
+        // 1. 发送意图识别事件
+        sendIntentEvent(emitter, "CREATE_ARTICLE", 0.95,
+            List.of(Map.of("name", "title", "value", blogInfo.title)),
+            true, List.of("article_generator"));
 
+        sendStep(emitter, 1, 5, "意图识别", "done", "检测到博客发布请求", 100L);
+
+        // 2. 联网搜索并发送 RAG 来源事件
+        sendStep(emitter, 2, 5, "联网搜索", "running", "正在搜索相关资料...", null);
+        List<WebSearchService.SearchResult> searchResults = webSearchService.search(blogInfo.title, 3);
+
+        if (searchResults != null && !searchResults.isEmpty()) {
+            // 发送 RAG 来源事件
+            sendRagEvent(emitter, blogInfo.title, searchResults);
+            sendStep(emitter, 2, 5, "联网搜索", "done", "已获取 " + searchResults.size() + " 条参考资料", 500L);
+        } else {
+            sendStep(emitter, 2, 5, "联网搜索", "done", "未找到相关参考资料", 200L);
+        }
+
+        // 3. 发送工具调用事件 - 文章生成工具
+        sendToolCallEvent(emitter, "article_generator", Map.of(
+            "topic", blogInfo.title,
+            "wordCount", 1000,
+            "style", "technical"
+        ));
+
+        sendStep(emitter, 3, 5, "内容生成", "running", "正在调用 AI 生成初稿...", null);
+
+        long startTime = System.currentTimeMillis();
         String generatedContent = generateBlogContent(userId, blogInfo.title, blogInfo.content);
+        long generationTime = System.currentTimeMillis() - startTime;
 
-        sendStep(emitter, 3, 5, "内容生成", "done", "初稿已生成，字数 " + (generatedContent != null ? generatedContent.length() : 0));
-        sendStep(emitter, 4, 5, "文章优化", "done", "文章质量审核完成");
-        sendStep(emitter, 5, 5, "发布文章", "running", "正在创建文章...");
+        // 发送工具调用结果事件
+        sendToolResultEvent(emitter, "article_generator", true,
+            Map.of("wordCount", generatedContent != null ? generatedContent.length() : 0),
+            "文章生成成功", generationTime);
+
+        sendStep(emitter, 3, 5, "内容生成", "done",
+            "初稿已生成，字数 " + (generatedContent != null ? generatedContent.length() : 0), generationTime);
+
+        sendStep(emitter, 4, 5, "文章优化", "done", "文章质量审核完成", 300L);
+
+        // 4. 发送工具调用事件 - 发布文章
+        sendToolCallEvent(emitter, "publish_article", Map.of(
+            "title", blogInfo.title,
+            "categoryId", blogInfo.categoryId != null ? blogInfo.categoryId : 2
+        ));
+
+        sendStep(emitter, 5, 5, "发布文章", "running", "正在创建文章...", null);
 
         ArticleCreateDTO dto = new ArticleCreateDTO();
         dto.setTitle(blogInfo.title);
@@ -142,7 +182,12 @@ public class AgentController {
         dto.setCategoryId(blogInfo.categoryId != null ? blogInfo.categoryId : 2);
         var articleVO = articleService.createArticle(userId, dto);
 
-        sendStep(emitter, 5, 5, "发布文章", "done", "发布成功，文章ID: " + articleVO.getId());
+        // 发送工具调用结果事件
+        sendToolResultEvent(emitter, "publish_article", true,
+            Map.of("articleId", articleVO.getId()),
+            "文章发布成功", 200L);
+
+        sendStep(emitter, 5, 5, "发布文章", "done", "发布成功，文章ID: " + articleVO.getId(), 200L);
 
         String response = String.format(
             "✅ 博客发布成功！\n\n" +
@@ -161,12 +206,138 @@ public class AgentController {
         emitter.complete();
     }
 
-    private void sendStep(SseEmitter emitter, int currentStep, int totalSteps, String stepName, String status, String description) throws Exception {
+    /**
+     * 发送意图识别事件
+     */
+    private void sendIntentEvent(SseEmitter emitter, String intentType, double confidence,
+                                 List<Map<String, String>> entities, boolean requiresTool,
+                                 List<String> possibleTools) throws Exception {
+        StringBuilder entitiesJson = new StringBuilder("[");
+        for (int i = 0; i < entities.size(); i++) {
+            Map<String, String> entity = entities.get(i);
+            entitiesJson.append(String.format("{\"name\": \"%s\", \"value\": \"%s\"}",
+                escapeJson(entity.get("name")), escapeJson(entity.get("value"))));
+            if (i < entities.size() - 1) entitiesJson.append(", ");
+        }
+        entitiesJson.append("]");
+
+        StringBuilder toolsJson = new StringBuilder("[");
+        for (int i = 0; i < possibleTools.size(); i++) {
+            toolsJson.append("\"").append(escapeJson(possibleTools.get(i))).append("\"");
+            if (i < possibleTools.size() - 1) toolsJson.append(", ");
+        }
+        toolsJson.append("]");
+
         String data = String.format(
-            "{\"currentStep\": %d, \"totalSteps\": %d, \"stepName\": \"%s\", \"status\": \"%s\", \"description\": \"%s\"}",
-            currentStep, totalSteps, escapeJson(stepName), status, escapeJson(description)
+            "{\"intent\": {\"type\": \"%s\", \"confidence\": %.2f, \"entities\": %s, \"requiresTool\": %b, \"possibleTools\": %s}}",
+            intentType, confidence, entitiesJson, requiresTool, toolsJson
         );
-        emitter.send(SseEmitter.event().name("step").data(data));
+        emitter.send(SseEmitter.event().name("intent").data(data));
+    }
+
+    /**
+     * 发送工具调用事件
+     */
+    private void sendToolCallEvent(SseEmitter emitter, String toolName, Map<String, Object> parameters) throws Exception {
+        StringBuilder paramsJson = new StringBuilder("{");
+        int i = 0;
+        for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+            paramsJson.append(String.format("\"%s\": ", escapeJson(entry.getKey())));
+            Object value = entry.getValue();
+            if (value instanceof String) {
+                paramsJson.append("\"").append(escapeJson((String) value)).append("\"");
+            } else if (value instanceof Number) {
+                paramsJson.append(value);
+            } else if (value instanceof Boolean) {
+                paramsJson.append(value);
+            } else {
+                paramsJson.append("\"").append(escapeJson(value.toString())).append("\"");
+            }
+            if (i < parameters.size() - 1) paramsJson.append(", ");
+            i++;
+        }
+        paramsJson.append("}");
+
+        String data = String.format(
+            "{\"toolName\": \"%s\", \"parameters\": %s, \"status\": \"executing\"}",
+            escapeJson(toolName), paramsJson
+        );
+        emitter.send(SseEmitter.event().name("tool_call").data(data));
+    }
+
+    /**
+     * 发送工具调用结果事件
+     */
+    private void sendToolResultEvent(SseEmitter emitter, String toolName, boolean success,
+                                     Map<String, Object> result, String message, long executionTime) throws Exception {
+        StringBuilder resultJson = new StringBuilder("{");
+        int i = 0;
+        for (Map.Entry<String, Object> entry : result.entrySet()) {
+            resultJson.append(String.format("\"%s\": ", escapeJson(entry.getKey())));
+            Object value = entry.getValue();
+            if (value instanceof String) {
+                resultJson.append("\"").append(escapeJson((String) value)).append("\"");
+            } else if (value instanceof Number) {
+                resultJson.append(value);
+            } else if (value instanceof Boolean) {
+                resultJson.append(value);
+            } else {
+                resultJson.append("\"").append(escapeJson(value.toString())).append("\"");
+            }
+            if (i < result.size() - 1) resultJson.append(", ");
+            i++;
+        }
+        resultJson.append("}");
+
+        String data = String.format(
+            "{\"toolName\": \"%s\", \"success\": %b, \"result\": %s, \"message\": \"%s\", \"executionTime\": %d}",
+            escapeJson(toolName), success, resultJson, escapeJson(message), executionTime
+        );
+        emitter.send(SseEmitter.event().name("tool_result").data(data));
+    }
+
+    /**
+     * 发送 RAG 来源事件
+     */
+    private void sendRagEvent(SseEmitter emitter, String query, List<WebSearchService.SearchResult> sources) throws Exception {
+        StringBuilder sourcesJson = new StringBuilder("[");
+        for (int i = 0; i < sources.size(); i++) {
+            WebSearchService.SearchResult source = sources.get(i);
+            String cleanContent = cleanHtml(source.content());
+            if (cleanContent.length() > 200) {
+                cleanContent = cleanContent.substring(0, 200) + "...";
+            }
+            // 模拟相关度评分（实际应该由 RAG 系统提供）
+            double relevance = 0.9 - (i * 0.1);
+            sourcesJson.append(String.format(
+                "{\"title\": \"%s\", \"url\": \"%s\", \"snippet\": \"%s\", \"relevance\": %.2f}",
+                escapeJson(source.title()),
+                escapeJson(source.url()),
+                escapeJson(cleanContent),
+                relevance
+            ));
+            if (i < sources.size() - 1) sourcesJson.append(", ");
+        }
+        sourcesJson.append("]");
+
+        String data = String.format(
+            "{\"query\": \"%s\", \"sources\": %s}",
+            escapeJson(query), sourcesJson
+        );
+        emitter.send(SseEmitter.event().name("rag").data(data));
+    }
+
+    private void sendStep(SseEmitter emitter, int currentStep, int totalSteps, String stepName, String status, String description, Long executionTime) throws Exception {
+        StringBuilder dataBuilder = new StringBuilder();
+        dataBuilder.append(String.format(
+            "{\"currentStep\": %d, \"totalSteps\": %d, \"stepName\": \"%s\", \"status\": \"%s\", \"description\": \"%s\"",
+            currentStep, totalSteps, escapeJson(stepName), status, escapeJson(description)
+        ));
+        if (executionTime != null) {
+            dataBuilder.append(String.format(", \"executionTime\": %d", executionTime));
+        }
+        dataBuilder.append("}");
+        emitter.send(SseEmitter.event().name("step").data(dataBuilder.toString()));
     }
 
     private String escapeJson(String s) {

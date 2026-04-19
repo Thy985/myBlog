@@ -104,4 +104,17 @@ public class AnalyticsController {
             return Result.success(true); // 即使失败也返回成功，避免前端报错
         }
     }
+
+    /**
+     * 获取文章统计详情
+     * @param articleId 文章ID
+     * @param days 统计天数，默认30天
+     * @return 文章统计详情
+     */
+    @GetMapping("/article/{articleId}")
+    public Result<Map<String, Object>> getArticleStats(
+            @PathVariable Long articleId,
+            @RequestParam(defaultValue = "30") Integer days) {
+        return Result.success(analyticsService.getArticleStats(articleId, days));
+    }
 }

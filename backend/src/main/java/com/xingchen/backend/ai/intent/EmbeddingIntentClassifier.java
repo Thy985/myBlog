@@ -24,45 +24,92 @@ public class EmbeddingIntentClassifier implements IntentClassifierInterface {
     private final Map<Intent.IntentType, List<float[]>> intentEmbeddings = new HashMap<>();
     
     // 意图示例语料
-    private static final Map<Intent.IntentType, List<String>> INTENT_EXAMPLES = Map.of(
-        Intent.IntentType.CREATE_ARTICLE, List.of(
+    private static final Map<Intent.IntentType, List<String>> INTENT_EXAMPLES;
+    
+    static {
+        INTENT_EXAMPLES = new HashMap<>();
+        INTENT_EXAMPLES.put(Intent.IntentType.CREATE_ARTICLE, List.of(
             "帮我写一篇文章",
             "生成一篇技术博客",
             "创作一篇关于Java的文章",
             "draft a blog post",
             "write an article about spring boot"
-        ),
-        Intent.IntentType.EDIT_ARTICLE, List.of(
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.EDIT_ARTICLE, List.of(
             "修改这篇文章",
             "编辑一下内容",
             "update the article",
             "改一下标题"
-        ),
-        Intent.IntentType.SCHEDULE_TASK, List.of(
-            "每天自动写文章",
-            "定时发布任务",
-            "schedule a daily task",
-            "每周生成一篇博客"
-        ),
-        Intent.IntentType.LIST_TASKS, List.of(
-            "查看所有任务",
-            "列出定时任务",
-            "show all tasks",
-            "有哪些任务在运行"
-        ),
-        Intent.IntentType.SEARCH, List.of(
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.PUBLISH_ARTICLE, List.of(
+            "发布文章",
+            "publish the article",
+            "将文章发布出去"
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.LIST_CATEGORIES, List.of(
+            "查看我的分类列表",
+            "列出我的分类",
+            "show my categories",
+            "有哪些分类",
+            "获取分类列表"
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.CREATE_CATEGORY, List.of(
+            "创建一个分类",
+            "新建分类",
+            "add a new category",
+            "新增文章分类"
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.LIST_TAGS, List.of(
+            "查看我的标签列表",
+            "列出我的标签",
+            "show my tags",
+            "有哪些标签",
+            "获取标签列表"
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.CREATE_TAG, List.of(
+            "创建一个标签",
+            "新建标签",
+            "add a new tag",
+            "新增文章标签"
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.LIST_ARTICLES, List.of(
+            "查看我的文章列表",
+            "列出我的文章",
+            "show my articles",
+            "我的所有文章",
+            "获取文章列表"
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.SEARCH_ARTICLES, List.of(
             "搜索相关文章",
             "查找关于微服务的内容",
             "search for articles",
             "find blog posts"
-        ),
-        Intent.IntentType.SUMMARIZE, List.of(
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.SCHEDULE_TASK, List.of(
+            "每天自动写文章",
+            "定时发布任务",
+            "schedule a daily task",
+            "每周生成一篇博客"
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.LIST_TASKS, List.of(
+            "查看所有任务",
+            "列出定时任务",
+            "show all tasks",
+            "有哪些任务在运行"
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.SEARCH, List.of(
+            "搜索相关内容",
+            "查找某个内容",
+            "search for content",
+            "find something"
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.SUMMARIZE, List.of(
             "总结这篇文章",
             "概括一下主要内容",
             "summarize this article",
             "给我个摘要"
-        )
-    );
+        ));
+    }
     
     @PostConstruct
     public void init() {
@@ -114,12 +161,15 @@ public class EmbeddingIntentClassifier implements IntentClassifierInterface {
             // 阈值判断
             if (bestMatch != null && bestScore >= 0.75) {
                 log.debug("Embedding匹配意图: type={}, score={}", bestMatch, bestScore);
+                boolean requiresTool = isToolRequired(bestMatch);
+                List<String> tools = requiresTool ? INTENT_TOOLS.getOrDefault(bestMatch, List.of()) : List.of();
                 return Intent.builder()
                         .type(bestMatch)
                         .confidence(bestScore)
                         .originalMessage(message)
                         .requiresMemory(bestMatch != Intent.IntentType.CHAT)
-                        .requiresTool(isToolRequired(bestMatch))
+                        .requiresTool(requiresTool)
+                        .possibleTools(tools)
                         .build();
             }
 
@@ -153,11 +203,38 @@ public class EmbeddingIntentClassifier implements IntentClassifierInterface {
         return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
     }
 
+    // 意图类型到工具的映射
+    private static final Map<Intent.IntentType, List<String>> INTENT_TOOLS;
+    
+    static {
+        INTENT_TOOLS = new HashMap<>();
+        INTENT_TOOLS.put(Intent.IntentType.CREATE_ARTICLE, List.of("article_generator"));
+        INTENT_TOOLS.put(Intent.IntentType.EDIT_ARTICLE, List.of("article_update"));
+        INTENT_TOOLS.put(Intent.IntentType.PUBLISH_ARTICLE, List.of("article_publish"));
+        INTENT_TOOLS.put(Intent.IntentType.DELETE_ARTICLE, List.of("article_delete"));
+        INTENT_TOOLS.put(Intent.IntentType.LIST_ARTICLES, List.of("article_query"));
+        INTENT_TOOLS.put(Intent.IntentType.SEARCH_ARTICLES, List.of("article_query"));
+        INTENT_TOOLS.put(Intent.IntentType.LIST_CATEGORIES, List.of("category_manager"));
+        INTENT_TOOLS.put(Intent.IntentType.CREATE_CATEGORY, List.of("category_manager"));
+        INTENT_TOOLS.put(Intent.IntentType.EDIT_CATEGORY, List.of("category_manager"));
+        INTENT_TOOLS.put(Intent.IntentType.DELETE_CATEGORY, List.of("category_manager"));
+        INTENT_TOOLS.put(Intent.IntentType.LIST_TAGS, List.of("tag_manager"));
+        INTENT_TOOLS.put(Intent.IntentType.CREATE_TAG, List.of("tag_manager"));
+        INTENT_TOOLS.put(Intent.IntentType.EDIT_TAG, List.of("tag_manager"));
+        INTENT_TOOLS.put(Intent.IntentType.DELETE_TAG, List.of("tag_manager"));
+        INTENT_TOOLS.put(Intent.IntentType.CODE_GENERATE, List.of("code-executor"));
+        INTENT_TOOLS.put(Intent.IntentType.KNOWLEDGE_QUERY, List.of("hybrid-search"));
+    }
+
     private boolean isToolRequired(Intent.IntentType type) {
         return switch (type) {
             case UNKNOWN, CHAT -> false;
             case CREATE_ARTICLE, EDIT_ARTICLE, PUBLISH_ARTICLE,
-                 SCHEDULE_TASK, LIST_TASKS, CANCEL_TASK -> true;
+                 DELETE_ARTICLE, LIST_ARTICLES, SEARCH_ARTICLES,
+                 CREATE_CATEGORY, EDIT_CATEGORY, DELETE_CATEGORY, LIST_CATEGORIES,
+                 CREATE_TAG, EDIT_TAG, DELETE_TAG, LIST_TAGS,
+                 SCHEDULE_TASK, LIST_TASKS, CANCEL_TASK,
+                 CODE_GENERATE, KNOWLEDGE_QUERY -> true;
             default -> false;
         };
     }

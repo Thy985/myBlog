@@ -184,4 +184,31 @@ public class NotificationServiceImpl implements NotificationService {
         if (str.length() <= maxLength) return str;
         return str.substring(0, maxLength) + "...";
     }
+
+    @Override
+    @Transactional
+    public void deleteNotifications(List<Long> ids, Long userId) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        // 验证所有通知都属于该用户
+        for (Long id : ids) {
+            Notification notification = notificationMapper.selectOneById(id);
+            if (notification != null && !notification.getUserId().equals(userId)) {
+                throw new BusinessException(ErrorCode.NO_PERMISSION, "无权限删除通知ID: " + id);
+            }
+        }
+        // 批量删除
+        for (Long id : ids) {
+            notificationMapper.deleteById(id);
+        }
+        log.info("批量删除通知: 用户ID={}, 数量={}", userId, ids.size());
+    }
+
+    @Override
+    @Transactional
+    public void clearAllNotifications(Long userId) {
+        notificationMapper.deleteAllByUserId(userId);
+        log.info("清空所有通知: 用户ID={}", userId);
+    }
 }

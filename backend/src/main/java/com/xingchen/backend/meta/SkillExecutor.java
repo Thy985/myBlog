@@ -1,9 +1,13 @@
 package com.xingchen.backend.meta;
 
+import com.xingchen.backend.ai.tool.*;
+import com.xingchen.backend.ai.tool.Tool.ToolResult;
+import com.xingchen.backend.mcp.McpClientService;
 import com.xingchen.backend.service.AIService;
 import com.xingchen.backend.service.KnowledgeBaseService;
 import com.xingchen.backend.service.SearchService;
 import com.xingchen.backend.service.WebSearchService;
+import com.xingchen.backend.tool.CodeExecutionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.expression.EvaluationContext;
@@ -36,6 +40,15 @@ public class SkillExecutor {
     private final KnowledgeBaseService knowledgeBaseService;
     private final SearchService searchService;
     private final WebSearchService webSearchService;
+    private final McpClientService mcpClientService;
+    private final CodeExecutionService codeExecutionService;
+    private final ArticleGeneratorTool articleGeneratorTool;
+    private final ArticlePublishTool articlePublishTool;
+    private final ArticleUpdateTool articleUpdateTool;
+    private final ArticleDeleteTool articleDeleteTool;
+    private final ArticleQueryTool articleQueryTool;
+    private final CategoryTool categoryTool;
+    private final TagTool tagTool;
 
     private final ExpressionParser expressionParser = new SpelExpressionParser();
 
@@ -340,6 +353,9 @@ public class SkillExecutor {
                 case "cache" -> invokeCacheTool(tool, params);
                 case "file" -> invokeFileTool(tool, params);
                 case "mcp" -> invokeMcpTool(tool, params);
+                case "article" -> invokeArticleTool(tool, params);
+                case "category" -> invokeCategoryTool(tool, params);
+                case "tag" -> invokeTagTool(tool, params);
                 default -> throw new UnsupportedOperationException("不支持的工具类型: " + toolType);
             };
         } catch (Exception e) {
@@ -501,14 +517,38 @@ public class SkillExecutor {
 
         log.info("代码执行工具收到请求: language={}, codeLength={}", language, code != null ? code.length() : 0);
 
-        return Map.of(
-                "success", true,
-                "toolId", tool.getToolId(),
-                "message", "代码执行功能开发中，请使用 LLM 工具进行代码审查",
-                "code", code,
-                "language", language != null ? language : "unknown",
-                "type", "code"
-        );
+        if (code == null || code.trim().isEmpty()) {
+            return Map.of(
+                    "success", false,
+                    "toolId", tool.getToolId(),
+                    "error", "代码不能为空",
+                    "type", "code"
+            );
+        }
+
+        CodeExecutionService.CodeExecutionResult result = codeExecutionService.execute(code, language);
+
+        if (result.isSuccess()) {
+            return Map.of(
+                    "success", true,
+                    "toolId", tool.getToolId(),
+                    "language", result.getLanguage(),
+                    "output", result.getOutput(),
+                    "result", result.getResult(),
+                    "executionTime", result.getExecutionTime(),
+                    "type", "code"
+            );
+        } else {
+            return Map.of(
+                    "success", false,
+                    "toolId", tool.getToolId(),
+                    "error", result.getError(),
+                    "language", result.getLanguage(),
+                    "supportedLanguages", result.getSupportedLanguages(),
+                    "executionTime", result.getExecutionTime(),
+                    "type", "code"
+            );
+        }
     }
 
     /**
@@ -619,15 +659,46 @@ public class SkillExecutor {
     private Object invokeWhisperService(Map<String, Object> params) {
         String audioUrl = (String) params.get("audioUrl");
         String audioData = (String) params.get("audioData");
+        String language = (String) params.get("language");
 
         log.info("调用 Whisper 服务: audioUrl={}", audioUrl);
 
-        return Map.of(
-                "success", false,
-                "toolId", "mcp-whisper",
-                "error", "Whisper MCP 服务调用实现中",
-                "type", "mcp"
-        );
+        McpClientService.WhisperResult result;
+        
+        if (audioData != null && !audioData.isEmpty()) {
+            // 直接传入 Base64 音频数据
+            result = mcpClientService.transcribeAudio(audioData, language);
+        } else if (audioUrl != null && !audioUrl.isEmpty()) {
+            // 从 URL 下载音频
+            result = mcpClientService.transcribeFromUrl(audioUrl, language);
+        } else {
+            return Map.of(
+                    "success", false,
+                    "toolId", "mcp-whisper",
+                    "error", "缺少音频数据（audioData 或 audioUrl）",
+                    "type", "mcp"
+            );
+        }
+
+        if (result.isSuccess()) {
+            return Map.of(
+                    "success", true,
+                    "toolId", "mcp-whisper",
+                    "text", result.getText(),
+                    "language", result.getLanguage(),
+                    "confidence", result.getConfidence(),
+                    "executionTime", result.getExecutionTime(),
+                    "type", "mcp"
+            );
+        } else {
+            return Map.of(
+                    "success", false,
+                    "toolId", "mcp-whisper",
+                    "error", result.getError(),
+                    "executionTime", result.getExecutionTime(),
+                    "type", "mcp"
+            );
+        }
     }
 
     /**
@@ -640,12 +711,159 @@ public class SkillExecutor {
 
         log.info("调用 Vision 服务: imageUrl={}, operation={}", imageUrl, operation);
 
-        return Map.of(
-                "success", false,
-                "toolId", "mcp-vision",
-                "error", "Vision MCP 服务调用实现中",
-                "type", "mcp"
-        );
+        McpClientService.VisionResult result;
+        
+        if (imageData != null && !imageData.isEmpty()) {
+            // 直接传入 Base64 图像数据
+            result = mcpClientService.analyzeImage(imageData, operation);
+        } else if (imageUrl != null && !imageUrl.isEmpty()) {
+            // 从 URL 下载图像
+            result = mcpClientService.analyzeImageFromUrl(imageUrl, operation);
+        } else {
+            return Map.of(
+                    "success", false,
+                    "toolId", "mcp-vision",
+                    "error", "缺少图像数据（imageData 或 imageUrl）",
+                    "type", "mcp"
+            );
+        }
+
+        if (result.isSuccess()) {
+            return Map.of(
+                    "success", true,
+                    "toolId", "mcp-vision",
+                    "result", result.getResult(),
+                    "operation", result.getOperation(),
+                    "executionTime", result.getExecutionTime(),
+                    "type", "mcp"
+            );
+        } else {
+            return Map.of(
+                    "success", false,
+                    "toolId", "mcp-vision",
+                    "error", result.getError(),
+                    "executionTime", result.getExecutionTime(),
+                    "type", "mcp"
+            );
+        }
+    }
+
+    /**
+     * 调用文章相关工具
+     */
+    private Object invokeArticleTool(ToolOption tool, Map<String, Object> params) {
+        String toolId = tool.getToolId();
+        log.info("调用文章工具: toolId={}", toolId);
+
+        try {
+            ToolResult result = switch (toolId) {
+                case "article_generator" -> articleGeneratorTool.execute(params);
+                case "article_publish" -> articlePublishTool.execute(params);
+                case "article_update" -> articleUpdateTool.execute(params);
+                case "article_delete" -> articleDeleteTool.execute(params);
+                case "article_query" -> articleQueryTool.execute(params);
+                default -> throw new UnsupportedOperationException("未知的文章工具: " + toolId);
+            };
+
+            if (result.success()) {
+                return Map.of(
+                        "success", true,
+                        "toolId", toolId,
+                        "data", result.data(),
+                        "message", result.message(),
+                        "type", "article"
+                );
+            } else {
+                return Map.of(
+                        "success", false,
+                        "toolId", toolId,
+                        "error", result.message(),
+                        "type", "article"
+                );
+            }
+        } catch (Exception e) {
+            log.error("文章工具调用失败: toolId={}, error={}", toolId, e.getMessage());
+            return Map.of(
+                    "success", false,
+                    "toolId", toolId,
+                    "error", "文章工具执行失败: " + e.getMessage(),
+                    "type", "article"
+            );
+        }
+    }
+
+    /**
+     * 调用分类管理工具
+     */
+    private Object invokeCategoryTool(ToolOption tool, Map<String, Object> params) {
+        String toolId = tool.getToolId();
+        log.info("调用分类工具: toolId={}", toolId);
+
+        try {
+            ToolResult result = categoryTool.execute(params);
+
+            if (result.success()) {
+                return Map.of(
+                        "success", true,
+                        "toolId", toolId,
+                        "data", result.data(),
+                        "message", result.message(),
+                        "type", "category"
+                );
+            } else {
+                return Map.of(
+                        "success", false,
+                        "toolId", toolId,
+                        "error", result.message(),
+                        "type", "category"
+                );
+            }
+        } catch (Exception e) {
+            log.error("分类工具调用失败: toolId={}, error={}", toolId, e.getMessage());
+            return Map.of(
+                    "success", false,
+                    "toolId", toolId,
+                    "error", "分类工具执行失败: " + e.getMessage(),
+                    "type", "category"
+            );
+        }
+    }
+
+    /**
+     * 调用标签管理工具
+     */
+    private Object invokeTagTool(ToolOption tool, Map<String, Object> params) {
+        String toolId = tool.getToolId();
+        log.info("调用标签工具: toolId={}", toolId);
+
+        try {
+            ToolResult result = tagTool.execute(params);
+
+            if (result.success()) {
+                return Map.of(
+                        "success", true,
+                        "toolId", toolId,
+                        "data", result.data(),
+                        "message", result.message(),
+                        "type", "tag"
+                );
+            } else {
+                return Map.of(
+                        "success", false,
+                        "toolId", toolId,
+                        "error", result.message(),
+                        "type", "tag"
+                );
+            }
+        } catch (Exception e) {
+            log.error("标签工具调用失败: toolId={}, error={}", toolId, e.getMessage());
+            return Map.of(
+                    "success", false,
+                    "toolId", toolId,
+                    "error", "标签工具执行失败: " + e.getMessage(),
+                    "type", "tag"
+            );
+        }
     }
 
     /**

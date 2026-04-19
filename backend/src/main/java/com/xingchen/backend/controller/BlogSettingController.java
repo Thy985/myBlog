@@ -21,13 +21,13 @@ public class BlogSettingController {
     @GetMapping("/detail")
     public Result<Map<String, Object>> getDetail() {
         BlogSetting setting = blogSettingMapper.selectOneById(1L);
-        
+
         Map<String, Object> result = new HashMap<>();
         if (setting != null) {
-            result.put("name", setting.getBlogName());
+            result.put("blogName", setting.getBlogName());
             result.put("author", setting.getAuthor());
+            result.put("description", setting.getIntroduction());
             result.put("introduction", setting.getIntroduction());
-            // 处理头像和logo的完整URL
             String avatar = setting.getAvatar();
             if (avatar != null && !avatar.startsWith("http")) {
                 avatar = "/api/file/" + avatar;
@@ -43,13 +43,16 @@ public class BlogSettingController {
             result.put("gitee", setting.getGiteeHome());
             result.put("csdn", setting.getCsdnHome());
             result.put("zhihu", setting.getZhihuHome());
+            result.put("email", setting.getEmail());
             result.put("footerInfo", setting.getFooterInfo());
             result.put("beianCode", setting.getBeianCode());
+            result.put("beianLink", setting.getBeianLink());
             result.put("seoTitle", setting.getSeoTitle());
             result.put("seoKeywords", setting.getSeoKeywords());
             result.put("seoDescription", setting.getSeoDescription());
+            result.put("siteUrl", "/");
         }
-        
+
         return Result.success(result);
     }
 }

@@ -267,4 +267,76 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     public void recordPerformanceErrors(Map<String, Object> data) {
         log.debug("收到性能错误上报: {}", data);
     }
+
+    /**
+     * 获取文章统计详情
+     * @param articleId 文章ID
+     * @param days 统计天数
+     * @return 文章统计详情，包含阅读量、点赞数、评论数、趋势数据等
+     */
+    @Override
+    public Map<String, Object> getArticleStats(Long articleId, Integer days) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // 获取文章基本信息
+        Article article = articleMapper.selectOneById(articleId);
+        if (article == null) {
+            result.put("articleId", articleId);
+            result.put("exists", false);
+            return result;
+        }
+        
+        result.put("articleId", articleId);
+        result.put("exists", true);
+        result.put("title", article.getTitle());
+        result.put("totalReadNum", article.getReadNum());
+        result.put("totalLikeNum", article.getLikeNum());
+        
+        // 计算日期范围
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(days != null && days > 0 ? days : 30);
+        
+        // 获取文章在日期范围内的阅读趋势
+        List<Map<String, Object>> trendData = new ArrayList<>();
+        LocalDate current = startDate;
+        while (!current.isAfter(endDate)) {
+            Map<String, Object> dayData = new HashMap<>();
+            dayData.put("date", current.toString());
+            // 这里可以从 PageView 表中统计每日阅读量
+            Long dailyViews = pageViewMapper.countByArticleIdAndDate(articleId, current);
+            dayData.put("views", dailyViews != null ? dailyViews : 0);
+            trendData.add(dayData);
+            current = current.plusDays(1);
+        }
+        result.put("trend", trendData);
+        
+        // 获取来源分析
+        Map<String, Long> sourceCounts = pageViewMapper.countByArticleIdAndReferer(articleId, startDate, endDate);
+        List<Map<String, Object>> sources = new ArrayList<>();
+        if (sourceCounts == null) {
+            sourceCounts = new HashMap<>();
+        }
+        long totalSourceCount = sourceCounts.values().stream().mapToLong(Long::longValue).sum();
+        for (Map.Entry<String, Long> entry : sourceCounts.entrySet()) {
+            Map<String, Object> source = new HashMap<>();
+            String sourceName = entry.getKey();
+            if (sourceName == null || sourceName.isEmpty()) {
+                sourceName = "直接访问";
+            } else if (sourceName.contains("google")) {
+                sourceName = "Google";
+            } else if (sourceName.contains("baidu")) {
+                sourceName = "百度";
+            } else if (sourceName.contains("bing")) {
+                sourceName = "Bing";
+            }
+            source.put("name", sourceName);
+            source.put("count", entry.getValue());
+            source.put("percentage", totalSourceCount > 0 ? Math.round(entry.getValue() * 100.0 / totalSourceCount) : 0);
+            sources.add(source);
+        }
+        result.put("sources", sources);
+        
+        log.debug("获取文章统计详情: articleId={}, days={}", articleId, days);
+        return result;
+    }
 }

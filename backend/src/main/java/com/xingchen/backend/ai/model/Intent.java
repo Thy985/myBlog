@@ -42,6 +42,17 @@ public class Intent {
         CREATE_ARTICLE,     // 创建文章
         EDIT_ARTICLE,       // 编辑文章
         PUBLISH_ARTICLE,    // 发布文章
+        DELETE_ARTICLE,     // 删除文章
+        LIST_ARTICLES,      // 列出文章
+        SEARCH_ARTICLES,    // 搜索文章
+        LIST_CATEGORIES,    // 列出分类
+        CREATE_CATEGORY,    // 创建分类
+        EDIT_CATEGORY,      // 编辑分类
+        DELETE_CATEGORY,    // 删除分类
+        LIST_TAGS,          // 列出标签
+        CREATE_TAG,         // 创建标签
+        EDIT_TAG,           // 编辑标签
+        DELETE_TAG,          // 删除标签
         SCHEDULE_TASK,      // 定时任务
         LIST_TASKS,         // 列出任务
         CANCEL_TASK,        // 取消任务

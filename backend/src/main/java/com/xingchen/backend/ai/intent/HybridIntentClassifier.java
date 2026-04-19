@@ -42,47 +42,57 @@ public class HybridIntentClassifier implements IntentClassifierInterface {
     public Intent classify(String message) {
         long startTime = System.currentTimeMillis();
 
+        // 1. 首先尝试正则分类器（高精度，适合已知模式）
+        if (regexClassifier.isAvailable()) {
+            try {
+                Intent regexIntent = regexClassifier.classify(message);
+                if (regexIntent.getConfidence() >= highConfidenceThreshold) {
+                    log.debug("正则高置信度匹配: type={}, confidence={}",
+                            regexIntent.getType(), regexIntent.getConfidence());
+                    return regexIntent;
+                }
+                // 如果正则匹配了工具类意图，直接返回（不与Embedding比较）
+                if (regexIntent.getType() != Intent.IntentType.UNKNOWN
+                        && regexIntent.getType() != Intent.IntentType.CHAT
+                        && regexIntent.isRequiresTool()) {
+                    log.debug("正则匹配工具意图: type={}, confidence={}",
+                            regexIntent.getType(), regexIntent.getConfidence());
+                    return regexIntent;
+                }
+            } catch (Exception e) {
+                log.error("正则分类器执行失败", e);
+            }
+        }
+
+        // 2. Embedding分类器作为后备
         Intent bestIntent = null;
         double bestConfidence = 0.0;
-        String bestSource = "";
 
-        // 依次尝试每个分类器
-        for (IntentClassifierInterface classifier : classifiers) {
-            if (!classifier.isAvailable()) {
-                continue;
-            }
-
+        if (embeddingClassifier.isAvailable()) {
             try {
-                Intent intent = classifier.classify(message);
-
-                // 高置信度直接返回
-                if (intent.getConfidence() >= highConfidenceThreshold) {
-                    log.debug("高置信度匹配: source={}, type={}, confidence={}",
-                            classifier.getName(), intent.getType(), intent.getConfidence());
-                    return intent;
+                Intent embeddingIntent = embeddingClassifier.classify(message);
+                if (embeddingIntent.getConfidence() >= highConfidenceThreshold) {
+                    log.debug("Embedding高置信度匹配: type={}, confidence={}",
+                            embeddingIntent.getType(), embeddingIntent.getConfidence());
+                    return embeddingIntent;
                 }
-
-                // 记录最佳结果
-                if (intent.getConfidence() > bestConfidence) {
-                    bestConfidence = intent.getConfidence();
-                    bestIntent = intent;
-                    bestSource = classifier.getName();
+                if (embeddingIntent.getConfidence() > bestConfidence) {
+                    bestConfidence = embeddingIntent.getConfidence();
+                    bestIntent = embeddingIntent;
                 }
-
             } catch (Exception e) {
-                log.error("分类器 {} 执行失败", classifier.getName(), e);
+                log.error("Embedding分类器执行失败", e);
             }
         }
 
         long elapsed = System.currentTimeMillis() - startTime;
 
         if (bestIntent != null && bestConfidence >= minConfidenceThreshold) {
-            log.debug("意图分类完成: source={}, type={}, confidence={}, elapsed={}ms",
-                    bestSource, bestIntent.getType(), bestConfidence, elapsed);
+            log.debug("意图分类完成: source=EmbeddingClassifier, type={}, confidence={}, elapsed={}ms",
+                    bestIntent.getType(), bestConfidence, elapsed);
             return bestIntent;
         }
 
-        // 置信度过低，返回 UNKNOWN 而非强行 CHAT
         log.debug("意图分类置信度低({})，返回 UNKNOWN: elapsed={}ms", bestConfidence, elapsed);
         return Intent.unknown(message, bestConfidence);
     }

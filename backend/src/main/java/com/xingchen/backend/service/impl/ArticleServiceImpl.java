@@ -74,7 +74,7 @@ public class ArticleServiceImpl implements ArticleService {
         article.setUserId(userId);
         article.setTitle(dto.getTitle());
         article.setTitleImage(dto.getTitleImage());
-        article.setDescription(dto.getDescription());
+        article.setDescription(dto.getSummary());
         article.setStatus(1);
         article.setCommentStatus(dto.getCommentStatus() != null ? dto.getCommentStatus() : 1);
         article.setTopStatus(dto.getTopStatus() != null ? dto.getTopStatus() : 0);
@@ -493,7 +493,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional
-    public void likeArticle(Long userId, Long id) {
+    public synchronized void likeArticle(Long userId, Long id) {
         ArticleLike existingLike = articleLikeMapper.selectByArticleAndUser(id, userId);
         if (existingLike != null) {
             return;
@@ -508,7 +508,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional
-    public void unlikeArticle(Long userId, Long id) {
+    public synchronized void unlikeArticle(Long userId, Long id) {
         ArticleLike existingLike = articleLikeMapper.selectByArticleAndUser(id, userId);
         if (existingLike != null) {
             articleLikeMapper.delete(existingLike);
@@ -518,7 +518,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional
-    public void collectArticle(Long userId, Long id) {
+    public synchronized void collectArticle(Long userId, Long id) {
         ArticleCollect existingCollect = articleCollectMapper.selectByArticleAndUser(id, userId);
         if (existingCollect != null) {
             return;
@@ -533,7 +533,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional
-    public void uncollectArticle(Long userId, Long id) {
+    public synchronized void uncollectArticle(Long userId, Long id) {
         ArticleCollect existingCollect = articleCollectMapper.selectByArticleAndUser(id, userId);
         if (existingCollect != null) {
             articleCollectMapper.delete(existingCollect);
@@ -687,6 +687,29 @@ public class ArticleServiceImpl implements ArticleService {
             categoryMap = categories.stream().collect(Collectors.toMap(Category::getId, c -> c));
         }
 
+        // 批量查询所有文章的标签，避免N+1查询
+        Map<Long, List<Tag>> articleTagsMap = new HashMap<>();
+        if (!articleIds.isEmpty()) {
+            List<ArticleTag> allArticleTags = articleTagMapper.selectByArticleIds(articleIds);
+            List<Long> tagIds = allArticleTags.stream()
+                    .map(ArticleTag::getTagId)
+                    .distinct()
+                    .collect(Collectors.toList());
+            Map<Long, Tag> tagMap = new HashMap<>();
+            if (!tagIds.isEmpty()) {
+                List<Tag> tags = tagMapper.selectListByQuery(
+                    QueryWrapper.create().in("id", tagIds)
+                );
+                tagMap = tags.stream().collect(Collectors.toMap(Tag::getId, t -> t));
+            }
+            for (ArticleTag at : allArticleTags) {
+                Tag tag = tagMap.get(at.getTagId());
+                if (tag != null) {
+                    articleTagsMap.computeIfAbsent(at.getArticleId(), k -> new ArrayList<>()).add(tag);
+                }
+            }
+        }
+
         List<ArticleListVO> result = new ArrayList<>();
         for (Article article : articles) {
             ArticleListVO vo = new ArticleListVO();
@@ -708,8 +731,8 @@ public class ArticleServiceImpl implements ArticleService {
                 }
             }
 
-            // 获取文章标签
-            List<Tag> articleTags = tagMapper.selectByArticleId(article.getId());
+            // 获取文章标签（使用预加载的数据）
+            List<Tag> articleTags = articleTagsMap.get(article.getId());
             if (articleTags != null && !articleTags.isEmpty()) {
                 List<String> tagNames = articleTags.stream()
                     .map(Tag::getTagName)
@@ -727,13 +750,9 @@ public class ArticleServiceImpl implements ArticleService {
     @Transactional
     @CacheEvict(value = {"article", "articleList", "userArticles", "hotArticles"}, allEntries = true)
     public void updateReadNum(Long id) {
-        Article article = articleMapper.selectOneById(id);
-        if (article != null && article.getIsDeleted() == 0) {
-            article.setReadNum((article.getReadNum() != null ? article.getReadNum() : 0) + 1);
-            articleMapper.update(article);
-            
-            recordReadStats(id);
-        }
+        // 使用原子更新避免读-改-写竞态
+        articleMapper.incrementReadNum(id);
+        recordReadStats(id);
     }
 
     private void recordReadStats(Long articleId) {

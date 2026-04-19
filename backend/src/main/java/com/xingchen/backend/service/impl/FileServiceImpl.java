@@ -1,11 +1,19 @@
 package com.xingchen.backend.service.impl;
 
+import com.mybatisflex.core.query.QueryWrapper;
+import com.xingchen.backend.config.MinioConfig;
 import com.xingchen.backend.exception.BusinessException;
 import com.xingchen.backend.common.ErrorCode;
 import com.xingchen.backend.entity.FileRecord;
 import com.xingchen.backend.mapper.FileRecordMapper;
 import com.xingchen.backend.service.FileService;
 import com.xingchen.backend.vo.FileVO;
+import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
+import io.minio.StatObjectArgs;
+import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -13,6 +21,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -30,44 +40,52 @@ import java.util.UUID;
 public class FileServiceImpl implements FileService {
 
     private final FileRecordMapper fileRecordMapper;
+    private final MinioClient minioClient;
+    private final MinioConfig minioConfig;
 
     @Value("${file.upload.path:./uploads}")
     private String uploadPath;
 
+    @Value("${file.upload.type:minio}")
+    private String storageType;
+
+    @Value("${file.access.url:}")
+    private String accessUrl;
+
     private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024;
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024;
-    
+
     private static final List<String> ALLOWED_IMAGE_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png", "gif", "webp", "svg", "bmp");
     private static final List<String> ALLOWED_FILE_EXTENSIONS = Arrays.asList(
-        "jpg", "jpeg", "png", "gif", "webp", "svg", "bmp",
-        "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
-        "txt", "md", "json", "xml", "zip", "rar",
-        "mp4", "mp3", "wav", "avi", "mov"
+            "jpg", "jpeg", "png", "gif", "webp", "svg", "bmp",
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+            "txt", "md", "json", "xml", "zip", "rar",
+            "mp4", "mp3", "wav", "avi", "mov"
     );
-    
+
     private static final List<String> DANGEROUS_EXTENSIONS = Arrays.asList(
-        "exe", "bat", "cmd", "sh", "ps1", "vbs", "js", "jar", "class",
-        "php", "asp", "aspx", "jsp", "cgi", "pl", "py", "rb"
+            "exe", "bat", "cmd", "sh", "ps1", "vbs", "js", "jar", "class",
+            "php", "asp", "aspx", "jsp", "cgi", "pl", "py", "rb"
     );
 
     @Override
     public FileVO uploadFile(Long userId, MultipartFile file, Long categoryId) {
         validateFile(file, false);
-        
+
         String fileName = file.getOriginalFilename();
         String extension = getFileExtension(fileName);
         String uuid = UUID.randomUUID().toString();
         String newFileName = uuid + "." + extension;
-        String relativePath = "/uploads/" + uuid + "/" + newFileName;
-        
-        String savedPath = saveFileToDisk(file, relativePath);
-        
+        String objectName = "files/" + uuid + "/" + newFileName;
+
+        String fileUrl = saveFile(file, objectName);
+
         FileRecord record = new FileRecord();
         record.setUserId(userId);
         record.setFileName(newFileName);
         record.setOriginalName(fileName);
-        record.setFilePath(savedPath);
-        record.setFileUrl(savedPath);
+        record.setFilePath(objectName);
+        record.setFileUrl(fileUrl);
         record.setFileSize(file.getSize());
         record.setMimeType(file.getContentType());
         record.setDownloadCount(0);
@@ -82,21 +100,21 @@ public class FileServiceImpl implements FileService {
     @Override
     public FileVO uploadImage(Long userId, MultipartFile file) {
         validateFile(file, true);
-        
+
         String fileName = file.getOriginalFilename();
         String extension = getFileExtension(fileName);
         String uuid = UUID.randomUUID().toString();
         String newFileName = uuid + "_" + fileName.replaceAll("[^a-zA-Z0-9._-]", "_");
-        String relativePath = "/uploads/images/" + newFileName;
-        
-        String savedPath = saveFileToDisk(file, relativePath);
-        
+        String objectName = "images/" + newFileName;
+
+        String fileUrl = saveFile(file, objectName);
+
         FileRecord record = new FileRecord();
         record.setUserId(userId);
         record.setFileName(newFileName);
         record.setOriginalName(fileName);
-        record.setFilePath(savedPath);
-        record.setFileUrl(savedPath);
+        record.setFilePath(objectName);
+        record.setFileUrl(fileUrl);
         record.setFileSize(file.getSize());
         record.setMimeType(file.getContentType());
         record.setDownloadCount(0);
@@ -115,16 +133,16 @@ public class FileServiceImpl implements FileService {
         String extension = getFileExtension(fileName);
         String uuid = UUID.randomUUID().toString();
         String newFileName = uuid + "_" + fileName.replaceAll("[^a-zA-Z0-9._-]", "_");
-        String relativePath = "/uploads/images/" + newFileName;
+        String objectName = "avatars/" + newFileName;
 
-        String savedPath = saveFileToDisk(file, relativePath);
+        String fileUrl = saveFile(file, objectName);
 
         FileRecord record = new FileRecord();
         record.setUserId(userId);
         record.setFileName(newFileName);
         record.setOriginalName(fileName);
-        record.setFilePath(savedPath);
-        record.setFileUrl(savedPath);
+        record.setFilePath(objectName);
+        record.setFileUrl(fileUrl);
         record.setFileSize(file.getSize());
         record.setMimeType(file.getContentType());
         record.setDownloadCount(0);
@@ -133,6 +151,86 @@ public class FileServiceImpl implements FileService {
 
         fileRecordMapper.insert(record);
         return convertToVO(record);
+    }
+
+    /**
+     * 保存文件到存储（根据配置选择 MinIO 或本地存储）
+     */
+    private String saveFile(MultipartFile file, String objectName) {
+        if ("minio".equalsIgnoreCase(storageType)) {
+            return saveToMinio(file, objectName);
+        } else {
+            return saveToLocal(file, objectName);
+        }
+    }
+
+    /**
+     * 保存文件到 MinIO
+     */
+    private String saveToMinio(MultipartFile file, String objectName) {
+        try {
+            String contentType = file.getContentType();
+            if (contentType == null) {
+                contentType = "application/octet-stream";
+            }
+
+            byte[] bytes = file.getBytes();
+            ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(minioConfig.getBucket())
+                            .object(objectName)
+                            .stream(bais, bytes.length, -1)
+                            .contentType(contentType)
+                            .build()
+            );
+
+            // 生成访问 URL（预签名 URL，有效期 7 天）
+            String url = minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(minioConfig.getBucket())
+                            .object(objectName)
+                            .expiry(7, TimeUnit.DAYS)
+                            .build()
+            );
+
+            log.info("文件上传到 MinIO 成功: bucket={}, object={}", minioConfig.getBucket(), objectName);
+            return url;
+        } catch (Exception e) {
+            log.error("MinIO 上传失败: {}", e.getMessage(), e);
+            throw new BusinessException(ErrorCode.FILE_SAVE_ERROR, "文件上传失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 保存文件到本地磁盘
+     */
+    private String saveToLocal(MultipartFile file, String objectName) {
+        try {
+            // 将 objectName 转换为路径
+            // objectName 格式: files/uuid/filename.ext 或 images/filename.ext
+            String relativePath = objectName.replace("/", File.separator);
+
+            Path uploadDir = Paths.get(uploadPath).toAbsolutePath().normalize();
+            Path targetPath = uploadDir.resolve(relativePath);
+
+            // 安全检查：确保目标路径在上传目录内
+            if (!targetPath.startsWith(uploadDir)) {
+                throw new SecurityException("非法的文件路径");
+            }
+
+            Files.createDirectories(targetPath.getParent());
+            file.transferTo(targetPath.toFile());
+
+            log.info("文件保存到本地成功: {}", targetPath);
+            // 返回相对路径作为 URL
+            return "/" + objectName;
+        } catch (IOException e) {
+            log.error("本地文件保存失败: {}", e.getMessage(), e);
+            throw new BusinessException(ErrorCode.FILE_SAVE_ERROR);
+        }
     }
 
     /**
@@ -178,42 +276,10 @@ public class FileServiceImpl implements FileService {
             int read = is.read(header);
             if (read < 4) return false;
 
-            // JPEG
-            if (header[0] == (byte) 0xFF && header[1] == (byte) 0xD8 && header[2] == (byte) 0xFF) {
-                return true;
-            }
+            String format = detectImageFormatByMagicNumber(header, read);
+            if (format == null) return false;
 
-            // PNG
-            if (read >= 8 &&
-                header[0] == (byte) 0x89 && header[1] == (byte) 0x50 &&
-                header[2] == (byte) 0x4E && header[3] == (byte) 0x47) {
-                return true;
-            }
-
-            // GIF
-            if (read >= 6 &&
-                header[0] == (byte) 0x47 && header[1] == (byte) 0x49 &&
-                header[2] == (byte) 0x46 &&
-                (header[4] == (byte) 0x37 || header[4] == (byte) 0x39) &&
-                header[5] == (byte) 0x61) {
-                return true;
-            }
-
-            // BMP
-            if (header[0] == (byte) 0x42 && header[1] == (byte) 0x4D) {
-                return true;
-            }
-
-            // WebP
-            if (read >= 16 &&
-                header[0] == (byte) 0x52 && header[1] == (byte) 0x49 &&
-                header[2] == (byte) 0x46 && header[3] == (byte) 0x46 &&
-                header[8] == (byte) 0x57 && header[9] == (byte) 0x45 &&
-                header[10] == (byte) 0x42 && header[11] == (byte) 0x50) {
-                return true;
-            }
-
-            return false;
+            return !"svg".equals(format);
         } catch (IOException e) {
             log.error("验证头像文件失败", e);
             return false;
@@ -224,22 +290,22 @@ public class FileServiceImpl implements FileService {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("文件不能为空");
         }
-        
+
         String fileName = file.getOriginalFilename();
         if (fileName == null || fileName.isEmpty()) {
             throw new IllegalArgumentException("文件名不能为空");
         }
-        
+
         String extension = getFileExtension(fileName);
         if (extension == null || extension.isEmpty()) {
             throw new IllegalArgumentException("无法识别文件类型");
         }
         extension = extension.toLowerCase();
-        
+
         if (DANGEROUS_EXTENSIONS.contains(extension)) {
             throw new IllegalArgumentException("不允许上传该类型的文件: " + extension);
         }
-        
+
         if (imageOnly) {
             if (!ALLOWED_IMAGE_EXTENSIONS.contains(extension)) {
                 throw new IllegalArgumentException("只能上传图片文件，支持的格式: " + String.join(", ", ALLOWED_IMAGE_EXTENSIONS));
@@ -259,7 +325,7 @@ public class FileServiceImpl implements FileService {
             }
         }
     }
-    
+
     private String getFileExtension(String fileName) {
         if (fileName == null) return null;
         int lastDotIndex = fileName.lastIndexOf('.');
@@ -268,126 +334,100 @@ public class FileServiceImpl implements FileService {
         }
         return null;
     }
-    
-    private boolean isValidImageFile(MultipartFile file) {
-        try (InputStream is = file.getInputStream()) {
-            // 读取 32 字节用于魔数检测（比之前 8 字节更全面）
-            byte[] header = new byte[32];
-            int read = is.read(header);
-            if (read < 4) return false;
 
-            // ========== 魔数检测 ==========
-            // JPEG: FFD8FF (with optional additional bytes before SOI)
-            if (header[0] == (byte) 0xFF && header[1] == (byte) 0xD8 && header[2] == (byte) 0xFF) {
-                return true;
-            }
+    private String detectImageFormatByMagicNumber(byte[] header, int read) {
+        if (read < 4) return null;
 
-            // PNG: 89 50 4E 47 0D 0A 1A 0A (8 bytes)
-            if (read >= 8 &&
+        if (header[0] == (byte) 0xFF && header[1] == (byte) 0xD8 && header[2] == (byte) 0xFF) {
+            return "jpg";
+        }
+
+        if (read >= 8 &&
                 header[0] == (byte) 0x89 && header[1] == (byte) 0x50 &&
                 header[2] == (byte) 0x4E && header[3] == (byte) 0x47 &&
                 header[4] == (byte) 0x0D && header[5] == (byte) 0x0A &&
                 header[6] == (byte) 0x1A && header[7] == (byte) 0x0A) {
-                return true;
-            }
+            return "png";
+        }
 
-            // GIF87a: 47 49 46 38 37 61 (6 bytes)
-            if (read >= 6 &&
+        if (read >= 6 &&
                 header[0] == (byte) 0x47 && header[1] == (byte) 0x49 &&
                 header[2] == (byte) 0x46 && header[3] == (byte) 0x38 &&
                 (header[4] == (byte) 0x37 || header[4] == (byte) 0x39) &&
                 header[5] == (byte) 0x61) {
-                return true;
-            }
+            return "gif";
+        }
 
-            // BMP: 42 4D (BM)
-            if (header[0] == (byte) 0x42 && header[1] == (byte) 0x4D) {
-                return true;
-            }
+        if (header[0] == (byte) 0x42 && header[1] == (byte) 0x4D) {
+            return "bmp";
+        }
 
-            // WebP: 52 49 46 46 ... 57 45 42 50 (RIFF....WEBP)
-            // 需要读取到 32 字节来确认完整的 WebP 签名
-            if (read >= 16 &&
+        if (read >= 12 &&
                 header[0] == (byte) 0x52 && header[1] == (byte) 0x49 &&
                 header[2] == (byte) 0x46 && header[3] == (byte) 0x46 &&
                 header[8] == (byte) 0x57 && header[9] == (byte) 0x45 &&
                 header[10] == (byte) 0x42 && header[11] == (byte) 0x50) {
-                return true;
-            }
+            return "webp";
+        }
 
-            // SVG: 开头是 <svg 或 <?xml (文本格式，需读取部分内容判断)
-            if (read >= 4 &&
-                header[0] == 0x3C) { // '<'
-                String start = new String(header, 0, Math.min(read, 32), java.nio.charset.StandardCharsets.UTF_8).trim();
-                if (start.startsWith("<svg") || start.startsWith("<?xml")) {
-                    return true;
-                }
+        if (header[0] == 0x3C) {
+            String start = new String(header, 0, Math.min(read, 32), java.nio.charset.StandardCharsets.UTF_8).trim();
+            if (start.startsWith("<svg") || start.startsWith("<?xml")) {
+                return "svg";
             }
+        }
 
-            // ========== 额外安全检测：验证文件扩展名与内容一致性 ==========
+        return null;
+    }
+
+    private boolean isValidMagicNumberForFormat(String format, byte[] header, int read) {
+        switch (format.toLowerCase()) {
+            case "jpg":
+            case "jpeg":
+                return header[0] == (byte) 0xFF && header[1] == (byte) 0xD8;
+            case "png":
+                return read >= 8 &&
+                        header[0] == (byte) 0x89 && header[1] == (byte) 0x50 &&
+                        header[2] == (byte) 0x4E && header[3] == (byte) 0x47 &&
+                        header[4] == (byte) 0x0D && header[5] == (byte) 0x0A &&
+                        header[6] == (byte) 0x1A && header[7] == (byte) 0x0A;
+            case "gif":
+                return header[0] == (byte) 0x47 && header[1] == (byte) 0x49 && header[2] == (byte) 0x46;
+            case "bmp":
+                return header[0] == (byte) 0x42 && header[1] == (byte) 0x4D;
+            case "webp":
+                return read >= 12 &&
+                        header[0] == (byte) 0x52 && header[1] == (byte) 0x49 &&
+                        header[2] == (byte) 0x46 && header[3] == (byte) 0x46 &&
+                        header[8] == (byte) 0x57 && header[9] == (byte) 0x45 &&
+                        header[10] == (byte) 0x42 && header[11] == (byte) 0x50;
+            case "svg":
+                if (header[0] != 0x3C) return false;
+                String content = new String(header, 0, Math.min(read, 32), java.nio.charset.StandardCharsets.UTF_8);
+                return content.trim().startsWith("<svg") || content.trim().startsWith("<?xml");
+            default:
+                return false;
+        }
+    }
+
+    private boolean isValidImageFile(MultipartFile file) {
+        try (InputStream is = file.getInputStream()) {
+            byte[] header = new byte[32];
+            int read = is.read(header);
+            if (read < 4) return false;
+
             String fileName = file.getOriginalFilename();
             String extension = getFileExtension(fileName);
+
             if (extension != null) {
                 extension = extension.toLowerCase();
-                // 如果魔数检测失败，但文件声称是某类型，进行一致性检查
-                if ("jpg".equals(extension) || "jpeg".equals(extension)) {
-                    // JPEG 文件必须以 FFD8 开头
-                    if (header[0] != (byte) 0xFF || header[1] != (byte) 0xD8) return false;
-                } else if ("png".equals(extension)) {
-                    // PNG 必须符合完整 8 字节签名
-                    if (read < 8 ||
-                        !(header[0] == (byte) 0x89 && header[1] == (byte) 0x50 &&
-                          header[2] == (byte) 0x4E && header[3] == (byte) 0x47)) return false;
-                } else if ("gif".equals(extension)) {
-                    if (header[0] != (byte) 0x47 || header[1] != (byte) 0x49 || header[2] != (byte) 0x46) return false;
-                } else if ("bmp".equals(extension)) {
-                    if (header[0] != (byte) 0x42 || header[1] != (byte) 0x4D) return false;
-                } else if ("webp".equals(extension)) {
-                    if (read < 12 ||
-                        !(header[0] == (byte) 0x52 && header[1] == (byte) 0x49 &&
-                          header[2] == (byte) 0x46 && header[3] == (byte) 0x46) ||
-                        !(header[8] == (byte) 0x57 && header[9] == (byte) 0x45 &&
-                          header[10] == (byte) 0x42 && header[11] == (byte) 0x50)) return false;
-                } else if ("svg".equals(extension)) {
-                    // SVG 必须是有效的 XML 格式
-                    if (header[0] != 0x3C) return false;
-                    String content = new String(header, 0, Math.min(read, 32), java.nio.charset.StandardCharsets.UTF_8);
-                    if (!content.trim().startsWith("<svg") && !content.trim().startsWith("<?xml")) return false;
-                }
+                return isValidMagicNumberForFormat(extension, header, read);
             }
 
-            // 有魔数匹配才通过
-            return false;
+            return detectImageFormatByMagicNumber(header, read) != null;
         } catch (IOException e) {
             log.warn("无法读取文件头进行验证: {}", e.getMessage());
             return false;
-        }
-    }
-    
-    private String saveFileToDisk(MultipartFile file, String relativePath) {
-        try {
-            String pathWithoutPrefix = relativePath;
-            if (relativePath.startsWith("/uploads/")) {
-                pathWithoutPrefix = relativePath.substring("/uploads/".length());
-            } else if (relativePath.startsWith("uploads/")) {
-                pathWithoutPrefix = relativePath.substring("uploads/".length());
-            }
-            
-            Path uploadDir = Paths.get(uploadPath).toAbsolutePath().normalize();
-            Path targetPath = uploadDir.resolve(pathWithoutPrefix);
-            
-            if (!targetPath.startsWith(uploadDir)) {
-                throw new SecurityException("非法的文件路径");
-            }
-            
-            Files.createDirectories(targetPath.getParent());
-            file.transferTo(targetPath.toFile());
-            
-            log.info("文件保存成功: {}", targetPath);
-            return "/uploads/" + pathWithoutPrefix;
-        } catch (IOException e) {
-            log.error("文件保存失败: {}", e.getMessage(), e);
-            throw new BusinessException(ErrorCode.FILE_SAVE_ERROR);
         }
     }
 
@@ -397,30 +437,70 @@ public class FileServiceImpl implements FileService {
         if (record == null || !record.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.NO_PERMISSION, "无权限删除该文件");
         }
+
+        // 删除 MinIO 中的文件
+        if ("minio".equalsIgnoreCase(storageType)) {
+            try {
+                minioClient.removeObject(
+                        RemoveObjectArgs.builder()
+                                .bucket(minioConfig.getBucket())
+                                .object(record.getFilePath())
+                                .build()
+                );
+                log.info("从 MinIO 删除文件成功: {}", record.getFilePath());
+            } catch (Exception e) {
+                log.warn("从 MinIO 删除文件失败: {}", e.getMessage());
+            }
+        }
+
         fileRecordMapper.deleteById(id);
     }
 
     @Override
     public List<FileVO> getFileList(Long userId, Long categoryId, String fileType, Integer page, Integer size) {
-        List<FileRecord> records = fileRecordMapper.selectAll();
+        int pageNum = (page != null && page > 0) ? page : 1;
+        int pageSize = (size != null && size > 0) ? size : 10;
+        int offset = (pageNum - 1) * pageSize;
+
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .from("t_file")
+                .where("user_id = #{userId}")
+                .and("is_deleted = 0");
+        if (categoryId != null) {
+            queryWrapper.and("category_id = #{categoryId}");
+        }
+        if (fileType != null && !fileType.isEmpty()) {
+            queryWrapper.and("file_type = #{fileType}");
+        }
+        queryWrapper.orderBy("create_time", true)
+                .limit(offset, pageSize);
+
+        List<FileRecord> records = fileRecordMapper.selectListByQuery(queryWrapper);
         List<FileVO> result = new ArrayList<>();
         for (FileRecord record : records) {
-            if (record.getUserId() != null && record.getUserId().equals(userId)) {
-                result.add(convertToVO(record));
-            }
+            result.add(convertToVO(record));
         }
         return result;
     }
 
     @Override
     public List<FileVO> getImageList(Long userId, Integer page, Integer size) {
-        List<FileRecord> records = fileRecordMapper.selectAll();
+        int pageNum = (page != null && page > 0) ? page : 1;
+        int pageSize = (size != null && size > 0) ? size : 10;
+        int offset = (pageNum - 1) * pageSize;
+
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .from("t_file")
+                .where("user_id = #{userId}")
+                .and("is_deleted = 0")
+                .and("file_type LIKE 'image/%'")
+                .orderBy("create_time", true)
+                .limit(offset, pageSize);
+
+        List<FileRecord> records = fileRecordMapper.selectListByQuery(queryWrapper);
         List<FileVO> result = new ArrayList<>();
         for (FileRecord record : records) {
-            if (record.getUserId() != null && record.getUserId().equals(userId)
-                    && record.getFileType() != null && record.getFileType().startsWith("image/")) {
-                result.add(convertToVO(record));
-            }
+            result.add(convertToVO(record));
         }
         return result;
     }
@@ -428,7 +508,28 @@ public class FileServiceImpl implements FileService {
     @Override
     public String getFileUrl(Long id) {
         FileRecord record = fileRecordMapper.selectOneById(id);
-        return record != null ? record.getFilePath() : null;
+        if (record == null) {
+            return null;
+        }
+
+        // 如果是 MinIO 存储且 URL 已过期，生成新的预签名 URL
+        if ("minio".equalsIgnoreCase(storageType) && record.getFileUrl() != null && record.getFileUrl().contains("X-Amz-Signature")) {
+            try {
+                return minioClient.getPresignedObjectUrl(
+                        GetPresignedObjectUrlArgs.builder()
+                                .method(Method.GET)
+                                .bucket(minioConfig.getBucket())
+                                .object(record.getFilePath())
+                                .expiry(7, TimeUnit.DAYS)
+                                .build()
+                );
+            } catch (Exception e) {
+                log.warn("生成预签名 URL 失败: {}", e.getMessage());
+                return record.getFileUrl();
+            }
+        }
+
+        return record.getFileUrl();
     }
 
     @Override
@@ -444,7 +545,12 @@ public class FileServiceImpl implements FileService {
     private FileVO convertToVO(FileRecord record) {
         FileVO vo = new FileVO();
         BeanUtils.copyProperties(record, vo);
-        vo.setFileUrl(record.getFilePath());
+        // 如果是 MinIO URL，保持原 URL（预签名 URL 有效期 7 天）
+        if ("minio".equalsIgnoreCase(storageType)) {
+            vo.setFileUrl(record.getFileUrl());
+        } else {
+            vo.setFileUrl(record.getFilePath());
+        }
         return vo;
     }
 }

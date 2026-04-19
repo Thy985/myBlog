@@ -36,9 +36,32 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional(readOnly = true)
     public List<CategoryVO> getCategoryList() {
         List<Category> categories = categoryMapper.selectAll();
-        return categories.stream()
+        List<Category> activeCategories = categories.stream()
                 .filter(c -> c.getStatus() != null && c.getStatus() == 1 && c.getIsDeleted() != null && c.getIsDeleted() == 0)
-                .map(this::convertToVO)
+                .collect(Collectors.toList());
+
+        if (activeCategories.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 批量查询所有分类的文章数量，避免N+1查询
+        List<Long> categoryIds = activeCategories.stream().map(Category::getId).collect(Collectors.toList());
+        QueryWrapper countWrapper = QueryWrapper.create()
+                .from("t_article_category")
+                .in("category_id", categoryIds);
+        List<ArticleCategory> articleCategories = articleCategoryMapper.selectListByQuery(countWrapper);
+
+        Map<Long, Long> categoryArticleCountMap = articleCategories.stream()
+                .collect(Collectors.groupingBy(ArticleCategory::getCategoryId, Collectors.counting()));
+
+        return activeCategories.stream()
+                .map(category -> {
+                    CategoryVO vo = new CategoryVO();
+                    BeanUtils.copyProperties(category, vo);
+                    vo.setName(category.getCategoryName());
+                    vo.setArticleCount(categoryArticleCountMap.getOrDefault(category.getId(), 0L).intValue());
+                    return vo;
+                })
                 .collect(Collectors.toList());
     }
 

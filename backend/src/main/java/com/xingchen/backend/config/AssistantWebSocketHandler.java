@@ -216,7 +216,7 @@ public class AssistantWebSocketHandler extends TextWebSocketHandler {
                     // 创建更新DTO
                     var updateDTO = new com.xingchen.backend.dto.ArticleUpdateDTO();
                     updateDTO.setTitle(article.getTitle());
-                    updateDTO.setSummary(article.getSummary());
+                    updateDTO.setSummary(article.getDescription());
                     updateDTO.setContent(editContent.isEmpty() ? article.getContent() : editContent);
                     updateDTO.setThumbnail(article.getThumbnail());
 

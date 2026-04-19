@@ -55,6 +55,14 @@ public class TagController {
         return Result.success(tagService.createTag(name, color));
     }
 
+    @PutMapping("/{id}")
+    @SaCheckRole("ADMIN")
+    public Result<TagVO> updateTag(@PathVariable Long id,
+                                   @RequestParam String name,
+                                   @RequestParam(required = false) String color) {
+        return Result.success(tagService.updateTag(id, name, color));
+    }
+
     @DeleteMapping("/{id}")
     @SaCheckRole("ADMIN")
     public Result<Void> deleteTag(@PathVariable Long id) {

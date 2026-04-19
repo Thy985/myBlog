@@ -6,6 +6,7 @@ import com.xingchen.backend.messaging.EmbeddingProducer;
 import com.mybatisflex.core.query.QueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -31,6 +32,7 @@ public class VectorSyncJob {
      * 全量同步（每天凌晨 3 点执行）
      */
     @Scheduled(cron = "0 0 3 * * ?")
+    @SchedulerLock(name = "fullSync", lockAtLeastFor = "5m", lockAtMostFor = "30m")
     public void fullSync() {
         log.info("开始全量向量同步任务");
         long startTime = System.currentTimeMillis();
@@ -85,6 +87,7 @@ public class VectorSyncJob {
      * 增量同步（每 10 分钟执行）
      */
     @Scheduled(cron = "0 */10 * * * ?")
+    @SchedulerLock(name = "incrementalSync", lockAtLeastFor = "1m", lockAtMostFor = "9m")
     public void incrementalSync() {
         log.info("开始增量向量同步任务");
 

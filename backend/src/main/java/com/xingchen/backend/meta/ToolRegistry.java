@@ -288,6 +288,111 @@ public class ToolRegistry {
                 .latency(5)
                 .accuracy(1.0)
                 .build());
+
+        // 文章生成工具
+        registerTool(ToolOption.builder()
+                .toolId("article_generator")
+                .toolType("article")
+                .description("AI生成博客文章")
+                .capabilities(Map.of(
+                        "article-generation", 0.9,
+                        "content-creation", 0.88,
+                        "draft-creation", 0.95
+                ))
+                .cost(0.02)
+                .latency(10000)
+                .accuracy(0.85)
+                .build());
+
+        // 文章发布工具
+        registerTool(ToolOption.builder()
+                .toolId("article_publish")
+                .toolType("article")
+                .description("发布博客文章")
+                .capabilities(Map.of(
+                        "article-publish", 0.98,
+                        "status-update", 0.99
+                ))
+                .cost(0.0)
+                .latency(500)
+                .accuracy(1.0)
+                .build());
+
+        // 文章更新工具
+        registerTool(ToolOption.builder()
+                .toolId("article_update")
+                .toolType("article")
+                .description("更新博客文章")
+                .capabilities(Map.of(
+                        "article-update", 0.98,
+                        "content-edit", 0.95,
+                        "metadata-update", 0.99
+                ))
+                .cost(0.0)
+                .latency(500)
+                .accuracy(1.0)
+                .build());
+
+        // 文章删除工具
+        registerTool(ToolOption.builder()
+                .toolId("article_delete")
+                .toolType("article")
+                .description("删除博客文章")
+                .capabilities(Map.of(
+                        "article-delete", 0.98,
+                        "soft-delete", 0.99
+                ))
+                .cost(0.0)
+                .latency(500)
+                .accuracy(1.0)
+                .build());
+
+        // 文章查询工具
+        registerTool(ToolOption.builder()
+                .toolId("article_query")
+                .toolType("article")
+                .description("查询文章列表和详情")
+                .capabilities(Map.of(
+                        "article-list", 0.98,
+                        "article-search", 0.95,
+                        "article-detail", 0.99
+                ))
+                .cost(0.0)
+                .latency(200)
+                .accuracy(1.0)
+                .build());
+
+        // 分类管理工具
+        registerTool(ToolOption.builder()
+                .toolId("category_manager")
+                .toolType("category")
+                .description("管理文章分类")
+                .capabilities(Map.of(
+                        "category-list", 0.98,
+                        "category-create", 0.98,
+                        "category-update", 0.98,
+                        "category-delete", 0.95
+                ))
+                .cost(0.0)
+                .latency(100)
+                .accuracy(1.0)
+                .build());
+
+        // 标签管理工具
+        registerTool(ToolOption.builder()
+                .toolId("tag_manager")
+                .toolType("tag")
+                .description("管理文章标签")
+                .capabilities(Map.of(
+                        "tag-list", 0.98,
+                        "tag-create", 0.98,
+                        "tag-update", 0.98,
+                        "tag-delete", 0.95
+                ))
+                .cost(0.0)
+                .latency(100)
+                .accuracy(1.0)
+                .build());
     }
     
     /**

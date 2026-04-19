@@ -143,9 +143,17 @@ server:
 file:
   upload:
     path: ${FILE_UPLOAD_PATH:./uploads}
+    # 存储类型: local 或 minio
+    type: ${FILE_STORAGE_TYPE:minio}
   access:
-    url: ${FILE_ACCESS_URL:/uploads}
-
+    url: ${FILE_ACCESS_URL:}
+  # MinIO 对象存储配置
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY}
+    secret-key: ${MINIO_SECRET_KEY}
+    bucket: ${MINIO_BUCKET:myblog}
+    secure: ${MINIO_SECURE:false}
 # 日志配置（生产环境WARN级别）
 logging:
   level:

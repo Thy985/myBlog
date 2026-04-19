@@ -25,4 +25,12 @@ public interface AnalyticsService {
     void recordPerformance(Map<String, Object> data);
 
     void recordPerformanceErrors(Map<String, Object> data);
+
+    /**
+     * 获取文章统计详情
+     * @param articleId 文章ID
+     * @param days 统计天数
+     * @return 文章统计详情
+     */
+    Map<String, Object> getArticleStats(Long articleId, Integer days);
 }

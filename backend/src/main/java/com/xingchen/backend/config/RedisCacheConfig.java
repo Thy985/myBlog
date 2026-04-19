@@ -6,6 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import net.javacrumbs.shedlock.core.LockProvider;
+import net.javacrumbs.shedlock.provider.redis.spring.RedisLockProvider;
+import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
@@ -25,6 +28,7 @@ import java.util.Map;
 
 @Configuration
 @EnableCaching
+@EnableSchedulerLock(defaultLockAtMostFor = "10m")
 public class RedisCacheConfig extends CachingConfigurerSupport {
 
     /**
@@ -97,5 +101,10 @@ public class RedisCacheConfig extends CachingConfigurerSupport {
                 .withInitialCacheConfigurations(cacheConfigMap)
                 .transactionAware()
                 .build();
+    }
+
+    @Bean
+    public LockProvider lockProvider(RedisConnectionFactory connectionFactory) {
+        return new RedisLockProvider(connectionFactory, "MyBlog");
     }
 }

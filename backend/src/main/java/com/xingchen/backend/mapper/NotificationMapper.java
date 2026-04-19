@@ -29,4 +29,7 @@ public interface NotificationMapper extends BaseMapper<Notification> {
     
     @Update("UPDATE t_notification SET is_read = 1 WHERE user_id = #{userId} AND is_read = 0")
     int markAllUnreadAsRead(@Param("userId") Long userId);
+
+    @Update("DELETE FROM t_notification WHERE user_id = #{userId}")
+    int deleteAllByUserId(@Param("userId") Long userId);
 }

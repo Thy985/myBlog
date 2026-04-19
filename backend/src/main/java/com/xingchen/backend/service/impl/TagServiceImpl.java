@@ -36,6 +36,14 @@ public class TagServiceImpl implements TagService {
     @Transactional(readOnly = true)
     public List<TagVO> getTagList() {
         List<Tag> tags = tagMapper.selectAll();
+        // 批量查询所有标签的文章数量，避免N+1查询
+        List<Map<String, Object>> tagCounts = tagMapper.selectArticleCountGroupByTag();
+        Map<Long, Long> countMap = tagCounts.stream()
+                .collect(Collectors.toMap(
+                        m -> ((Number) m.get("id")).longValue(),
+                        m -> ((Number) m.get("count")).longValue()
+                ));
+
         List<TagVO> result = new ArrayList<>();
         for (Tag tag : tags) {
             if (tag.getIsDeleted() != null && tag.getIsDeleted() == 1) {
@@ -45,8 +53,7 @@ public class TagServiceImpl implements TagService {
             vo.setId(tag.getId());
             vo.setName(tag.getTagName());
             vo.setColor(tag.getColor());
-            int count = countArticlesByTagId(tag.getId());
-            vo.setArticleCount(count);
+            vo.setArticleCount(countMap.getOrDefault(tag.getId(), 0L).intValue());
             result.add(vo);
         }
         return result;
@@ -155,6 +162,28 @@ public class TagServiceImpl implements TagService {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class, timeout = 30)
+    public TagVO updateTag(Long id, String name, String color) {
+        Tag tag = tagMapper.selectOneById(id);
+        if (tag == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "标签不存在");
+        }
+        
+        tag.setTagName(name);
+        tag.setColor(color);
+        tagMapper.update(tag);
+        
+        TagVO vo = new TagVO();
+        vo.setId(tag.getId());
+        vo.setName(name);
+        vo.setColor(color);
+        vo.setArticleCount(countArticlesByTagId(id));
+        
+        log.info("更新标签成功: id={}, name={}", id, name);
+        return vo;
     }
 
     @Override
