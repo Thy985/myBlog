@@ -1,0 +1,824 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 设计系统 token 和主题已通过 main.js 导入 */
+
+/* ============================================
+   以下变量已迁移到 tokens/design-tokens.css
+   保留此文件用于组件样式和工具类
+   ============================================ */
+
+/* 基础排版优化 */
+@layer base {
+  :root {
+    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  }
+
+  html, body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    background-color: var(--background-secondary);
+    line-height: 1.8;
+    letter-spacing: 0.02em;
+  }
+
+  .dark body {
+    background-color: var(--background-secondary);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+    color: var(--text-primary);
+  }
+  
+  h1 {
+    font-size: clamp(1.875rem, 3vw, 3.125rem);
+    margin-bottom: 1.5rem;
+  }
+  
+  h2 {
+    font-size: clamp(1.5rem, 2.5vw, 2.5rem);
+    margin-bottom: 1.25rem;
+  }
+  
+  h3 {
+    font-size: clamp(1.25rem, 2vw, 1.875rem);
+    margin-bottom: 1rem;
+  }
+  
+  h4 {
+    font-size: clamp(1.125rem, 1.5vw, 1.5rem);
+    margin-bottom: 0.75rem;
+  }
+  
+  h5 {
+    font-size: clamp(1rem, 1.25vw, 1.25rem);
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+  
+  h6 {
+    font-size: clamp(0.875rem, 1vw, 1rem);
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+  
+  p {
+    margin-bottom: 1rem;
+    line-height: 1.8; /* 优化中文段落阅读 */
+    letter-spacing: 0.02em; /* 增加字间距 */
+    color: var(--text-secondary);
+  }
+  
+  /* 优化小文本 */
+  small {
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--text-tertiary);
+  }
+
+  /* 优化链接文本 - 仅对内容区域链接生效 */
+  /* 注意: 不再全局强制 a 标签下划线，避免破坏按钮/导航/卡片组件 */
+  .content-link,
+  article a,
+  .prose a {
+    color: var(--primary-color);
+    transition: color 0.2s ease-in-out;
+    text-decoration: underline;
+    text-decoration-thickness: 0.0625rem;
+    text-decoration-color: var(--color-primary-subtle);
+    text-underline-offset: 0.125rem;
+  }
+
+  .content-link:hover,
+  article a:hover,
+  .prose a:hover {
+    color: var(--primary-hover);
+    text-decoration-color: var(--primary-hover);
+  }
+
+  /* 全局 a 标签基础样式（无强制下划线） */
+  a {
+    color: var(--primary-color);
+    transition: color 0.2s ease-in-out;
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: var(--primary-hover);
+  }
+  
+  /* 深色模式下的文本样式 */
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    color: var(--text-primary);
+  }
+  
+  .dark p {
+    color: var(--text-secondary);
+  }
+  
+  .dark small {
+    color: var(--text-tertiary);
+  }
+
+  /* 深色模式下内容区域链接 */
+  .dark .content-link,
+  .dark article a,
+  .dark .prose a {
+    color: var(--primary-color);
+    text-decoration-color: var(--color-primary-subtle);
+  }
+
+  .dark .content-link:hover,
+  .dark article a:hover,
+  .dark .prose a:hover {
+    color: var(--primary-hover);
+    text-decoration-color: var(--primary-hover);
+  }
+
+  /* 深色模式全局 a 标签（无强制下划线） */
+  .dark a {
+    color: var(--primary-color);
+  }
+  
+  /* 优化可访问性 - 使用 focus-visible 仅在键盘导航时显示焦点 */
+  /* 同时保留 outline 作为高对比度模式的回退方案 */
+  a:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    box-shadow: var(--focus-outline);
+    border-radius: 0.125rem;
+  }
+
+  a:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* 按钮焦点样式 */
+  button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    box-shadow: var(--focus-outline);
+  }
+
+  button:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* 输入框焦点样式 */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    box-shadow: var(--focus-outline);
+  }
+
+  input:focus:not(:focus-visible),
+  textarea:focus:not(:focus-visible),
+  select:focus:not(:focus-visible) {
+    outline: none;
+  }
+  
+  /* 优化表格可访问性 */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  th, td {
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    text-align: left;
+  }
+  
+  th {
+    background-color: var(--background-light);
+    font-weight: 600;
+  }
+  
+  /* 优化列表可访问性 */
+  ul, ol {
+    margin-bottom: 1rem;
+  }
+  
+  li {
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* 自定义组件样式 */
+@layer components {
+  /* 卡片样式 */
+  .card {
+    background-color: var(--background-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  .dark .card {
+    background-color: var(--background-primary);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3); /* 增强深色模式下的阴影效果 */
+  }
+  
+  .dark .card:hover {
+    box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3); /* 增强深色模式下的悬停效果 */
+    border-color: var(--border-hover);
+  }
+  
+  .card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  /* 分类和标签卡片特殊样式 */
+  .category-card, .tag-card {
+    background-color: var(--background-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  .dark .category-card, .dark .tag-card {
+    background-color: var(--background-primary);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+  }
+  
+  .dark .category-card:hover, .dark .tag-card:hover {
+    box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    border-color: var(--border-hover);
+  }
+  
+  /* 按钮样式 */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+    min-height: 2.5rem;
+    cursor: pointer;
+    border: none;
+  }
+  
+  .btn:focus {
+    outline: none;
+    box-shadow: var(--focus-outline);
+  }
+  
+  .btn:active {
+    transform: translateY(1px);
+  }
+  
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  
+  /* 主要按钮 */
+  .btn-primary {
+    background-color: var(--primary-color);
+    color: #ffffff;
+  }
+  
+  .btn-primary:hover {
+    background-color: var(--primary-hover);
+  }
+  
+  .btn-primary:disabled {
+    background-color: var(--primary-light);
+    color: var(--text-muted);
+  }
+  
+  /* 次要按钮 */
+  .btn-secondary {
+    background-color: var(--secondary-color);
+    color: #ffffff;
+  }
+  
+  .btn-secondary:hover {
+    background-color: var(--secondary-hover);
+  }
+  
+  .btn-secondary:disabled {
+    background-color: var(--secondary-light);
+    color: var(--text-muted);
+  }
+  
+  /* 轮廓按钮 */
+  .btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+  }
+  
+  .btn-outline:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background-color: var(--primary-subtle);
+  }
+  
+  .btn-outline:disabled {
+    border-color: var(--border-color);
+    color: var(--text-muted);
+    background-color: transparent;
+  }
+  
+  /* 文本按钮 */
+  .btn-text {
+    background-color: transparent;
+    color: var(--primary-color);
+  }
+  
+  .btn-text:hover {
+    background-color: var(--primary-subtle);
+  }
+  
+  .btn-text:disabled {
+    color: var(--text-muted);
+  }
+  
+  /* 强调按钮 */
+  .btn-accent {
+    background-color: var(--accent-color);
+    color: #ffffff;
+  }
+  
+  .btn-accent:hover {
+    background-color: var(--accent-hover);
+  }
+  
+  .btn-accent:disabled {
+    background-color: var(--accent-light);
+    color: var(--text-muted);
+  }
+  
+  /* 深色模式下的按钮样式 */
+  .dark .btn-outline {
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    background-color: transparent;
+  }
+  
+  .dark .btn-outline:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background-color: rgba(96, 165, 250, 0.1);
+  }
+  
+  .dark .btn-outline:disabled {
+    border-color: var(--border-color);
+    color: var(--text-muted);
+    background-color: transparent;
+  }
+  
+  .dark .btn-text:hover {
+    background-color: rgba(96, 165, 250, 0.1);
+  }
+  
+  /* 输入框样式 */
+  .input {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    min-height: 2.5rem;
+    background-color: var(--background-primary);
+    color: var(--text-primary);
+  }
+  
+  .input:hover {
+    border-color: var(--border-hover);
+  }
+  
+  .input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: var(--focus-outline);
+  }
+  
+  .input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: var(--background-tertiary);
+    border-color: var(--border-color);
+  }
+  
+  /* 表单验证状态 */
+  .input.is-valid {
+    border-color: var(--success-color);
+  }
+  
+  .input.is-valid:focus {
+    border-color: var(--success-color);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  }
+  
+  .input.is-invalid {
+    border-color: var(--error-color);
+  }
+  
+  .input.is-invalid:focus {
+    border-color: var(--error-color);
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+  }
+  
+  /* 表单验证提示文本 */
+  .form-feedback {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+  
+  .form-feedback.is-valid {
+    color: var(--success-color);
+  }
+  
+  .form-feedback.is-invalid {
+    color: var(--error-color);
+  }
+  
+  /* 深色模式下的输入框样式 */
+  .dark .input {
+    background-color: var(--background-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+  }
+  
+  .dark .input:hover {
+    border-color: var(--border-hover);
+  }
+  
+  .dark .input:focus {
+    border-color: var(--primary-color);
+    box-shadow: var(--focus-outline);
+  }
+  
+  .dark .input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: var(--background-tertiary);
+    border-color: var(--border-color);
+  }
+  
+  /* 标签样式 */
+  .tag {
+    display: inline-block;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    user-select: none; /* 防止文本选中 */
+  }
+  
+  .tag:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 增加悬停阴影提示 */
+  }
+  
+  .tag:active {
+    transform: translateY(0);
+  }
+  
+  .tag:focus {
+    outline: none;
+    box-shadow: var(--focus-outline);
+  }
+  
+  /* 主要标签 */
+  .tag-primary {
+    background-color: var(--primary-subtle);
+    color: var(--primary-color);
+  }
+  
+  .tag-primary:hover {
+    background-color: var(--primary-light);
+  }
+  
+  /* 次要标签 */
+  .tag-secondary {
+    background-color: var(--secondary-subtle);
+    color: var(--secondary-color);
+  }
+  
+  .tag-secondary:hover {
+    background-color: var(--secondary-light);
+  }
+  
+  /* 强调标签 */
+  .tag-accent {
+    background-color: var(--accent-subtle);
+    color: var(--accent-color);
+  }
+  
+  .tag-accent:hover {
+    background-color: var(--accent-light);
+  }
+  
+  /* 深色模式下的标签样式 */
+  .dark .tag-primary {
+    background-color: rgba(96, 165, 250, 0.15);
+    color: var(--primary-color);
+  }
+  
+  .dark .tag-primary:hover {
+    background-color: rgba(96, 165, 250, 0.25);
+  }
+  
+  .dark .tag-secondary {
+    background-color: rgba(52, 211, 153, 0.15);
+    color: var(--secondary-color);
+  }
+  
+  .dark .tag-secondary:hover {
+    background-color: rgba(52, 211, 153, 0.25);
+  }
+  
+  .dark .tag-accent {
+    background-color: rgba(251, 191, 36, 0.15);
+    color: var(--accent-color);
+  }
+  
+  .dark .tag-accent:hover {
+    background-color: rgba(251, 191, 36, 0.25);
+  }
+  
+  /* 导航链接样式 */
+  .nav-link {
+    position: relative;
+    padding: 0.75rem 1.25rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 1rem;
+    line-height: 1.5;
+    transition: all 0.3s ease-in-out;
+    border-radius: 0.5rem;
+    display: inline-block;
+    min-width: 70px;
+    text-align: center;
+    cursor: pointer;
+  }
+  
+  .nav-link:hover {
+    color: var(--primary-color);
+    background-color: var(--primary-subtle);
+    transform: translateY(-1px);
+  }
+  
+  .nav-link:focus {
+    outline: none;
+    box-shadow: var(--focus-outline);
+  }
+  
+  .nav-link-active {
+    color: var(--primary-color);
+    font-weight: 600;
+    position: relative;
+  }
+  
+  .nav-link-active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2.5rem;
+    height: 0.25rem;
+    background-color: var(--primary-color);
+    border-radius: 9999px;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  /* 深色模式下的导航链接样式 */
+  .dark .nav-link {
+    color: var(--text-secondary);
+  }
+  
+  .dark .nav-link:hover {
+    color: var(--primary-color);
+    background-color: rgba(96, 165, 250, 0.15);
+  }
+  
+  .dark .nav-link-active {
+    color: var(--primary-color);
+    font-weight: 600;
+  }
+  
+  .dark .nav-link-active::after {
+    background-color: var(--primary-color);
+  }
+  
+  /* 可访问性工具类 */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  
+  .focus-visible {
+    outline: none;
+    box-shadow: var(--focus-outline);
+  }
+  
+  /* 减少动画偏好 */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 动画类 */
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.2s ease-out forwards;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+/* 滚动条样式优化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: var(--background-light);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease-in-out;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--border-hover);
+}
+
+/* 深色模式下的滚动条样式 */
+.dark ::-webkit-scrollbar-track {
+  background-color: var(--background-dark);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--border-hover);
+}
+
+/* 表单聚焦样式 - 作为默认样式（不使用 !important，允许组件覆盖） */
+/* 注意: 这是基础样式，组件内部定义的 focus 样式会优先生效 */
+.form-input-default:focus,
+input[type='text']:focus,
+input[type='email']:focus,
+input[type='url']:focus,
+input[type='password']:focus,
+input[type='number']:focus,
+input[type='date']:focus,
+input[type='datetime-local']:focus,
+input[type='month']:focus,
+input[type='search']:focus,
+input[type='tel']:focus,
+input[type='time']:focus,
+input[type='week']:focus,
+textarea:not(.el-textarea__inner):focus,
+select:not(.el-select):focus {
+  box-shadow: 0 0 0 2px var(--color-primary);
+  border-color: var(--color-primary);
+  transition: all 0.2s ease-in-out;
+}
+
+/* 性能优化：硬件加速 */
+.accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* 减少动画偏好支持 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .animate-fadeIn, .animate-slideIn, .animate-pulse, .animate-scaleIn, .animate-slideUp {
+    animation: none !important;
+  }
+  
+  .hover\:scale-110:hover {
+    transform: none !important;
+  }
+  
+  .hover\:translate-y-\[-4px\]:hover {
+    transform: none !important;
+  }
+  
+  .hover\:scale-105:hover {
+    transform: none !important;
+  }
+}

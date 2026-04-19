@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin/
+Disallow: /user/
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /editor/
+Disallow: /draft/
+
+Sitemap: https://xingchen.help/sitemap.xml
+
+Crawl-delay: 10

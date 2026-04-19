@@ -1,0 +1,606 @@
+/* ============================================
+   科技风格主题 - Tech Theme
+   基于 Linear、Raycast、Vercel 设计风格
+
+   CSS变量已迁移到 tokens/design-tokens.css
+   此文件保留效果类样式
+
+   注意: --tech-* 变量现在在 design-tokens.css 中定义
+   ============================================ */
+
+/* ----------------------------------------
+   效果变量 (保留用于渐变和特效)
+   ---------------------------------------- */
+
+/* 渐变色彩 - 用于效果类，非变量 */
+:root {
+  --gradient-start: #6366F1;
+  --gradient-end: #60A5FA;
+  --gradient-purple-start: #8B5CF6;
+  --gradient-purple-end: #6366F1;
+
+  /* 发光效果 */
+  --glow-intensity: 0.3;
+  --glow-spread: 20px;
+}
+
+/* ----------------------------------------
+   玻璃拟态效果
+   ---------------------------------------- */
+
+/* 基础玻璃卡片 */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+.glass:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
+}
+
+/* 强化的玻璃效果 */
+.glass-strong {
+  background: rgba(22, 22, 26, 0.9);
+  backdrop-filter: blur(var(--glass-blur-lg));
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg));
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* 玻璃容器 */
+.glass-container {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+}
+
+/* ----------------------------------------
+   发光边框效果
+   ---------------------------------------- */
+
+/* 基础发光边框 */
+.glow-border {
+  position: relative;
+  border: 1px solid var(--color-primary-glow);
+  box-shadow:
+    0 0 var(--glow-spread) var(--color-primary-glow),
+    inset 0 0 calc(var(--glow-spread) / 2) rgba(99, 102, 241, 0.05);
+}
+
+.glow-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    transparent 50%,
+    var(--color-accent) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.glow-border:hover::before {
+  opacity: 1;
+}
+
+/* 强调发光边框 */
+.glow-border-accent {
+  border-color: var(--color-accent-glow);
+  box-shadow:
+    0 0 var(--glow-spread) var(--color-accent-glow),
+    inset 0 0 calc(var(--glow-spread) / 2) rgba(59, 130, 246, 0.05);
+}
+
+/* 成功发光边框 */
+.glow-border-success {
+  border-color: var(--color-success-glow);
+  box-shadow:
+    0 0 var(--glow-spread) var(--color-success-glow),
+    inset 0 0 calc(var(--glow-spread) / 2) rgba(16, 185, 129, 0.05);
+}
+
+/* ----------------------------------------
+   发光阴影效果
+   ---------------------------------------- */
+
+.shadow-glow {
+  box-shadow: 0 0 20px var(--color-primary-glow);
+}
+
+.shadow-glow-sm {
+  box-shadow: 0 0 10px var(--color-primary-glow);
+}
+
+.shadow-glow-lg {
+  box-shadow: 0 0 40px var(--color-primary-glow);
+}
+
+.shadow-glow-accent {
+  box-shadow: 0 0 20px var(--color-accent-glow);
+}
+
+.shadow-glow-success {
+  box-shadow: 0 0 20px var(--color-success-glow);
+}
+
+/* ----------------------------------------
+   流光动画
+   ---------------------------------------- */
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes shimmer-slow {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.shimmer-slow::before {
+  animation: shimmer-slow 4s ease-in-out infinite;
+}
+
+/* ----------------------------------------
+   发光脉冲动画
+   ---------------------------------------- */
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--color-primary-glow);
+  }
+  50% {
+    box-shadow: 0 0 40px var(--color-primary-glow), 0 0 60px var(--color-primary-subtle);
+  }
+}
+
+@keyframes glow-pulse-accent {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--color-accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 40px var(--color-accent-glow), 0 0 60px rgba(96, 165, 250, 0.2);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-glow-pulse-accent {
+  animation: glow-pulse-accent 2s ease-in-out infinite;
+}
+
+/* ----------------------------------------
+   渐变背景
+   ---------------------------------------- */
+
+/* 科技风格渐变背景 */
+.bg-gradient-tech {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99, 102, 241, 0.25) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 30% at 10% 80%, rgba(96, 165, 250, 0.12) 0%, transparent 50%),
+    var(--bg-primary);
+}
+
+.dark .bg-gradient-tech {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99, 102, 241, 0.3) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 30% at 10% 80%, rgba(96, 165, 250, 0.15) 0%, transparent 50%),
+    var(--bg-primary);
+}
+
+.bg-gradient-tech-purple {
+  background:
+    radial-gradient(ellipse at top left, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+    var(--bg-primary);
+}
+
+/* 渐变边框 */
+.gradient-border {
+  position: relative;
+  background: var(--tech-bg-card);
+  border-radius: 12px;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-primary) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* ----------------------------------------
+   噪点纹理
+   ---------------------------------------- */
+
+.noise {
+  position: relative;
+}
+
+.noise::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+.dark .noise::before {
+  opacity: 0.05;
+}
+
+/* ----------------------------------------
+   科技风格输入框
+   ---------------------------------------- */
+
+.tech-input {
+  background: var(--tech-bg-card);
+  border: 1px solid var(--tech-border);
+  border-radius: 8px;
+  color: var(--tech-text);
+  padding: 10px 14px;
+  transition: all 0.2s ease;
+}
+
+.tech-input:hover {
+  border-color: var(--tech-border-hover);
+}
+
+.tech-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-subtle);
+}
+
+.tech-input::placeholder {
+  color: var(--tech-text-muted);
+}
+
+/* 霓虹发光输入框 */
+.tech-input-neon {
+  background: var(--tech-bg-card);
+  border: 1px solid var(--tech-border);
+  border-radius: 8px;
+  color: var(--tech-text);
+  padding: 10px 14px;
+  transition: all 0.3s ease;
+}
+
+.tech-input-neon:hover {
+  border-color: var(--color-primary-glow);
+  box-shadow: 0 0 10px var(--color-primary-subtle);
+}
+
+.tech-input-neon:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow:
+    0 0 0 3px var(--color-primary-subtle),
+    0 0 20px var(--color-primary-glow);
+}
+
+/* ----------------------------------------
+   科技风格按钮
+   ---------------------------------------- */
+
+.tech-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.tech-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 主按钮 */
+.tech-btn-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--gradient-purple-end) 100%);
+  color: white;
+  box-shadow: 0 0 20px var(--color-primary-glow);
+}
+
+.tech-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 0 30px var(--color-primary-glow);
+}
+
+.tech-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* 次要按钮 */
+.tech-btn-secondary {
+  background: var(--tech-bg-elevated);
+  color: var(--tech-text);
+  border: 1px solid var(--tech-border);
+}
+
+.tech-btn-secondary:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* 幽灵按钮 */
+.tech-btn-ghost {
+  background: transparent;
+  color: var(--tech-text-secondary);
+  border: 1px solid transparent;
+}
+
+.tech-btn-ghost:hover:not(:disabled) {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  border-color: var(--color-primary-subtle);
+}
+
+/* ----------------------------------------
+   科技风格徽章/标签
+   ---------------------------------------- */
+
+.tech-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  border: 1px solid transparent;
+}
+
+.tech-badge-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+}
+
+.tech-badge-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+}
+
+.tech-badge-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-error);
+}
+
+/* ----------------------------------------
+   科技风格卡片
+   ---------------------------------------- */
+
+.tech-card {
+  background: var(--tech-bg-card);
+  border: 1px solid var(--tech-border);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.tech-card:hover {
+  border-color: var(--tech-border-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.tech-card-glow {
+  border-color: var(--color-primary-glow);
+  box-shadow:
+    0 0 20px var(--color-primary-subtle),
+    inset 0 0 20px rgba(99, 102, 241, 0.03);
+}
+
+.tech-card-glow:hover {
+  border-color: var(--color-primary);
+  box-shadow:
+    0 0 30px var(--color-primary-glow),
+    inset 0 0 30px rgba(99, 102, 241, 0.05);
+}
+
+/* ----------------------------------------
+   工具类
+   ---------------------------------------- */
+
+/* 文本渐变色 */
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-purple {
+  background: linear-gradient(135deg, var(--gradient-purple-start) 0%, var(--color-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 边框渐变动画 */
+.border-animate {
+  position: relative;
+}
+
+.border-animate::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-primary) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: border-flow 2s linear infinite;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+@keyframes border-flow {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* 浮动动画 */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* 旋转光环 */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+/* ----------------------------------------
+   暗色模式专属样式
+   ---------------------------------------- */
+
+.dark .bg-tech {
+  background-color: var(--tech-bg);
+}
+
+.dark .bg-tech-card {
+  background-color: var(--tech-bg-card);
+}
+
+.dark .text-tech {
+  color: var(--tech-text);
+}
+
+.dark .text-tech-secondary {
+  color: var(--tech-text-secondary);
+}
+
+.dark .text-tech-muted {
+  color: var(--tech-text-muted);
+}
+
+.dark .border-tech {
+  border-color: var(--tech-border);
+}

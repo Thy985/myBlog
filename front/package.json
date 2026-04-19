@@ -1,0 +1,104 @@
+{
+  "name": "blog",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .eslintignore",
+    "lint:check": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --ignore-path .eslintignore",
+    "format": "prettier --write . --ignore-path .prettierignore",
+    "format:check": "prettier --check . --ignore-path .prettierignore",
+    "prepare": "husky install",
+    "type-check": "vue-tsc --noEmit",
+    "lint:ci": "NODE_OPTIONS=--max_old_space_size=6144 eslint . --ext .vue,.js,.jsx,.cjs,.mjs --ignore-path .eslintignore",
+    "build:ci": "NODE_OPTIONS=--max_old_space_size=6144 vite build",
+    "test:ci": "NODE_OPTIONS=--max_old_space_size=6144 vitest run"
+  },
+  "lint-staged": {
+    "*.{js,jsx,vue,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{css,scss,less,html,json,md}": [
+      "prettier --write"
+    ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "@heroicons/vue": "^2.0.18",
+    "@vueuse/core": "^14.2.1",
+    "@vueuse/integrations": "^14.2.1",
+    "animate.css": "^4.1.1",
+    "axios": "^1.13.4",
+    "dayjs": "^1.11.20",
+    "dompurify": "^3.3.1",
+    "echarts": "^6.0.0",
+    "element-plus": "^2.13.2",
+    "gsap": "^3.11.5",
+    "highlight.js": "^11.8.0",
+    "katex": "^0.16.45",
+    "marked": "^18.0.1",
+    "marked-highlight": "^2.2.4",
+    "md-editor-v3": "^6.3.1",
+    "mermaid": "^11.14.0",
+    "nprogress": "^0.2.0",
+    "pinia": "^3.0.4",
+    "universal-cookie": "^8.0.1",
+    "v-viewer": "^3.0.11",
+    "vue": "^3.5.28",
+    "vue-router": "^5.0.2"
+  },
+  "devDependencies": {
+    "@babel/eslint-parser": "^7.28.6",
+    "@commitlint/cli": "^19.3.0",
+    "@commitlint/config-conventional": "^19.2.2",
+    "@playwright/test": "^1.59.1",
+    "@typescript-eslint/parser": "^8.55.0",
+    "@vitejs/plugin-vue": "^6.0.4",
+    "@vitejs/plugin-vue-jsx": "^5.1.4",
+    "@vitest/coverage-v8": "^4.0.18",
+    "@vue/test-utils": "^2.4.6",
+    "autoprefixer": "^10.4.14",
+    "commitizen": "^4.3.0",
+    "cz-conventional-changelog": "^3.3.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "eslint-plugin-vue": "^8.7.1",
+    "husky": "^9.0.11",
+    "jsdom": "^28.0.0",
+    "lint-staged": "^15.2.7",
+    "postcss": "^8.4.25",
+    "postcss-import": "^16.1.1",
+    "prettier": "^3.8.1",
+    "tailwindcss": "^3.3.2",
+    "terser": "^5.46.0",
+    "typescript": "^5.9.3",
+    "unplugin-auto-import": "^0.16.6",
+    "unplugin-vue-components": "^0.25.1",
+    "vite": "^7.3.1",
+    "vite-plugin-imagemin": "^0.6.1",
+    "vitest": "^4.0.18",
+    "vue-tsc": "^2.1.10"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
+}

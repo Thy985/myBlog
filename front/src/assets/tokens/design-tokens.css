@@ -1,0 +1,163 @@
+/* ============================================
+   Design Tokens - 统一设计变量 (v2.0)
+   Single Source of Truth for all design values
+
+   ✅ 推荐使用: --color-*, --bg-*, --text-*, --border-*
+   ⚠️ 向后兼容: --primary-color, --background-* (将在 v3.0 移除)
+   ============================================ */
+
+:root {
+  /* === BRAND TOKENS === */
+  --color-primary: #6366F1;
+  --color-primary-hover: #818CF8;
+  --color-primary-subtle: rgba(99, 102, 241, 0.15);
+  --color-primary-glow: rgba(99, 102, 241, 0.4);
+
+  --color-accent: #60A5FA;
+  --color-accent-hover: #93C5FD;
+  --color-accent-subtle: rgba(96, 165, 250, 0.15);
+  --color-accent-glow: rgba(96, 165, 250, 0.4);
+
+  --color-success: #34D399;
+  --color-success-subtle: rgba(16, 185, 129, 0.15);
+  --color-success-glow: rgba(16, 185, 129, 0.3);
+
+  --color-warning: #FBBF24;
+  --color-warning-subtle: rgba(245, 158, 11, 0.15);
+  --color-warning-glow: rgba(245, 158, 11, 0.3);
+
+  --color-error: #F87171;
+  --color-error-subtle: rgba(239, 68, 68, 0.15);
+  --color-error-glow: rgba(239, 68, 68, 0.3);
+
+  /* === SEMANTIC TOKENS (Light Mode) === */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --bg-card: #ffffff;
+  --bg-elevated: #ffffff;
+
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #9ca3af;
+
+  --border-color: #e5e7eb;
+  --border-subtle: #f3f4f6;
+  --border-hover: #d1d5db;
+
+  /* === COMPONENT TOKENS === */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+  --shadow-glow: 0 0 20px var(--color-primary-glow);
+  --shadow-glow-sm: 0 0 10px var(--color-primary-subtle);
+
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 400ms ease;
+
+  /* === GLASS TOKENS === */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-hover: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-border-hover: rgba(255, 255, 255, 0.3);
+  --glass-blur: 12px;
+  --glass-blur-lg: 20px;
+
+  /* === DEPRECATED ALIASES (将在 v3.0 移除) === */
+  /* 请迁移到对应的 --color-* / --bg-* / --text-* 变量 */
+
+  /* === TECH THEME ALIASES (tech-theme.css 使用) === */
+  --tech-bg: var(--bg-primary);
+  --tech-bg-card: var(--bg-card);
+  --tech-bg-elevated: var(--bg-elevated);
+  --tech-text: var(--text-primary);
+  --tech-text-secondary: var(--text-secondary);
+  --tech-text-muted: var(--text-muted);
+  --tech-border: var(--border-color);
+  --tech-border-hover: var(--border-hover);
+
+  /* === AGENT THEME ALIASES (agent-theme.css 使用) === */
+  --agent-primary: var(--color-primary);
+  --agent-accent: var(--color-accent);
+  --agent-error: var(--color-error);
+  --agent-success: var(--color-success);
+  --agent-primary-glow: var(--color-primary-glow);
+  --agent-primary-subtle: var(--color-primary-subtle);
+  --agent-bg-card: var(--bg-card);
+  --agent-text: var(--text-primary);
+  --agent-text-secondary: var(--text-secondary);
+  --agent-text-muted: var(--text-muted);
+  --agent-border: var(--border-color);
+  --agent-radius-sm: var(--radius-sm);
+  --agent-radius-md: var(--radius-md);
+  --agent-radius-lg: var(--radius-lg);
+  --agent-radius-full: var(--radius-full);
+  --agent-transition-fast: var(--transition-fast);
+  --agent-transition-normal: var(--transition-normal);
+
+  /* === 旧版通用别名 === */
+  --primary-color: var(--color-primary);
+  --primary-hover: var(--color-primary-hover);
+  --primary-light: var(--color-primary-subtle);
+  --primary-dark: var(--color-primary);
+  --primary-subtle: var(--color-primary-subtle);
+
+  --secondary-color: var(--color-success);
+  --secondary-hover: var(--color-success);
+  --secondary-light: var(--color-success-subtle);
+
+  --accent-color: var(--color-accent);
+  --accent-hover: var(--color-accent-hover);
+
+  --text-tertiary: var(--text-muted);
+
+  --background-primary: var(--bg-primary);
+  --background-secondary: var(--bg-secondary);
+  --background-tertiary: var(--bg-tertiary);
+  --background-light: var(--bg-secondary);
+
+  --success-color: var(--color-success);
+  --warning-color: var(--color-warning);
+  --error-color: var(--color-error);
+  --info-color: var(--color-accent);
+
+  --focus-outline: 2px solid rgba(99, 102, 241, 0.5);
+}
+
+/* === DARK MODE === */
+.dark {
+  /* === SEMANTIC TOKENS (Dark Mode) === */
+  --bg-primary: #0A0A0B;
+  --bg-secondary: #111113;
+  --bg-tertiary: #16161A;
+  --bg-card: #16161A;
+  --bg-elevated: #1A1A1D;
+
+  --text-primary: #F3F4F6;
+  --text-secondary: #E5E7EB;
+  --text-muted: #71717A;
+
+  --border-color: #27272A;
+  --border-subtle: #3F3F46;
+  --border-hover: #52525B;
+
+  /* === GLASS TOKENS === */
+  --glass-bg: rgba(22, 22, 26, 0.85);
+  --glass-bg-hover: rgba(30, 30, 35, 0.9);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-border-hover: rgba(255, 255, 255, 0.2);
+
+  /* === DEPRECATED ALIASES (Dark Mode) === */
+  --background-primary: var(--bg-primary);
+  --background-secondary: var(--bg-secondary);
+  --background-dark: var(--bg-primary);
+
+  --focus-outline: 2px solid rgba(147, 197, 253, 0.6);
+}

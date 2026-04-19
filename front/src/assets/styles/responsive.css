@@ -1,0 +1,383 @@
+/* ============================================
+   统一响应式设计系统
+   ============================================ */
+
+/*
+   断点定义：
+   - xs: 0 - 639px     (手机)
+   - sm: 640px - 767px (大屏手机)
+   - md: 768px - 1023px (平板)
+   - lg: 1024px - 1279px (小桌面)
+   - xl: 1280px - 1535px (桌面)
+   - 2xl: 1536px+ (大桌面)
+*/
+
+:root {
+  /* 容器最大宽度 */
+  --container-max-xs: 100%;
+  --container-max-sm: 640px;
+  --container-max-md: 768px;
+  --container-max-lg: 1024px;
+  --container-max-xl: 1280px;
+  --container-max-2xl: 1536px;
+  
+  /* 间距系统 */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3rem;    /* 48px */
+  --space-16: 4rem;    /* 64px */
+  --space-20: 5rem;    /* 80px */
+  --space-24: 6rem;    /* 96px */
+  
+  /* 字体大小 */
+  --text-xs: 0.75rem;   /* 12px */
+  --text-sm: 0.875rem;  /* 14px */
+  --text-base: 1rem;    /* 16px */
+  --text-lg: 1.125rem;  /* 18px */
+  --text-xl: 1.25rem;   /* 20px */
+  --text-2xl: 1.5rem;   /* 24px */
+  --text-3xl: 1.875rem; /* 30px */
+  --text-4xl: 2.25rem;  /* 36px */
+}
+
+/* ============================================
+   容器系统
+   ============================================ */
+
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: var(--container-max-sm);
+    padding-left: var(--space-6);
+    padding-right: var(--space-6);
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: var(--container-max-md);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: var(--container-max-lg);
+    padding-left: var(--space-8);
+    padding-right: var(--space-8);
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: var(--container-max-xl);
+  }
+}
+
+@media (min-width: 1536px) {
+  .container {
+    max-width: var(--container-max-2xl);
+  }
+}
+
+/* 流体容器 */
+.container-fluid {
+  width: 100%;
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .container-fluid {
+    padding-left: var(--space-6);
+    padding-right: var(--space-6);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-fluid {
+    padding-left: var(--space-8);
+    padding-right: var(--space-8);
+  }
+}
+
+/* ============================================
+   响应式工具类
+   ============================================ */
+
+/* 隐藏/显示 */
+.hidden { display: none; }
+
+@media (min-width: 640px) {
+  .sm\:hidden { display: none; }
+  .sm\:block { display: block; }
+  .sm\:flex { display: flex; }
+  .sm\:grid { display: grid; }
+  .sm\:inline { display: inline; }
+}
+
+@media (min-width: 768px) {
+  .md\:hidden { display: none; }
+  .md\:block { display: block; }
+  .md\:flex { display: flex; }
+  .md\:grid { display: grid; }
+  .md\:inline { display: inline; }
+}
+
+@media (min-width: 1024px) {
+  .lg\:hidden { display: none; }
+  .lg\:block { display: block; }
+  .lg\:flex { display: flex; }
+  .lg\:grid { display: grid; }
+  .lg\:inline { display: inline; }
+}
+
+@media (min-width: 1280px) {
+  .xl\:hidden { display: none; }
+  .xl\:block { display: block; }
+  .xl\:flex { display: flex; }
+  .xl\:grid { display: grid; }
+  .xl\:inline { display: inline; }
+}
+
+/* 文本大小响应式 */
+@media (max-width: 639px) {
+  .text-responsive-xs {
+    font-size: var(--text-sm);
+  }
+  
+  .text-responsive-sm {
+    font-size: var(--text-base);
+  }
+  
+  .text-responsive-base {
+    font-size: var(--text-lg);
+  }
+  
+  .text-responsive-lg {
+    font-size: var(--text-xl);
+  }
+  
+  .text-responsive-xl {
+    font-size: var(--text-2xl);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .text-responsive-xs {
+    font-size: var(--text-xs);
+  }
+  
+  .text-responsive-sm {
+    font-size: var(--text-sm);
+  }
+  
+  .text-responsive-base {
+    font-size: var(--text-base);
+  }
+  
+  .text-responsive-lg {
+    font-size: var(--text-lg);
+  }
+  
+  .text-responsive-xl {
+    font-size: var(--text-xl);
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-xs {
+    font-size: var(--text-xs);
+  }
+  
+  .text-responsive-sm {
+    font-size: var(--text-sm);
+  }
+  
+  .text-responsive-base {
+    font-size: var(--text-base);
+  }
+  
+  .text-responsive-lg {
+    font-size: var(--text-lg);
+  }
+  
+  .text-responsive-xl {
+    font-size: var(--text-xl);
+  }
+}
+
+/* ============================================
+   移动端优化
+   ============================================ */
+
+@media (max-width: 767px) {
+  /* 触摸目标最小尺寸 */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* 按钮尺寸 */
+  .btn-mobile {
+    padding: 12px 20px;
+    font-size: var(--text-base);
+  }
+  
+  /* 输入框 */
+  .input-mobile {
+    padding: 12px 16px;
+    font-size: 16px; /* 防止iOS缩放 */
+  }
+  
+  /* 卡片间距 */
+  .card-mobile {
+    padding: var(--space-4);
+  }
+  
+  /* 列表项 */
+  .list-item-mobile {
+    padding: var(--space-3) var(--space-4);
+  }
+  
+  /* 导航栏 */
+  .nav-mobile {
+    height: 56px;
+  }
+  
+  /* 底部安全区域 */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+}
+
+/* ============================================
+   平板优化
+   ============================================ */
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .btn-tablet {
+    padding: 10px 18px;
+  }
+  
+  .card-tablet {
+    padding: var(--space-5);
+  }
+}
+
+/* ============================================
+   桌面端优化
+   ============================================ */
+
+@media (min-width: 1024px) {
+  /* 悬停效果（仅桌面） */
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  /* 滚动条美化 */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+  }
+}
+
+/* ============================================
+   打印样式
+   ============================================ */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  a {
+    text-decoration: underline;
+    color: black !important;
+  }
+  
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+  }
+}
+
+/* ============================================
+   减少动画偏好
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================
+   深色模式响应式
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+  }
+}
+
+/* ============================================
+   横屏模式
+   ============================================ */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .landscape-short {
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+  }
+  
+  .landscape-hide {
+    display: none;
+  }
+}
