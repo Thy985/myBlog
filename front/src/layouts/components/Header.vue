@@ -98,7 +98,7 @@
         <!-- 退出登录模态框 -->
         <div
             v-if="isLogoutModalOpen"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 transition-opacity duration-300"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(10,10,20,0.5)] transition-opacity duration-300"
             aria-modal="true"
             role="dialog"
             aria-labelledby="logout-modal-title"
@@ -222,35 +222,15 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Header 玻璃拟态效果 */
+/* Header 简洁样式 */
 .header-glass {
-  background: var(--glass-bg);
-  border-bottom: 1px solid var(--glass-border);
-
-  /* 玻璃拟态 - 支持时启用 */
-  @supports (backdrop-filter: blur(20px)) {
-    backdrop-filter: blur(var(--glass-blur-lg));
-    -webkit-backdrop-filter: blur(var(--glass-blur-lg));
-  }
-
-  /* 不支持时的降级方案 */
-  @supports not (backdrop-filter: blur(20px)) {
-    background: var(--bg-primary);
-  }
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .dark .header-glass {
-  background: rgba(10, 10, 11, 0.9);
-  border-bottom: 1px solid var(--glass-border);
-
-  @supports (backdrop-filter: blur(20px)) {
-    backdrop-filter: blur(var(--glass-blur-lg));
-    -webkit-backdrop-filter: blur(var(--glass-blur-lg));
-  }
-
-  @supports not (backdrop-filter: blur(20px)) {
-    background: var(--bg-primary);
-  }
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
 }
 
 /* 动画效果 */

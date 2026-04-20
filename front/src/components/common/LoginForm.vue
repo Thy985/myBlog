@@ -80,36 +80,6 @@
         >立即注册</el-link>
       </el-form-item>
 
-      <div class="login-divider">
-        <span>其他登录方式</span>
-      </div>
-
-      <div class="login-social">
-        <el-button
-          type="default"
-          circle
-          icon="el-icon-chat-dot-round"
-          class="social-btn"
-          tabindex="7"
-          @click="$emit('social-login', 'chat')"
-        />
-        <el-button
-          type="default"
-          circle
-          icon="el-icon-s-grid"
-          class="social-btn"
-          tabindex="8"
-          @click="$emit('social-login', 'grid')"
-        />
-        <el-button
-          type="default"
-          circle
-          icon="el-icon-video-camera"
-          class="social-btn"
-          tabindex="9"
-          @click="$emit('social-login', 'video')"
-        />
-      </div>
     </el-form>
   </div>
 </template>
@@ -131,8 +101,7 @@ defineProps({
 const emit = defineEmits([
   'submit',
   'forgot-password',
-  'register',
-  'social-login'
+  'register'
 ])
 
 const formRef = ref(null)
@@ -223,31 +192,19 @@ defineExpose({
     font-size: 16px;
     font-weight: 500;
     border-radius: 8px;
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+    background: var(--color-primary);
     border: none;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
+    color: white;
+    transition: background var(--transition-fast);
 }
 
-.login-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px var(--color-primary-glow);
+.login-button:hover:not(:disabled) {
+    background: var(--color-primary-hover);
 }
 
-.login-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: all 0.6s ease;
-}
-
-.login-button:hover::before {
-  left: 100%;
+.login-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .register-link {
@@ -268,53 +225,6 @@ defineExpose({
 
 .register-button:hover {
   text-decoration: underline;
-}
-
-.login-divider {
-  display: flex;
-  align-items: center;
-  margin: 32px 0;
-  text-align: center;
-}
-
-.login-divider::before,
-.login-divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border-color);
-}
-
-.login-divider span {
-    padding: 0 16px;
-    color: var(--text-muted);
-    font-size: 12px;
-}
-
-.login-social {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 16px;
-}
-
-.social-btn {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    border: 1px solid var(--border-color);
-    cursor: pointer;
-}
-
-.social-btn:hover {
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: var(--shadow-md);
-    border-color: var(--color-primary);
-    color: var(--color-primary);
 }
 
 .is-loading {

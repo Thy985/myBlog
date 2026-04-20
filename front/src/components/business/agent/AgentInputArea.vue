@@ -11,7 +11,6 @@
                 class="agent-quick-cmd"
                 @click="$emit('quick-command', cmd)"
             >
-                <span>{{ cmd.icon }}</span>
                 <span>{{ cmd.label }}</span>
             </button>
         </div>
@@ -21,7 +20,7 @@
                 ref="textareaRef"
                 v-model="text"
                 :disabled="isExecuting"
-                placeholder="输入消息..."
+                placeholder="向 AI 助手提问，或描述你想完成的任务..."
                 maxlength="2000"
                 rows="1"
                 class="agent-input"

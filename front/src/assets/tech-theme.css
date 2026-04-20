@@ -3,30 +3,20 @@
    基于 Linear、Raycast、Vercel 设计风格
 
    CSS变量已迁移到 tokens/design-tokens.css
-   此文件保留效果类样式
+   此文件保留简洁效果类样式
 
    注意: --tech-* 变量现在在 design-tokens.css 中定义
    ============================================ */
 
 /* ----------------------------------------
-   效果变量 (保留用于渐变和特效)
+   简洁效果变量
    ---------------------------------------- */
 
-/* 渐变色彩 - 用于效果类，非变量 */
 :root {
-  --gradient-start: #6366F1;
-  --gradient-end: #60A5FA;
-  --gradient-purple-start: #8B5CF6;
-  --gradient-purple-end: #6366F1;
-
-  /* 发光效果 */
-  --glow-intensity: 0.3;
-  --glow-spread: 20px;
+  /* 发光效果 - 已简化 */
+  --glow-intensity: 0.2;
+  --glow-spread: 12px;
 }
-
-/* ----------------------------------------
-   玻璃拟态效果
-   ---------------------------------------- */
 
 /* 基础玻璃卡片 */
 .glass {
@@ -122,75 +112,37 @@
 }
 
 /* ----------------------------------------
-   发光阴影效果
+   简洁阴影效果
    ---------------------------------------- */
 
 .shadow-glow {
-  box-shadow: 0 0 20px var(--color-primary-glow);
+  box-shadow: 0 2px 8px var(--shadow-sm);
 }
 
 .shadow-glow-sm {
-  box-shadow: 0 0 10px var(--color-primary-glow);
+  box-shadow: 0 1px 4px var(--shadow-sm);
 }
 
 .shadow-glow-lg {
-  box-shadow: 0 0 40px var(--color-primary-glow);
+  box-shadow: 0 4px 16px var(--shadow-md);
 }
 
 .shadow-glow-accent {
-  box-shadow: 0 0 20px var(--color-accent-glow);
+  box-shadow: 0 2px 8px var(--shadow-md);
 }
 
 .shadow-glow-success {
-  box-shadow: 0 0 20px var(--color-success-glow);
+  box-shadow: 0 2px 8px var(--shadow-md);
 }
 
 /* ----------------------------------------
-   流光动画
+   简洁动画
    ---------------------------------------- */
 
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes shimmer-slow {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-.shimmer {
-  position: relative;
-  overflow: hidden;
-}
-
-.shimmer::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.08) 50%,
-    transparent 100%
-  );
-  animation: shimmer 2s ease-in-out infinite;
-  pointer-events: none;
-}
-
-.shimmer-slow::before {
-  animation: shimmer-slow 4s ease-in-out infinite;
+/* 简化loading动画 - 避免流光效果 */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 /* ----------------------------------------
@@ -199,19 +151,19 @@
 
 @keyframes glow-pulse {
   0%, 100% {
-    box-shadow: 0 0 20px var(--color-primary-glow);
+    box-shadow: 0 0 8px var(--color-primary-glow);
   }
   50% {
-    box-shadow: 0 0 40px var(--color-primary-glow), 0 0 60px var(--color-primary-subtle);
+    box-shadow: 0 0 16px var(--color-primary-glow);
   }
 }
 
 @keyframes glow-pulse-accent {
   0%, 100% {
-    box-shadow: 0 0 20px var(--color-accent-glow);
+    box-shadow: 0 0 8px var(--color-accent-glow);
   }
   50% {
-    box-shadow: 0 0 40px var(--color-accent-glow), 0 0 60px rgba(96, 165, 250, 0.2);
+    box-shadow: 0 0 16px var(--color-accent-glow);
   }
 }
 
@@ -227,68 +179,25 @@
    渐变背景
    ---------------------------------------- */
 
-/* 科技风格渐变背景 */
+/* 简洁背景 - 无装饰性渐变 */
 .bg-gradient-tech {
-  background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99, 102, 241, 0.25) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse 50% 30% at 10% 80%, rgba(96, 165, 250, 0.12) 0%, transparent 50%),
-    var(--bg-primary);
+  background: var(--bg-secondary);
 }
 
 .dark .bg-gradient-tech {
-  background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99, 102, 241, 0.3) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
-    radial-gradient(ellipse 50% 30% at 10% 80%, rgba(96, 165, 250, 0.15) 0%, transparent 50%),
-    var(--bg-primary);
+  background: var(--bg-secondary);
 }
 
 .bg-gradient-tech-purple {
-  background:
-    radial-gradient(ellipse at top left, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at bottom right, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
-    var(--bg-primary);
+  background: var(--bg-secondary);
 }
 
-/* 渐变边框 */
+/* 简洁边框样式 */
 .gradient-border {
   position: relative;
   background: var(--tech-bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-}
-
-.gradient-border::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  padding: 1px;
-  border-radius: inherit;
-  background: linear-gradient(
-    135deg,
-    var(--color-primary) 0%,
-    var(--color-accent) 50%,
-    var(--color-primary) 100%
-  );
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  background-size: 200% 200%;
-  animation: gradient-shift 3s ease infinite;
-}
-
-@keyframes gradient-shift {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
 }
 
 /* ----------------------------------------
@@ -390,14 +299,12 @@
 
 /* 主按钮 */
 .tech-btn-primary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--gradient-purple-end) 100%);
+  background: var(--color-primary);
   color: white;
-  box-shadow: 0 0 20px var(--color-primary-glow);
 }
 
 .tech-btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 0 30px var(--color-primary-glow);
+  background: var(--color-primary-hover);
 }
 
 .tech-btn-primary:active:not(:disabled) {
@@ -496,48 +403,19 @@
    工具类
    ---------------------------------------- */
 
-/* 文本渐变色 */
+/* 文本强调色 - 使用纯色而非渐变 */
 .text-gradient {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-primary);
 }
 
 .text-gradient-purple {
-  background: linear-gradient(135deg, var(--gradient-purple-start) 0%, var(--color-primary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--gradient-purple-start);
 }
 
-/* 边框渐变动画 */
+/* 简洁动画边框 */
 .border-animate {
   position: relative;
-}
-
-.border-animate::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--color-primary) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: border-flow 2s linear infinite;
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
+  border: 1px solid var(--border-color);
 }
 
 @keyframes border-flow {

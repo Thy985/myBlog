@@ -1,137 +1,156 @@
 <template>
-  <el-form
-    ref="formRef"
-    :model="formData"
-    :rules="formRules"
-    label-position="top"
-    class="register-form"
-    autocomplete="off"
-    @keydown.enter="$emit('submit', formData)"
-  >
-    <el-form-item prop="username">
-      <el-input
-        v-model="formData.username"
-        placeholder="请输入用户名"
-        size="large"
-        prefix-icon="el-icon-user"
-        tabindex="1"
-      />
-    </el-form-item>
+  <div class="register-form-container">
+    <!-- Step indicator -->
+    <div class="register-steps">
+      <div
+        v-for="s in 3"
+        :key="s"
+        :class="['step', { active: currentStep === s, completed: currentStep > s }]"
+      >
+        <div class="step-dot">{{ s }}</div>
+        <span class="step-label">{{ stepLabels[s - 1] }}</span>
+      </div>
+    </div>
 
-    <el-form-item prop="password">
-      <el-input
-        v-model="formData.password"
-        type="password"
-        placeholder="请输入密码"
-        show-password
-        size="large"
-        prefix-icon="el-icon-lock"
-        tabindex="2"
-      />
-      <PasswordStrengthIndicator v-if="formData.password" :password="formData.password" />
-    </el-form-item>
+    <el-form
+      ref="formRef"
+      :model="formData"
+      :rules="currentRules"
+      label-position="top"
+      class="register-form"
+      autocomplete="off"
+      @keydown.enter="handleNext"
+    >
+      <!-- Step 1: Account credentials -->
+      <template v-if="currentStep === 1">
+        <el-form-item prop="username">
+          <el-input
+            v-model="formData.username"
+            placeholder="请输入用户名"
+            size="large"
+            prefix-icon="User"
+            tabindex="1"
+          />
+        </el-form-item>
 
-    <el-form-item prop="email">
-      <el-input
-        v-model="formData.email"
-        type="email"
-        placeholder="请输入邮箱"
-        size="large"
-        prefix-icon="el-icon-message"
-        tabindex="3"
-      />
-    </el-form-item>
+        <el-form-item prop="password">
+          <el-input
+            v-model="formData.password"
+            type="password"
+            placeholder="请输入密码"
+            show-password
+            size="large"
+            prefix-icon="Lock"
+            tabindex="2"
+          />
+          <PasswordStrengthIndicator v-if="formData.password" :password="formData.password" />
+        </el-form-item>
 
-    <el-form-item prop="phone">
-      <el-input
-        v-model="formData.phone"
-        placeholder="请输入手机号"
-        size="large"
-        prefix-icon="el-icon-phone"
-        tabindex="4"
-      />
-    </el-form-item>
+        <el-form-item prop="confirmPassword">
+          <el-input
+            v-model="formData.confirmPassword"
+            type="password"
+            placeholder="请确认密码"
+            show-password
+            size="large"
+            prefix-icon="Lock"
+            tabindex="3"
+          />
+        </el-form-item>
+      </template>
 
-    <el-form-item prop="code">
-      <div class="verification-code-container">
-        <el-input
-          v-model="formData.code"
-          placeholder="请输入验证码"
+      <!-- Step 2: Contact info -->
+      <template v-else-if="currentStep === 2">
+        <el-form-item prop="email">
+          <el-input
+            v-model="formData.email"
+            type="email"
+            placeholder="请输入邮箱"
+            size="large"
+            prefix-icon="Message"
+            tabindex="1"
+          />
+        </el-form-item>
+
+        <el-form-item prop="phone">
+          <el-input
+            v-model="formData.phone"
+            placeholder="请输入手机号"
+            size="large"
+            prefix-icon="Phone"
+            tabindex="2"
+          />
+        </el-form-item>
+      </template>
+
+      <!-- Step 3: Verification -->
+      <template v-else>
+        <el-form-item prop="code">
+          <div class="verification-code-container">
+            <el-input
+              v-model="formData.code"
+              placeholder="请输入验证码"
+              size="large"
+              prefix-icon="Key"
+              tabindex="1"
+            />
+            <el-button
+              type="primary"
+              :disabled="!canSendCode || isSendingCode"
+              class="verification-code-button"
+              tabindex="2"
+              @click="handleSendCode"
+            >
+              {{ isSendingCode ? `${countdown}s后重发` : '发送验证码' }}
+            </el-button>
+          </div>
+        </el-form-item>
+
+        <p class="verification-hint">验证码已发送至 {{ formData.email }}</p>
+      </template>
+
+      <!-- Navigation buttons -->
+      <el-form-item class="register-actions">
+        <el-button
+          v-if="currentStep > 1"
+          type="default"
+          class="back-button"
           size="large"
-          prefix-icon="el-icon-key"
-          tabindex="5"
-        />
+          tabindex="10"
+          @click="currentStep--"
+        >
+          上一步
+        </el-button>
         <el-button
           type="primary"
-          :disabled="!canSendCode || isSendingCode"
-          class="verification-code-button"
-          tabindex="6"
-          @click="handleSendCode"
+          class="register-button"
+          :loading="isLoading"
+          size="large"
+          tabindex="11"
+          :disabled="isLoading"
+          @click="handleNext"
         >
-          {{ isSendingCode ? `${countdown}s后重发` : '发送验证码' }}
+          <template v-if="isLoading">
+            <el-icon class="is-loading"><i class="el-icon-loading"></i></el-icon>
+            注册中...
+          </template>
+          <template v-else>
+            {{ currentStep === 3 ? '注册' : '下一步' }}
+          </template>
         </el-button>
-      </div>
-    </el-form-item>
+      </el-form-item>
 
-    <el-form-item>
-      <el-button
-        type="primary"
-        class="register-button"
-        :loading="isLoading"
-        size="large"
-        tabindex="7"
-        :disabled="isLoading"
-        @click="handleSubmit"
-      >
-        <template v-if="isLoading">
-          <el-icon class="is-loading"><i class="el-icon-loading"></i></el-icon>
-          注册中...
-        </template>
-        <template v-else>注册</template>
-      </el-button>
-    </el-form-item>
-
-    <el-form-item class="login-link">
-      <span>已有账号？</span>
-      <el-link
-        type="primary"
-        class="login-button"
-        tabindex="8"
-        @click="$emit('login')"
-      >立即登录</el-link>
-    </el-form-item>
-
-    <div class="register-divider">
-      <span>其他注册方式</span>
-    </div>
-
-    <div class="register-social">
-      <el-button
-        type="default"
-        circle
-        icon="el-icon-chat-dot-round"
-        class="social-btn"
-        tabindex="9"
-        @click="$emit('social-register', 'chat')"
-      />
-      <el-button
-        type="default"
-        circle
-        icon="el-icon-s-grid"
-        class="social-btn"
-        tabindex="10"
-        @click="$emit('social-register', 'grid')"
-      />
-      <el-button
-        type="default"
-        circle
-        icon="el-icon-video-camera"
-        class="social-btn"
-        tabindex="11"
-        @click="$emit('social-register', 'video')"
-      />
-    </div>
-  </el-form>
+      <el-form-item class="login-link">
+        <span>已有账号？</span>
+        <el-link
+          type="primary"
+          class="login-button"
+          tabindex="12"
+          @click="$emit('login')"
+        >立即登录</el-link>
+      </el-form-item>
+    </el-form>
+  </div>
 </template>
 
 <script setup>
@@ -148,22 +167,34 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['submit', 'login', 'social-register'])
+const emit = defineEmits(['submit', 'login'])
 
 const formRef = ref(null)
+const currentStep = ref(1)
 const isSendingCode = ref(false)
 const countdown = ref(60)
 let countdownTimer = null
 
+const stepLabels = ['账户信息', '联系方式', '验证']
+
 const formData = reactive({
   username: '',
   password: '',
+  confirmPassword: '',
   email: '',
   phone: '',
   code: ''
 })
 
-const formRules = {
+const validateConfirmPassword = (rule, value, callback) => {
+  if (value !== formData.password) {
+    callback(new Error('两次输入的密码不一致'))
+  } else {
+    callback()
+  }
+}
+
+const step1Rules = {
   username: [
     { required: true, message: '请输入用户名' },
     { min: 2, max: 20, message: '用户名长度应在2-20个字符之间' }
@@ -172,6 +203,13 @@ const formRules = {
     { required: true, message: '请输入密码' },
     { min: 6, message: '密码长度至少为6个字符' }
   ],
+  confirmPassword: [
+    { required: true, message: '请确认密码' },
+    { validator: validateConfirmPassword, trigger: 'blur' }
+  ]
+}
+
+const step2Rules = {
   email: [
     { required: true, message: '请输入邮箱' },
     { type: 'email', message: '请输入正确的邮箱格式' }
@@ -179,16 +217,49 @@ const formRules = {
   phone: [
     { required: true, message: '请输入手机号' },
     { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号格式' }
-  ],
-  code: [
-    { required: true, message: '请输入验证码' },
-    { min: 6, max: 6, message: '验证码长度为6个字符' }
   ]
 }
+
+const step3Rules = {
+  code: [
+    { required: true, message: '请输入验证码' },
+    { min: 6, max: 6, message: '请输入6位数字验证码' }
+  ]
+}
+
+const currentRules = computed(() => {
+  if (currentStep.value === 1) { return step1Rules }
+  if (currentStep.value === 2) { return step2Rules }
+  return step3Rules
+})
 
 const canSendCode = computed(() => {
   return formData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
 })
+
+async function handleNext() {
+  if (!formRef.value) { return }
+
+  try {
+    await formRef.value.validate()
+
+    if (currentStep.value === 3) {
+      emit('submit', {
+        username: formData.username,
+        password: formData.password,
+        email: formData.email,
+        phone: formData.phone,
+        code: formData.code
+      })
+    } else if (currentStep.value === 2) {
+      currentStep.value++
+    } else {
+      currentStep.value++
+    }
+  } catch (error) {
+    // Validation failed
+  }
+}
 
 const handleSendCode = async () => {
   if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -208,7 +279,6 @@ const handleSendCode = async () => {
       ElMessage.success('验证码发送成功，请查收邮箱')
 
       countdown.value = 60
-      // 清理之前的定时器
       if (countdownTimer) {
         clearInterval(countdownTimer)
       }
@@ -231,26 +301,15 @@ const handleSendCode = async () => {
   }
 }
 
-const handleSubmit = async () => {
-  if (!formRef.value) {return}
-
-  try {
-    await formRef.value.validate()
-    emit('submit', { ...formData })
-  } catch (error) {
-    // 表单验证失败
-  }
-}
-
 const validate = async () => {
   return formRef.value?.validate()
 }
 
 const resetForm = () => {
   formRef.value?.resetFields()
+  currentStep.value = 1
 }
 
-// 组件卸载时清理定时器
 onUnmounted(() => {
   if (countdownTimer) {
     clearInterval(countdownTimer)
@@ -266,10 +325,75 @@ defineExpose({
 </script>
 
 <style scoped>
+.register-form-container {
+  width: 100%;
+}
+
 .register-form {
   width: 100%;
 }
 
+/* Step indicator */
+.register-steps {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 32px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+}
+
+.step.active {
+  color: var(--color-primary);
+}
+
+.step.completed {
+  color: var(--color-success);
+}
+
+.step-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.step.active .step-dot {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.step.completed .step-dot {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: white;
+}
+
+.step-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Form items */
+.el-form-item {
+  margin-bottom: 20px;
+}
+
+/* Verification code */
 .verification-code-container {
   display: flex;
   gap: 12px;
@@ -280,37 +404,53 @@ defineExpose({
   min-width: 120px;
 }
 
+.verification-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: -8px;
+  margin-bottom: 16px;
+}
+
+/* Buttons */
+.register-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
 .register-button {
-  width: 100%;
+  flex: 1;
   padding: 14px;
   font-size: 16px;
   font-weight: 500;
   border-radius: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-primary);
   border: none;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+  color: white;
+  transition: background var(--transition-fast);
 }
 
-.register-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+.register-button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
 }
 
-.register-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: all 0.6s ease;
+.register-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
-.register-button:hover::before {
-  left: 100%;
+.back-button {
+  padding: 14px 24px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .login-link {
@@ -320,7 +460,7 @@ defineExpose({
 }
 
 .login-link span {
-  color: #666;
+  color: var(--text-secondary);
   margin-right: 8px;
 }
 
@@ -333,58 +473,19 @@ defineExpose({
   text-decoration: underline;
 }
 
-.register-divider {
-  display: flex;
-  align-items: center;
-  margin: 32px 0;
-  text-align: center;
-}
-
-.register-divider::before,
-.register-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: #eaeaea;
-}
-
-.register-divider span {
-  padding: 0 16px;
-  color: #999;
-  font-size: 12px;
-}
-
-.register-social {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 16px;
-}
-
-.social-btn {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  border: 1px solid #eaeaea;
-  cursor: pointer;
-}
-
-.social-btn:hover {
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
 .is-loading {
   margin-right: 8px;
 }
 
 @media (max-width: 768px) {
+  .register-steps {
+    gap: 16px;
+  }
+
+  .step-label {
+    display: none;
+  }
+
   .verification-code-container {
     flex-direction: column;
   }
@@ -392,6 +493,14 @@ defineExpose({
   .verification-code-button {
     width: 100%;
     min-width: unset;
+  }
+
+  .register-actions {
+    flex-direction: column;
+  }
+
+  .back-button {
+    order: 1;
   }
 }
 </style>

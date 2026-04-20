@@ -21,17 +21,16 @@
 
 /* ---- 消息气泡 ---- */
 .agent-msg-user {
-    background: linear-gradient(135deg, var(--agent-primary), #8B5CF6);
+    background: var(--agent-primary);
     color: #fff;
     border-radius: var(--agent-radius-lg) var(--agent-radius-lg) 4px var(--agent-radius-lg);
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.25);
 }
 
 .agent-msg-ai {
-    background: rgba(22, 22, 26, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(99, 102, 241, 0.12);
+    background: rgba(22, 22, 26, 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(99, 102, 241, 0.08);
     border-radius: var(--agent-radius-lg) var(--agent-radius-lg) var(--agent-radius-lg) 4px;
     color: var(--agent-text);
 }
@@ -223,18 +222,17 @@
 
 .agent-progress__bar {
     height: 100%;
-    background: linear-gradient(90deg, var(--agent-primary), var(--agent-accent));
+    background: var(--agent-primary);
     border-radius: 2px;
     transition: width 300ms ease;
-    box-shadow: 0 0 8px var(--agent-primary-glow);
 }
 
 /* ---- 输入区域 ---- */
 .agent-input-wrap {
-    background: rgba(22, 22, 26, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid rgba(99, 102, 241, 0.1);
+    background: rgba(22, 22, 26, 0.98);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(99, 102, 241, 0.06);
     padding: 12px 16px;
 }
 
@@ -261,7 +259,7 @@
 .agent-input:focus {
     outline: none;
     border-color: var(--agent-primary);
-    box-shadow: 0 0 0 3px var(--agent-primary-subtle), 0 0 20px var(--agent-primary-glow);
+    box-shadow: 0 0 0 2px var(--agent-primary-subtle);
 }
 
 .agent-input::placeholder {
@@ -276,22 +274,20 @@
     align-items: center;
     justify-content: center;
     border-radius: var(--agent-radius-md);
-    background: linear-gradient(135deg, var(--agent-primary), #8B5CF6);
+    background: var(--agent-primary);
     color: white;
     border: none;
     cursor: pointer;
     transition: all var(--agent-transition-fast);
-    box-shadow: 0 0 16px rgba(99, 102, 241, 0.3);
     flex-shrink: 0;
 }
 
 .agent-send-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 0 24px rgba(99, 102, 241, 0.4);
+    background: var(--agent-primary-hover);
 }
 
 .agent-send-btn:active:not(:disabled) {
-    transform: translateY(0);
+    transform: scale(0.95);
 }
 
 .agent-send-btn:disabled {
@@ -307,12 +303,11 @@
     align-items: center;
     justify-content: center;
     border-radius: var(--agent-radius-md);
-    background: linear-gradient(135deg, var(--agent-error), #DC2626);
+    background: var(--agent-error);
     color: white;
     border: none;
     cursor: pointer;
     transition: all var(--agent-transition-fast);
-    box-shadow: 0 0 16px rgba(239, 68, 68, 0.3);
     flex-shrink: 0;
 }
 
@@ -383,14 +378,14 @@
     height: 6px;
     border-radius: 50%;
     background: var(--agent-primary);
-    animation: agent-bounce 1.4s ease-in-out infinite;
+    animation: agent-pulse 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
 }
 
 .agent-loading-dots span:nth-child(1) { animation-delay: 0s; }
 .agent-loading-dots span:nth-child(2) { animation-delay: 0.16s; }
 .agent-loading-dots span:nth-child(3) { animation-delay: 0.32s; }
 
-@keyframes agent-bounce {
+@keyframes agent-pulse {
     0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
     40% { transform: scale(1); opacity: 1; }
 }

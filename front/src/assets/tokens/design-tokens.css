@@ -67,8 +67,8 @@
   --glass-bg-hover: rgba(255, 255, 255, 0.85);
   --glass-border: rgba(255, 255, 255, 0.2);
   --glass-border-hover: rgba(255, 255, 255, 0.3);
-  --glass-blur: 12px;
-  --glass-blur-lg: 20px;
+  --glass-blur: 8px;
+  --glass-blur-lg: 12px;
 
   /* === DEPRECATED ALIASES (将在 v3.0 移除) === */
   /* 请迁移到对应的 --color-* / --bg-* / --text-* 变量 */

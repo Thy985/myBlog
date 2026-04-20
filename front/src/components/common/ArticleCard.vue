@@ -47,7 +47,7 @@
                     @click="goTagArticleListPage(null, item)"
                     @keydown.enter="goTagArticleListPage(null, item)"
                 >
-                    <span class="tag-hash">#</span>{{ item }}
+                    {{ item }}
                 </span>
             </div>
 
@@ -144,31 +144,18 @@ const goTagArticleListPage = (tagId, tagName) => {
 
 <style scoped>
 .article-card {
-    /* 玻璃拟态效果 - 半透明磨砂 */
-    background: var(--glass-bg);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     overflow: hidden;
     transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-md);
-
-    /* 玻璃拟态 - 支持时启用 */
-    @supports (backdrop-filter: blur(12px)) {
-        backdrop-filter: blur(var(--glass-blur));
-        -webkit-backdrop-filter: blur(var(--glass-blur));
-    }
-
-    /* 不支持时的降级方案 */
-    @supports not (backdrop-filter: blur(12px)) {
-        background: var(--bg-card);
-        border-color: var(--border-color);
-    }
+    box-shadow: var(--shadow-sm);
 }
 
 .article-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
-    border-color: var(--color-primary-subtle);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-hover);
 }
 
 .card-image-wrapper {
@@ -202,48 +189,34 @@ const goTagArticleListPage = (tagId, tagName) => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
+    background: var(--bg-tertiary);
+    animation: pulse 1.5s ease-in-out infinite;
     z-index: 1;
 }
 
 .skeleton-shimmer {
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-    animation: shimmer-slide 1.5s infinite;
+    background: rgba(255, 255, 255, 0.3);
+    animation: pulse 1.5s ease-in-out infinite;
 }
 
-@keyframes shimmer {
-    0% {
-        background-position: -200% 0;
-    }
-    100% {
-        background-position: 200% 0;
-    }
-}
-
-@keyframes shimmer-slide {
-    0% {
-        transform: translateX(-100%);
-    }
-    100% {
-        transform: translateX(100%);
-    }
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 .category-badge {
     position: absolute;
     top: 12px;
     left: 12px;
-    background: linear-gradient(135deg, var(--color-primary) 0%, #8B5CF6 100%);
+    background: var(--color-primary);
     color: white;
     padding: 4px 12px;
     border-radius: 20px;
     font-size: 12px;
     font-weight: 500;
-    box-shadow: 0 2px 12px var(--color-primary-glow);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
     z-index: 2;
 }
 
@@ -277,12 +250,6 @@ const goTagArticleListPage = (tagId, tagName) => {
     background: var(--color-primary);
     color: white;
     transform: scale(1.05);
-    box-shadow: 0 0 10px var(--color-primary-glow);
-}
-
-.tag-hash {
-    opacity: 0.6;
-    font-weight: 400;
 }
 
 .card-title {
@@ -318,7 +285,7 @@ const goTagArticleListPage = (tagId, tagName) => {
     align-items: center;
     justify-content: space-between;
     padding-top: 16px;
-    border-top: 1px solid var(--glass-border);
+    border-top: 1px solid var(--border-subtle);
 }
 
 .meta-left {

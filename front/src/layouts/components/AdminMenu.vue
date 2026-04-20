@@ -3,13 +3,13 @@
         <!-- 侧边栏头部 -->
         <div class="sidebar-header flex items-center justify-between px-4 h-[64px] border-b border-gray-700/30">
             <div v-if="!isCollapse || isMobile" class="flex items-center space-x-3">
-                <div class="sidebar-logo w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                <div class="sidebar-logo w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                     <el-icon class="text-white"><Monitor /></el-icon>
                 </div>
                 <span class="sidebar-title text-white font-semibold text-lg">Admin Panel</span>
             </div>
             <div v-else class="flex items-center justify-center w-full h-full">
-                <div class="sidebar-logo-collapsed w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                <div class="sidebar-logo-collapsed w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                     <el-icon class="text-white"><Monitor /></el-icon>
                 </div>
             </div>
@@ -94,7 +94,7 @@
     <!-- 移动端遮罩层 -->
     <div
         v-if="isMobile && isMobileOpen"
-        class="mobile-overlay fixed inset-0 bg-black/50 z-[999]"
+        class="mobile-overlay fixed inset-0 bg-[rgba(10,10,20,0.5)] z-[999]"
         @click="closeMobileMenu"
     ></div>
 </template>
