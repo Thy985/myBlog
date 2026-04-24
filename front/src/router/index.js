@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 // 路由懒加载
-const AdminIndex = () => import('@/views/admin/index.vue')
+const AdminIndex = () => import('@/views/admin/Index.vue')
 const About = () => import('@/views/about.vue')
 const NotFound = () => import('@/views/404.vue')
 const AdminLogin = () => import('@/views/admin/login.vue')
