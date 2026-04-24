@@ -2,18 +2,18 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
 
-// Mock the auth composable
+const mockGetToken = vi.fn(() => null)
+const mockRemoveToken = vi.fn()
+
 vi.mock('@/composables/auth', () => ({
-  getToken: vi.fn(() => null),
-  removeToken: vi.fn()
+  getToken: (...args) => mockGetToken(...args),
+  removeToken: (...args) => mockRemoveToken(...args)
 }))
 
-// Mock the API
 vi.mock('@/api/auth', () => ({
   getUserInfo: vi.fn()
 }))
 
-// Mock logger
 vi.mock('@/utils/logger', () => ({
   default: {
     error: vi.fn()
@@ -25,6 +25,9 @@ describe('useAuthStore', () => {
     setActivePinia(createPinia())
     localStorage.clear()
     vi.clearAllMocks()
+    mockGetToken.mockClear()
+    mockRemoveToken.mockClear()
+    mockGetToken.mockReturnValue(null)
   })
 
   describe('isLoggedIn', () => {
@@ -34,8 +37,7 @@ describe('useAuthStore', () => {
     })
 
     it('should return false when token exists but no user data', () => {
-      const { getToken } = vi.mocked('@/composables/auth')
-      getToken.mockReturnValueOnce('fake-token')
+      mockGetToken.mockReturnValueOnce('fake-token')
       const store = useAuthStore()
       expect(store.isLoggedIn()).toBe(false)
     })
@@ -66,13 +68,12 @@ describe('useAuthStore', () => {
 
   describe('logout', () => {
     it('should clear user and token', () => {
-      const { removeToken } = vi.mocked('@/composables/auth')
       const store = useAuthStore()
       store.setUser({ id: 1 })
       store.logout()
       expect(store.user).toEqual({})
       expect(store.token).toBeNull()
-      expect(removeToken).toHaveBeenCalled()
+      expect(mockRemoveToken).toHaveBeenCalled()
     })
   })
 })
