@@ -35,6 +35,11 @@
     color: var(--agent-text);
 }
 
+.dark .agent-msg-ai {
+    background: rgba(30, 30, 35, 0.98);
+    border-color: rgba(99, 102, 241, 0.15);
+}
+
 /* ---- 思考过程面板 ---- */
 .agent-thought-panel {
     background: rgba(10, 10, 11, 0.6);
@@ -87,6 +92,14 @@
 .agent-intent--chat { background: rgba(99, 102, 241, 0.12); color: #818CF8; border: 1px solid rgba(99, 102, 241, 0.25); }
 .agent-intent--default { background: rgba(156, 163, 175, 0.12); color: #9CA3AF; border: 1px solid rgba(156, 163, 175, 0.25); }
 
+/* Dark mode intent colors */
+.dark .agent-intent--create { background: rgba(16, 185, 129, 0.2); color: #6EE7B7; border-color: rgba(16, 185, 129, 0.4); }
+.dark .agent-intent--edit { background: rgba(59, 130, 246, 0.2); color: #93C5FD; border-color: rgba(59, 130, 246, 0.4); }
+.dark .agent-intent--search { background: rgba(234, 179, 8, 0.2); color: #FDE047; border-color: rgba(234, 179, 8, 0.4); }
+.dark .agent-intent--code { background: rgba(14, 165, 233, 0.2); color: #7DD3FC; border-color: rgba(14, 165, 233, 0.4); }
+.dark .agent-intent--chat { background: rgba(99, 102, 241, 0.2); color: #A5B4FC; border-color: rgba(99, 102, 241, 0.4); }
+.dark .agent-intent--default { background: rgba(156, 163, 175, 0.2); color: #CBD5E1; border-color: rgba(156, 163, 175, 0.4); }
+
 .agent-intent__confidence {
     position: absolute;
     bottom: 0;
@@ -135,6 +148,12 @@
 .agent-tool__icon--executing { background: rgba(99, 102, 241, 0.15); color: #818CF8; }
 .agent-tool__icon--completed { background: rgba(16, 185, 129, 0.15); color: #4ADE80; }
 .agent-tool__icon--failed { background: rgba(239, 68, 68, 0.15); color: #F87171; }
+
+/* Dark mode tool icons */
+.dark .agent-tool__icon--pending { background: rgba(156, 163, 175, 0.25); color: #CBD5E1; }
+.dark .agent-tool__icon--executing { background: rgba(99, 102, 241, 0.25); color: #A5B4FC; }
+.dark .agent-tool__icon--completed { background: rgba(16, 185, 129, 0.25); color: #6EE7B7; }
+.dark .agent-tool__icon--failed { background: rgba(239, 68, 68, 0.25); color: #FCA5A5; }
 
 .agent-tool__detail {
     padding: 0 14px 12px;
@@ -187,7 +206,7 @@
     border-radius: 6px;
     margin-bottom: 8px;
     border: 1px solid transparent;
-    transition: all var(--agent-transition-fast);
+    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
 }
 
 .agent-rag__item:last-child { margin-bottom: 0; }
@@ -246,7 +265,7 @@
     font-size: 14px;
     line-height: 1.5;
     resize: none;
-    transition: all var(--agent-transition-normal);
+    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
     min-height: var(--agent-input-min-h);
     max-height: var(--agent-input-max-h);
 }
@@ -278,7 +297,7 @@
     color: white;
     border: none;
     cursor: pointer;
-    transition: all var(--agent-transition-fast);
+    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
     flex-shrink: 0;
 }
 
@@ -307,7 +326,7 @@
     color: white;
     border: none;
     cursor: pointer;
-    transition: all var(--agent-transition-fast);
+    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
     flex-shrink: 0;
 }
 
@@ -323,7 +342,7 @@
     color: var(--agent-text-secondary);
     background: transparent;
     cursor: pointer;
-    transition: all var(--agent-transition-fast);
+    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
     white-space: nowrap;
 }
 
@@ -348,6 +367,12 @@
 .agent-status--executing { background: rgba(99, 102, 241, 0.12); color: #818CF8; }
 .agent-status--completed { background: rgba(16, 185, 129, 0.12); color: #4ADE80; }
 .agent-status--failed { background: rgba(239, 68, 68, 0.12); color: #F87171; }
+
+/* Dark mode status */
+.dark .agent-status--pending { background: rgba(156, 163, 175, 0.2); color: #CBD5E1; }
+.dark .agent-status--executing { background: rgba(99, 102, 241, 0.2); color: #A5B4FC; }
+.dark .agent-status--completed { background: rgba(16, 185, 129, 0.2); color: #6EE7B7; }
+.dark .agent-status--failed { background: rgba(239, 68, 68, 0.2); color: #FCA5A5; }
 
 /* ---- 打字光标 ---- */
 .agent-cursor {

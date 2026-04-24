@@ -305,7 +305,7 @@ const handleSelect = (key) => {
 
 <style scoped>
 .menu {
-    transition: all 0.3s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
     width: 250px;
     top: 0;
     bottom: 0;
@@ -334,11 +334,11 @@ const handleSelect = (key) => {
 /* 侧边栏头部样式 */
 .sidebar-header {
     background-color: #1e293b;
-    transition: all 0.3s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .sidebar-logo {
-    transition: all 0.3s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .sidebar-logo:hover {
@@ -346,11 +346,11 @@ const handleSelect = (key) => {
 }
 
 .sidebar-title {
-    transition: all 0.3s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .sidebar-logo-collapsed {
-    transition: all 0.3s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .sidebar-logo-collapsed:hover {
@@ -367,7 +367,7 @@ const handleSelect = (key) => {
 /* 菜单图标 */
 .menu-icon {
     font-size: 18px;
-    transition: all 0.2s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 /* 菜单项 */
@@ -378,7 +378,7 @@ const handleSelect = (key) => {
     line-height: 48px;
     margin: 4px 8px;
     border-radius: 8px;
-    transition: all 0.3s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
     position: relative;
     overflow: hidden;
 }
@@ -387,7 +387,7 @@ const handleSelect = (key) => {
 .menu-text {
     font-size: 14px;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 /* 菜单项悬停 */
@@ -444,12 +444,12 @@ const handleSelect = (key) => {
     padding-left: 48px;
     margin: 2px 8px;
     border-radius: 6px;
-    transition: all 0.3s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .sub-menu-text {
     font-size: 13px;
-    transition: all 0.2s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .sub-menu-item:hover {
@@ -485,7 +485,7 @@ const handleSelect = (key) => {
 }
 
 :deep(.el-sub-menu__title .el-icon) {
-    transition: all 0.3s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 :deep(.el-sub-menu.is-opened .el-sub-menu__title) {
@@ -515,7 +515,7 @@ const handleSelect = (key) => {
 .menu::-webkit-scrollbar-thumb {
     background-color: #475569;
     border-radius: 3px;
-    transition: all 0.2s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .menu::-webkit-scrollbar-thumb:hover {

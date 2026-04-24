@@ -32,7 +32,7 @@
         <Transition name="fade">
           <div
             v-if="showSearchHistory && (searchHistory.length > 0 || hotSearches.length > 0)"
-            class="absolute top-full left-0 right-0 mt-1 glass rounded-lg shadow-lg z-50"
+            class="absolute top-full left-0 right-0 mt-1 bg-card border border-border-color rounded-lg shadow-lg z-50"
           >
             <!-- 搜索历史 -->
             <div v-if="searchHistory.length > 0" class="p-3">
@@ -337,22 +337,20 @@ watch(() => props.isOpen, (newVal) => {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 玻璃拟态菜单容器 */
+/* 菜单容器 */
 .mobile-menu-container {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur-lg));
-  -webkit-backdrop-filter: blur(var(--glass-blur-lg));
-  border-top: 1px solid var(--glass-border);
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-color);
 }
 
 .dark .mobile-menu-container {
-  background: rgba(10, 10, 11, 0.95);
+  background: var(--bg-primary);
 }
 
 /* 菜单动画 */
 .slide-down-enter-active,
 .slide-down-leave-active {
-  transition: all 0.3s ease;
+  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .slide-down-enter-from,

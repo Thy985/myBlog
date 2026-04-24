@@ -347,7 +347,7 @@ onUnmounted(() => {
 }
 
 .text-gray-500 {
-    color: #606266!important;
+    color: var(--text-secondary)!important;
 }
 
 .mb-1 {
@@ -367,11 +367,11 @@ onUnmounted(() => {
 }
 
 .text-green-500 {
-    color: #67c23a!important;
+    color: var(--color-success)!important;
 }
 
 .text-red-500 {
-    color: #f56c6c!important;
+    color: var(--color-error)!important;
 }
 
 .mb-4 {

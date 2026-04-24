@@ -301,7 +301,7 @@ const handleSendCode = async () => {
   }
 }
 
-const validate = async () => {
+const validate = () => {
   return formRef.value?.validate()
 }
 
@@ -368,7 +368,7 @@ defineExpose({
   font-weight: 600;
   background: var(--bg-tertiary);
   border: 2px solid var(--border-color);
-  transition: all 0.2s ease;
+  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .step.active .step-dot {
@@ -445,7 +445,7 @@ defineExpose({
   border-radius: 8px;
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
-  transition: all 0.2s ease;
+  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .back-button:hover {
@@ -466,7 +466,7 @@ defineExpose({
 
 .login-button {
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .login-button:hover {

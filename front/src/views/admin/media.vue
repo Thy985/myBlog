@@ -211,7 +211,7 @@ const beforeUpload = (file) => {
     return true
 }
 
-const handleUploadSuccess = (response) => {
+const handleUploadSuccess = (_response) => {
     ElMessage.success('上传成功')
     uploadVisible.value = false
     fetchMediaList()

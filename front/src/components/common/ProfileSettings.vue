@@ -4,8 +4,9 @@
     <form @submit.prevent="handleSubmit">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label class="block text-sm font-medium text-text-secondary mb-2">用户名</label>
+          <label for="username" class="block text-sm font-medium text-text-secondary mb-2">用户名</label>
           <input
+            id="username"
             v-model="formData.username"
             type="text"
             class="w-full px-4 py-2 border border-border-color rounded-lg bg-background-primary focus:border-primary-color focus:ring-2 focus:ring-primary-color/20 outline-none transition-all duration-200"
@@ -13,8 +14,9 @@
           >
         </div>
         <div>
-          <label class="block text-sm font-medium text-text-secondary mb-2">邮箱</label>
+          <label for="email" class="block text-sm font-medium text-text-secondary mb-2">邮箱</label>
           <input
+            id="email"
             v-model="formData.email"
             type="email"
             class="w-full px-4 py-2 border border-border-color rounded-lg bg-background-primary focus:border-primary-color focus:ring-2 focus:ring-primary-color/20 outline-none transition-all duration-200"
@@ -22,8 +24,9 @@
           >
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-medium text-text-secondary mb-2">个人简介</label>
+          <label for="bio" class="block text-sm font-medium text-text-secondary mb-2">个人简介</label>
           <textarea
+            id="bio"
             v-model="formData.bio"
             rows="3"
             class="w-full px-4 py-2 border border-border-color rounded-lg bg-background-primary focus:border-primary-color focus:ring-2 focus:ring-primary-color/20 outline-none transition-all duration-200"
@@ -74,7 +77,7 @@ const formData = ref({
   bio: ''
 })
 
-const handleSubmit = async () => {
+const handleSubmit = () => {
   emit('update', { ...formData.value })
 }
 </script>

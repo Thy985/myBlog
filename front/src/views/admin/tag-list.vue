@@ -306,9 +306,9 @@ const selectedTags = ref([])
 
 // 统计信息
 const statistics = reactive([
-    { label: '总标签数', value: 0, color: '#409EFF' },
-    { label: '使用中标签', value: 0, color: '#67C23A' },
-    { label: '未使用标签', value: 0, color: '#E6A23C' }
+    { label: '总标签数', value: 0, color: 'var(--color-primary)' },
+    { label: '使用中标签', value: 0, color: 'var(--color-success)' },
+    { label: '未使用标签', value: 0, color: 'var(--color-warning)' }
 ])
 
 // 日期快捷选项
@@ -624,7 +624,7 @@ const batchDeleteTags = () => {
 }
 
 .button-new-tag {
-    transition: all 0.3s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .button-new-tag:hover {

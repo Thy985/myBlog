@@ -1,10 +1,42 @@
 import { useCookies } from '@vueuse/integrations/useCookies'
+import logger from '@/utils/logger'
 
 const TOKEN_KEY = 'Authorization'
 const REFRESH_TOKEN_KEY = 'RefreshToken'
 const REMEMBER_ME_KEY = 'RememberMe'
 const CSRF_TOKEN_KEY = 'XSRF-TOKEN'
 const cookie = useCookies()
+
+const secureCookieOptions = {
+  secure: import.meta.env.PROD,
+  sameSite: 'lax',
+  path: '/',
+  maxAge: 7 * 24 * 60 * 60
+}
+
+function checkSecurityEnvironment() {
+  const issues = []
+
+  if (!import.meta.env.PROD) {
+    issues.push('开发环境: Token 存储在非 HttpOnly Cookie 中')
+  }
+
+  if (!window.isSecureContext) {
+    issues.push('非安全上下文: 建议在 HTTPS 环境下使用')
+  }
+
+  if (issues.length > 0 && import.meta.env.PROD) {
+    logger.warn('[安全警告] Token 存储存在以下问题:', issues)
+  }
+
+  return issues
+}
+
+const securityIssues = checkSecurityEnvironment()
+
+if (securityIssues.length > 0 && import.meta.env.PROD) {
+  logger.error('[严重安全警告] 当前环境不符合最佳安全实践，请确保后端正确配置 HttpOnly Cookie。详细问题:', securityIssues)
+}
 
 // 获取 Token
 export function getToken() {
@@ -16,20 +48,20 @@ export function getRefreshToken() {
   return cookie.get(REFRESH_TOKEN_KEY)
 }
 
-const secureCookieOptions = {
-  secure: import.meta.env.PROD,
-  sameSite: 'lax',
-  path: '/',
-  maxAge: 7 * 24 * 60 * 60
-}
-
-// 设置 Token（注意：前端JS无法设置真正的HttpOnly Cookie，此处使用sameSite=lax+secure提供基础CSRF/XSS防护）
+// 设置 Token（严重安全警告：前端无法设置真正的 HttpOnly Cookie，Token 存在被 XSS 攻击窃取的风险）
+// 最佳实践：后端应在设置 Refresh Token 时使用 HttpOnly、Secure、SameSite=Strict Cookie
 export function setToken(token) {
+  if (import.meta.env.PROD) {
+    logger.warn('[安全警告] 使用非 HttpOnly Cookie 存储 Token，建议后端使用 HttpOnly Cookie')
+  }
   return cookie.set(TOKEN_KEY, token, secureCookieOptions)
 }
 
 // 设置 Refresh Token
 export function setRefreshToken(refreshToken) {
+  if (import.meta.env.PROD) {
+    logger.warn('[安全警告] 使用非 HttpOnly Cookie 存储 Refresh Token，建议后端使用 HttpOnly Cookie')
+  }
   return cookie.set(REFRESH_TOKEN_KEY, refreshToken, secureCookieOptions)
 }
 

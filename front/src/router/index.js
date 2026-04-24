@@ -37,8 +37,17 @@ const UserLogin = () => import('@/views/frontend/Login.vue')
 const UserRegister = () => import('@/views/frontend/Register.vue')
 const UserForgotPassword = () => import('@/views/frontend/ForgotPassword.vue')
 const UserVerifyMfa = () => import('@/views/frontend/VerifyMfa.vue')
+const UserNotificationList = () => import('@/views/frontend/notification-list.vue')
 
 const routes = [
+  {
+    path: '/user/notifications',
+    component: UserNotificationList,
+    meta: {
+      title: '我的通知',
+      requiresAuth: true
+    }
+  },
   {
     // 指定访问路径
     path: '/admin',

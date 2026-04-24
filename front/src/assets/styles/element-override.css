@@ -162,7 +162,7 @@
 .el-pagination .el-pager li {
   border-radius: var(--radius-md, 10px);
   font-weight: 500;
-  transition: all var(--transition-fast);
+  transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
 }
 
 .el-pagination .el-pager li.is-active {
@@ -229,7 +229,7 @@
 .el-menu-item {
   border-radius: var(--radius-md, 10px);
   margin: 4px 8px;
-  transition: all var(--transition-fast);
+  transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
 }
 
 .el-menu-item.is-active {

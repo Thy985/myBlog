@@ -37,7 +37,7 @@ import { computed } from 'vue'
 const props = defineProps({
   glass: {
     type: Boolean,
-    default: true  // 默认启用玻璃效果
+    default: false  // 默认不使用玻璃效果
   },
   glassStrong: {
     type: Boolean,
@@ -45,7 +45,7 @@ const props = defineProps({
   },
   glow: {
     type: Boolean,
-    default: true  // 默认启用发光效果
+    default: false  // 默认不使用发光效果
   },
   gradientBorder: {
     type: Boolean,
@@ -87,7 +87,7 @@ const paddingClass = computed(() => {
   background: var(--tech-bg-card);
   border: 1px solid var(--tech-border);
   border-radius: var(--radius-xl);
-  transition: all 0.3s ease;
+  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .tech-card.hover-lift:hover {
@@ -97,37 +97,28 @@ const paddingClass = computed(() => {
 }
 
 .tech-card.glow-border {
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow:
-    0 0 20px rgba(99, 102, 241, 0.15),
-    inset 0 0 20px rgba(99, 102, 241, 0.03);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 12px var(--color-primary-subtle);
 }
 
 .tech-card.glow-border:hover {
-  border-color: rgba(99, 102, 241, 0.6);
-  box-shadow:
-    0 0 30px rgba(99, 102, 241, 0.25),
-    inset 0 0 30px rgba(99, 102, 241, 0.05);
+  border-color: var(--color-primary-hover);
 }
 
 .tech-card.glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur-lg));
-  -webkit-backdrop-filter: blur(var(--glass-blur-lg));
-  border: 1px solid var(--glass-border);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
 }
 
 .dark .tech-card.glass {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
 }
 
 .tech-card.glass-strong {
-  background: var(--glass-bg-hover);
-  backdrop-filter: blur(var(--glass-blur-lg));
-  -webkit-backdrop-filter: blur(var(--glass-blur-lg));
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
 }
 
 .card-header {

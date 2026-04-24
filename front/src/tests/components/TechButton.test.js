@@ -88,15 +88,15 @@ describe('TechButton组件测试', () => {
     expect(wrapperLarge.find('button').classes()).toContain('px-6')
   })
 
-  it('应该支持发光效果', () => {
+  it('应该支持glow变体', () => {
     const wrapper = mount(TechButton, {
       props: {
-        glow: true
+        variant: 'primary'
       },
-      slots: { default: '发光按钮' }
+      slots: { default: 'Primary Button' }
     })
 
-    expect(wrapper.find('button').classes()).toContain('glow-border')
+    expect(wrapper.find('button').classes()).toContain('tech-btn-primary')
   })
 
   it('应该支持主题变体', () => {

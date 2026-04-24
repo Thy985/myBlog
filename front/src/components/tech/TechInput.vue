@@ -152,7 +152,7 @@ const inputId = computed(() => props.id || `tech-input-${Math.random().toString(
   border-radius: var(--radius-lg);
   color: var(--tech-text);
   padding: 10px 14px;
-  transition: all 0.2s ease;
+  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .tech-input::placeholder {
@@ -178,7 +178,7 @@ const inputId = computed(() => props.id || `tech-input-${Math.random().toString(
 .tech-input.tech-input-neon {
   background: var(--tech-bg);
   border-color: var(--tech-border-subtle);
-  transition: all 0.3s ease;
+  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .tech-input.tech-input-neon:hover:not(:disabled) {

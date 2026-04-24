@@ -4,7 +4,7 @@
         <Transition name="scale">
             <button
                 v-if="!isExpanded"
-                class="fixed z-50 rounded-full bg-gradient-to-br from-primary to-success shadow-glow-lg flex items-center justify-center text-white transition-transform hover:scale-110 active:scale-95"
+                class="fixed z-50 rounded-full bg-primary flex items-center justify-center text-white transition-transform hover:scale-110 active:scale-95"
                 :style="ballStyle"
                 :class="{ 'scale-90': isNearEdge }"
                 aria-label="打开 AI 助手"
@@ -28,14 +28,14 @@
         <Transition name="slide-up">
             <div
                 v-if="isExpanded"
-                class="fixed z-50 rounded-2xl glass-strong shadow-2xl border border-white/10 flex flex-col overflow-hidden"
+                class="fixed z-50 rounded-2xl bg-[var(--agent-bg-card)] shadow-2xl border border-[var(--agent-border)] flex flex-col overflow-hidden"
                 :style="panelStyle"
                 role="dialog"
                 aria-label="AI 智能助手"
             >
                 <!-- 拖动标题栏 -->
                 <div
-                    class="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary to-success text-white cursor-move select-none touch-none"
+                    class="flex items-center justify-between px-4 py-3 bg-primary text-white cursor-move select-none touch-none"
                     @pointerdown="startPanelDrag"
                 >
                     <div class="flex items-center gap-2">
@@ -324,7 +324,7 @@ onUnmounted(() => {
 /* 过渡动画 */
 .scale-enter-active,
 .scale-leave-active {
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
 .scale-enter-from,
@@ -335,7 +335,7 @@ onUnmounted(() => {
 
 .slide-up-enter-active,
 .slide-up-leave-active {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .slide-up-enter-from,

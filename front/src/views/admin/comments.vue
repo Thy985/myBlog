@@ -418,7 +418,7 @@ const handleCurrentChange = (current) => {
     min-width: 200px;
     border-radius: 8px;
     box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .stat-card:hover {

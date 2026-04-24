@@ -1,5 +1,5 @@
 <template>
-  <div class="glass rounded-xl p-5 transition-all duration-300 hover:border-glass-border-hover">
+  <div class="bg-card border border-border-color rounded-xl p-5 transition-all duration-300 hover:border-border-hover">
     <h2 class="text-lg font-bold text-text-primary mb-4 flex items-center">
       <svg class="w-5 h-5 mr-2 text-primary-color" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h3m0 0v3m0-3l-3 3m-3 0H7m0 0v-3m0 3l3-3m-2 8 4-4m0 0-4-4m4 4H6" />
@@ -48,9 +48,10 @@
     
     <!-- 查看更多按钮 -->
     <div v-if="hotArticles.length > 0" class="mt-4 text-center">
-      <button 
+      <button
         class="text-sm text-primary-color hover:text-primary-color/90 transition-colors duration-200"
         @click="viewMore"
+        aria-label="查看更多文章"
       >
         查看更多 <svg class="w-4 h-4 inline ml-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7l3-3 3 3m0 6l-3 3-3-3" />
@@ -105,7 +106,7 @@ onMounted(() => {
 // 方法
 const goToArticle = (articleId) => {
   if (articleId) {
-    router.push({ path: '/article/detail', query: { articleId } })
+    router.push({ name: 'article', params: { id: String(articleId) } })
   }
 }
 
@@ -144,7 +145,7 @@ const viewMore = () => {
 }
 
 .hot-article-item:hover {
-  background: var(--glass-bg-hover);
+  background: var(--bg-tertiary);
 }
 
 .hot-article-rank {
@@ -152,14 +153,13 @@ const viewMore = () => {
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--gradient-purple-end) 100%);
+  background: var(--color-primary);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
   font-size: 0.75rem;
-  box-shadow: 0 0 10px var(--color-primary-glow);
 }
 
 .hot-article-info {

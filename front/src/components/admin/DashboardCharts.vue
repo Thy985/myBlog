@@ -82,7 +82,7 @@ defineExpose({
 <style scoped>
 .chart-card {
   border-radius: 12px;
-  transition: all 0.3s ease;
+  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
   background-color: white;
 }
 

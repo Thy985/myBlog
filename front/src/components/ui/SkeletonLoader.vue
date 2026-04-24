@@ -107,9 +107,8 @@ defineProps({
 .skeleton-image {
   width: 100%;
   height: 200px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-tertiary) 50%, var(--border-color) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  background: var(--border-color);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .skeleton-content {
@@ -126,9 +125,8 @@ defineProps({
   width: 60px;
   height: 24px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-tertiary) 50%, var(--border-color) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  background: var(--border-color);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .skeleton-tag-short {
@@ -139,9 +137,8 @@ defineProps({
   height: 20px;
   border-radius: 4px;
   margin-bottom: 8px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-tertiary) 50%, var(--border-color) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  background: var(--border-color);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .skeleton-title-short {
@@ -152,9 +149,8 @@ defineProps({
   height: 14px;
   border-radius: 4px;
   margin-bottom: 8px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-tertiary) 50%, var(--border-color) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  background: var(--border-color);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .skeleton-desc-short {
@@ -173,9 +169,8 @@ defineProps({
   width: 80px;
   height: 14px;
   border-radius: 4px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-tertiary) 50%, var(--border-color) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  background: var(--border-color);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .skeleton-meta-item-short {
@@ -196,27 +191,24 @@ defineProps({
   width: 16px;
   height: 16px;
   border-radius: 4px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-tertiary) 50%, var(--border-color) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  background: var(--border-color);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .sidebar-text {
   flex: 1;
   height: 16px;
   border-radius: 4px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-tertiary) 50%, var(--border-color) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  background: var(--border-color);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .sidebar-count {
   width: 30px;
   height: 18px;
   border-radius: var(--radius-full);
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-tertiary) 50%, var(--border-color) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  background: var(--border-color);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 /* 文章详情页骨架屏 */
@@ -231,9 +223,8 @@ defineProps({
   width: 70%;
   border-radius: var(--radius-sm);
   margin-bottom: 16px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-tertiary) 50%, var(--border-color) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  background: var(--border-color);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .detail-meta {
@@ -245,9 +236,8 @@ defineProps({
   height: 14px;
   width: 80px;
   border-radius: 4px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-tertiary) 50%, var(--border-color) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  background: var(--border-color);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .detail-meta-item-md {
@@ -263,9 +253,8 @@ defineProps({
   width: 100%;
   border-radius: 4px;
   margin-bottom: 12px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-tertiary) 50%, var(--border-color) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  background: var(--border-color);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .detail-line-short {
@@ -283,13 +272,9 @@ defineProps({
 }
 
 /* 动画 */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 @keyframes spin {

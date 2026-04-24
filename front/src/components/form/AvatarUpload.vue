@@ -244,12 +244,12 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #f3f4f6;
+    background-color: var(--bg-tertiary);
 }
 
 .avatar-icon {
     font-size: 48px;
-    color: #9ca3af;
+    color: var(--text-muted);
 }
 
 .upload-actions {

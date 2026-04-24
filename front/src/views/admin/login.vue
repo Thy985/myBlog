@@ -7,7 +7,7 @@
                     <div class="animate__animated animate__bounceInLeft items-center flex flex-col">
                         <h2 class="font-bold text-4xl mb-7 text-white">星辰博客登录</h2>
                         <p class="text-white">走向星辰大海，致力未来远征</p>
-                        <img src="@/assets/头像.jpg" class="login-image">
+                        <img src="@/assets/头像.jpg" class="login-image" loading="lazy" alt="登录页面插图">
                     </div>
                 </div>
             </div>
@@ -88,7 +88,7 @@ const rules = {
     ]
 }
 
-const onSubmit = async () => {
+const onSubmit = () => {
     // 登录表单验证
     formRef.value.validate(async (valid) => {
         if (!valid) {
@@ -215,7 +215,7 @@ onBeforeUnmount(() => {
 }
 
 .login-btn {
-    transition: all 0.3s ease;
+    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .login-btn:hover:not(:disabled) {

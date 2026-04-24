@@ -280,18 +280,16 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 搜索框玻璃拟态样式 */
+/* 搜索框样式 */
 .search-input {
   width: 100%;
   padding: 8px 12px 8px 36px;
   font-size: 14px;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   color: var(--text-primary);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  transition: all 0.2s ease;
+  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .search-input::placeholder {
@@ -304,10 +302,9 @@ onUnmounted(() => {
   box-shadow: 0 0 0 3px var(--color-primary-subtle);
 }
 
-/* 下拉框暗色模式 */
+/* 下拉框 */
 .absolute.z-50 {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
-  backdrop-filter: blur(var(--glass-blur));
 }
 </style>

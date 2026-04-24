@@ -40,7 +40,7 @@ const navigateTo = (path) => {
 .quick-action-btn {
   border-radius: 8px;
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .quick-action-btn:hover {

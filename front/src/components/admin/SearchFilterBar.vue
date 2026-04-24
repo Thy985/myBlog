@@ -45,7 +45,7 @@ defineEmits(['search', 'reset'])
 <style scoped>
 .search-card {
   border-radius: 8px;
-  transition: all 0.3s ease;
+  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .search-card:hover {
@@ -75,7 +75,7 @@ defineEmits(['search', 'reset'])
 }
 
 .filter-actions :deep(.el-button) {
-  transition: all 0.2s ease;
+  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
 }
 
 .filter-actions :deep(.el-button:hover) {

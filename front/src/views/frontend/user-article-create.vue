@@ -247,8 +247,7 @@
                                     <template v-else>
                                         <div class="relative aspect-video">
                                             <img :src="form.cover" class="w-full h-full object-cover" alt="封面" loading="lazy" @error="(e) => { e.target.style.display='none'; e.target.nextElementSibling.style.display='flex' }" />
-                                            <div class="hidden absolute inset-0 bg-background-tertiary items-center justify-center">
-                                                <svg class="w-10 h-10 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                            <div class="hidden absolute inset-0 bg-background-tertiary items-center justify-center"></div>
                                             <div class="absolute inset-0 bg-[rgba(10,10,20,0.5)] opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                                 <button class="p-2 bg-white rounded-full hover:bg-gray-100" @click.stop="triggerFileSelect">
                                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -684,25 +683,25 @@ const autoSave = () => {
 }
 
 // 手动保存草稿
-const saveDraftManual = async () => {
+const saveDraftManual = () => {
     if (!form.title.trim() && !form.content.trim()) {
         showMessage('没有内容可保存', 'warning')
         return
     }
-    
+
     savingDraft.value = true
-    
+
     const draft = {
         id: Date.now(),
         ...form,
         savedAt: new Date().toISOString()
     }
-    
+
     drafts.value.unshift(draft)
     if (drafts.value.length > 10) {
         drafts.value = drafts.value.slice(0, 10)
     }
-    
+
     saveDraftsToStorage()
     savingDraft.value = false
     showMessage('草稿已保存', 'success')
