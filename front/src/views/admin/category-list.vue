@@ -433,7 +433,7 @@ const tableRowClassName = ({ rowIndex }) => {
 /* 搜索栏样式 */
 .search-card {
     border-radius: 8px;
-    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .search-card:hover {
@@ -471,7 +471,7 @@ const tableRowClassName = ({ rowIndex }) => {
 }
 
 .action-button {
-    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .action-button:hover {
@@ -481,7 +481,7 @@ const tableRowClassName = ({ rowIndex }) => {
 /* 列表卡片样式 */
 .list-card {
     border-radius: 8px;
-    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .list-card:hover {
@@ -505,7 +505,7 @@ const tableRowClassName = ({ rowIndex }) => {
 }
 
 .add-button {
-    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .add-button:hover {
@@ -547,7 +547,7 @@ const tableRowClassName = ({ rowIndex }) => {
 }
 
 .action-btn {
-    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
     padding: 4px 12px;
 }
 

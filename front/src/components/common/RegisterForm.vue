@@ -368,7 +368,7 @@ defineExpose({
   font-weight: 600;
   background: var(--bg-tertiary);
   border: 2px solid var(--border-color);
-  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .step.active .step-dot {
@@ -445,7 +445,7 @@ defineExpose({
   border-radius: 8px;
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
-  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .back-button:hover {
@@ -466,7 +466,7 @@ defineExpose({
 
 .login-button {
   font-weight: 500;
-  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .login-button:hover {

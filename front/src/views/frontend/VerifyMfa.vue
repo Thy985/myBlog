@@ -299,7 +299,7 @@ onUnmounted(() => {
   border-radius: 16px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
   padding: 40px;
-  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   backdrop-filter: blur(10px);
 }
 
@@ -402,7 +402,7 @@ onUnmounted(() => {
 
 .resend-code-link {
   font-size: 14px;
-  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .resend-code-link:hover {
@@ -411,7 +411,7 @@ onUnmounted(() => {
 
 .go-back-link {
   font-size: 14px;
-  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .go-back-link:hover {
@@ -426,7 +426,7 @@ onUnmounted(() => {
   border-radius: 8px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
-  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
 }
@@ -444,7 +444,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .verify-mfa-button:hover::before {

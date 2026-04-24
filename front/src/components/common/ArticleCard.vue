@@ -208,7 +208,7 @@ const goTagArticleListPage = (tagId, tagName) => {
     opacity: 0;
     transform: scaleX(0);
     transform-origin: left;
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     z-index: 2;
 }
 
@@ -335,7 +335,7 @@ const goTagArticleListPage = (tagId, tagName) => {
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     border: 1px solid transparent;
 }
 

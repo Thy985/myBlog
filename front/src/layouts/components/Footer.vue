@@ -197,7 +197,7 @@ const handleSubscribe = () => {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .social-link svg {
@@ -244,7 +244,7 @@ const handleSubscribe = () => {
     color: var(--text-secondary);
     font-size: 14px;
     text-decoration: none;
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     display: inline-block;
 }
 
@@ -268,7 +268,7 @@ const handleSubscribe = () => {
     font-size: 13px;
     color: var(--color-primary);
     text-decoration: none;
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .tag:hover {
@@ -329,7 +329,7 @@ const handleSubscribe = () => {
     border-radius: var(--radius-lg);
     color: var(--text-primary);
     font-size: 14px;
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .newsletter-input:focus {
@@ -351,7 +351,7 @@ const handleSubscribe = () => {
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     white-space: nowrap;
 }
 

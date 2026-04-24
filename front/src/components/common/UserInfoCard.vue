@@ -212,7 +212,7 @@ const defaultAvatar = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/s
     gap: 4px;
     padding: 10px 14px;
     border-radius: 12px;
-    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
     text-decoration: none;
     background: var(--bg-tertiary);

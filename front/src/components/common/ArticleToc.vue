@@ -54,7 +54,7 @@ const scrollToSection = (id, index) => {
 <style scoped>
 .article-toc a {
     @apply text-gray-700 dark:text-gray-300;
-    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .article-toc a:hover {

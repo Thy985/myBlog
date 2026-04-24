@@ -494,7 +494,7 @@ onMounted(() => {
 
 .stat-card {
     border-radius: 8px;
-    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .stat-card:hover {
@@ -580,7 +580,7 @@ onMounted(() => {
 
 .action-btn {
     margin-right: 8px;
-    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .action-btn:hover {

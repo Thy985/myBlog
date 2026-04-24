@@ -234,7 +234,7 @@ watch(() => props.size, (newVal) => {
     background: var(--bg-primary);
     color: var(--text-secondary);
     cursor: pointer;
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .page-btn:hover:not(.page-btn-disabled):not(.page-btn-active) {
@@ -302,7 +302,7 @@ watch(() => props.size, (newVal) => {
     color: var(--text-primary);
     font-size: 0.875rem;
     text-align: center;
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .jump-input:focus {
@@ -319,7 +319,7 @@ watch(() => props.size, (newVal) => {
     color: white;
     font-size: 0.875rem;
     cursor: pointer;
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .jump-btn:hover:not(:disabled) {
@@ -340,7 +340,7 @@ watch(() => props.size, (newVal) => {
     color: var(--text-primary);
     font-size: 0.875rem;
     cursor: pointer;
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .size-select:focus {

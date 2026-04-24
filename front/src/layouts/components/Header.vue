@@ -239,7 +239,7 @@ onUnmounted(() => {
     backdrop-filter: blur(var(--glass-blur-xl));
     -webkit-backdrop-filter: blur(var(--glass-blur-xl));
     border-bottom: 1px solid var(--glass-border);
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .scroll-progress {
@@ -287,7 +287,7 @@ onUnmounted(() => {
     border-radius: var(--radius-lg);
     object-fit: cover;
     box-shadow: var(--shadow-sm);
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .scrolled .logo-image {
@@ -332,7 +332,7 @@ onUnmounted(() => {
     font-size: 15px;
     text-decoration: none;
     border-radius: var(--radius-md);
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     overflow: hidden;
 }
 
@@ -459,7 +459,7 @@ onUnmounted(() => {
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: background-color $1, border-color $1, color $1, box-shadow $1, transform $1$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     text-decoration: none;
     border: none;
 }
@@ -542,7 +542,7 @@ onUnmounted(() => {
 
 .slide-enter-active,
 .slide-leave-active {
-    transition: background-color $1s ease, border-color $1s ease, color $1s ease, box-shadow $1s ease$2
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .slide-enter-from,
