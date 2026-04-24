@@ -18,15 +18,13 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'maven'
-          cache-dependency-path: backend/pom.xml
 
       - name: Build
-        run: chmod +x mvnw && ./mvnw clean compile -q
+        run: mvn clean compile -q
         working-directory: backend
 
       - name: Run tests
-        run: ./mvnw test
+        run: mvn test
         working-directory: backend
 
       - name: Upload test results
