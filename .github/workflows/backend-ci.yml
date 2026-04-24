@@ -22,7 +22,7 @@ jobs:
           cache-dependency-path: backend/pom.xml
 
       - name: Build
-        run: ./mvnw clean compile -q
+        run: chmod +x mvnw && ./mvnw clean compile -q
         working-directory: backend
 
       - name: Run tests
