@@ -57,7 +57,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 
-defineProps({
+const props = defineProps({
     stats: {
         type: Object,
         default: () => ({
