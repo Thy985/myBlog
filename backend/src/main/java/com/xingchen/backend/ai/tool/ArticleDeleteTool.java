@@ -34,9 +34,9 @@ public class ArticleDeleteTool implements Tool {
         return new ToolParameter[] {
                 new ToolParameter(
                         "articleId",
-                        "文章ID",
+                        "文章ID（可从消息中自动提取）",
                         "integer",
-                        true,
+                        false,
                         null
                 ),
                 new ToolParameter(
@@ -53,6 +53,11 @@ public class ArticleDeleteTool implements Tool {
     public ToolResult execute(Map<String, Object> parameters) {
         Integer articleId = (Integer) parameters.get("articleId");
         Boolean confirm = (Boolean) parameters.getOrDefault("confirm", false);
+        String message = (String) parameters.get("message");
+
+        if (articleId == null && message != null) {
+            articleId = extractArticleIdFromMessage(message);
+        }
 
         log.info("执行文章删除工具: articleId={}, confirm={}", articleId, confirm);
 
@@ -64,7 +69,7 @@ public class ArticleDeleteTool implements Tool {
             Long userId = StpUtil.getLoginIdAsLong();
 
             if (articleId == null || articleId <= 0) {
-                return ToolResult.error("文章ID无效");
+                return ToolResult.error("无法从消息中提取文章ID，请提供要删除的文章ID，例如：delete article with ID 123");
             }
 
             // 调用文章服务删除
@@ -82,6 +87,21 @@ public class ArticleDeleteTool implements Tool {
             log.error("文章删除失败: articleId={}", articleId, e);
             return ToolResult.error("文章删除失败: " + e.getMessage());
         }
+    }
+
+    private Integer extractArticleIdFromMessage(String message) {
+        if (message == null) return null;
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("(?:ID|id)[:\\s]*(\\d+)");
+        java.util.regex.Matcher matcher = pattern.matcher(message);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        }
+        pattern = java.util.regex.Pattern.compile("\\b(\\d{2,})\\b");
+        matcher = pattern.matcher(message);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        }
+        return null;
     }
 
     @Override

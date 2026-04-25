@@ -4,18 +4,21 @@
 
     <!-- 文章详情 -->
     <div class="container mx-auto max-w-screen-xl px-4 md:px-6 lg:px-8 py-8">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <!-- 左侧边栏 - 目录导航 -->
-        <div v-if="tocItems.length > 0" class="lg:col-span-2 hidden lg:block">
-          <ArticleToc
-            :toc-items="tocItems"
-            :active-index="activeTocIndex"
-            @toc-click="handleTocClick"
-          />
+      <!-- 方案A：2-6-4 网格布局 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+        <!-- 左侧边栏 - 目录导航 (2列) -->
+        <div v-if="tocItems.length > 0" class="hidden lg:block lg:col-span-2">
+          <div class="sticky top-24">
+            <ArticleToc
+              :toc-items="tocItems"
+              :active-index="activeTocIndex"
+              @toc-click="handleTocClick"
+            />
+          </div>
         </div>
 
-        <!-- 主内容区 -->
-        <div class="lg:col-span-8 md:col-span-12">
+        <!-- 主内容区 (6列) - 限制最大宽度提升阅读体验 -->
+        <div class="lg:col-span-6">
           <!-- 加载状态 -->
           <SkeletonLoader v-if="loading" type="article-card" :count="1" />
 
@@ -30,7 +33,7 @@
           />
 
           <!-- 文章内容 -->
-          <div v-else class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 dark:bg-gray-800 dark:border-gray-700 shadow-sm">
+          <div v-else class="bg-white border border-gray-200 rounded-xl p-6 md:p-8 dark:bg-gray-800 dark:border-gray-700 shadow-sm">
             <!-- 面包屑 -->
             <ArticleBreadcrumb
               :title="article.title"
@@ -60,11 +63,13 @@
               @go-category="goCategoryArticleListPage"
             />
 
-            <!-- 文章内容 -->
-            <MarkdownRenderer
-              :content="processedContent"
-              @rendered="handleContentRendered"
-            />
+            <!-- 文章内容 - 限制最大宽度 -->
+            <div class="article-content-wrapper">
+              <MarkdownRenderer
+                :content="processedContent"
+                @rendered="handleContentRendered"
+              />
+            </div>
           </div>
 
           <!-- 上下篇 -->
@@ -76,23 +81,25 @@
 
           <!-- 评论模块 -->
           <ArticleComments
-          ref="commentListRef"
-          :article-id="Number(route.params.id)"
-          @submit-comment="handleCommentSubmit"
-        />
+            ref="commentListRef"
+            :article-id="Number(route.params.id)"
+            @submit-comment="handleCommentSubmit"
+          />
         </div>
 
-        <!-- 右侧边栏 -->
-        <div class="lg:col-span-2">
-          <ArticleSidebar
-            :categories="categories"
-            :tags="tags"
-            :related-articles="relatedArticles"
-            :loading-related="loadingRelated"
-            @go-category="goCategoryArticleListPage"
-            @go-tag="goTagArticleListPage"
-            @go-article="goArticleDetail"
-          />
+        <!-- 右侧边栏 (4列) - 更宽更实用 -->
+        <div class="lg:col-span-4">
+          <div class="sticky top-24 space-y-6">
+            <ArticleSidebar
+              :categories="categories"
+              :tags="tags"
+              :related-articles="relatedArticles"
+              :loading-related="loadingRelated"
+              @go-category="goCategoryArticleListPage"
+              @go-tag="goTagArticleListPage"
+              @go-article="goArticleDetail"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -204,6 +211,19 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 文章详情页基础样式 */
+.article-detail-page {
+  min-height: 100vh;
+  background-color: var(--bg-primary, #f8fafc);
+}
+
+/* 文章内容区域 - 限制最大宽度为640px */
+.article-content-wrapper {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* 标题样式 */
 .title {
   line-height: 1.3;
   word-wrap: break-word;
@@ -211,27 +231,31 @@ onMounted(() => {
   color: var(--text-primary);
 }
 
+/* 文章元信息 */
 .article-meta {
   margin-bottom: 1.5rem;
 }
 
+/* 文章底部 */
 .article-footer {
   border-top: 1px solid var(--border-color);
   padding-top: 1rem;
   margin-top: 2rem;
 }
 
+/* 描述文字 */
 .desc {
   display: block;
   font-size: 0.75rem;
   color: var(--text-tertiary);
 }
 
+/* 指针样式 */
 .cursor-pointer {
   cursor: pointer;
 }
 
-/* Accessibility */
+/* 无障碍访问 */
 a:focus,
 button:focus,
 input:focus,
@@ -241,10 +265,21 @@ select:focus {
   outline-offset: 2px;
 }
 
-/* Responsive adjustments */
+/* 响应式调整 */
 @media (max-width: 768px) {
   .title {
     font-size: 1.75rem;
+  }
+  
+  .article-content-wrapper {
+    max-width: 100%;
+  }
+}
+
+/* 大屏幕优化 */
+@media (min-width: 1280px) {
+  .article-content-wrapper {
+    max-width: 600px;
   }
 }
 </style>

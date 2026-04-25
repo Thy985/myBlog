@@ -70,33 +70,13 @@ module.exports = {
         'glass-sm': '0 4px 16px rgba(0, 0, 0, 0.2)',
       },
       animation: {
-        // 流光动画
-        'shimmer': 'shimmer 2s ease-in-out infinite',
-        'shimmer-slow': 'shimmer 4s ease-in-out infinite',
-        // 发光脉冲
-        'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
-        'glow-pulse-accent': 'glow-pulse-accent 2s ease-in-out infinite',
-        // 浮动
-        'float': 'float 3s ease-in-out infinite',
         // 旋转
         'spin-slow': 'spin 8s linear infinite',
       },
       keyframes: {
-        shimmer: {
-          '0%': { transform: 'translateX(-100%)' },
-          '100%': { transform: 'translateX(100%)' },
-        },
-        'glow-pulse': {
-          '0%, 100%': { boxShadow: '0 0 20px var(--color-primary-glow)' },
-          '50%': { boxShadow: '0 0 40px var(--color-primary-glow), 0 0 60px var(--color-primary-subtle)' },
-        },
-        'glow-pulse-accent': {
-          '0%, 100%': { boxShadow: '0 0 20px var(--color-accent-glow)' },
-          '50%': { boxShadow: '0 0 40px var(--color-accent-glow), 0 0 60px var(--color-accent-subtle)' },
-        },
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-10px)' },
+        spin: {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
         },
       },
       backdropBlur: {

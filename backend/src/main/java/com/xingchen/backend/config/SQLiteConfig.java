@@ -22,8 +22,8 @@ public class SQLiteConfig {
             // 确保 SQLite JDBC 驱动已加载
             Class.forName("org.sqlite.JDBC");
             
-            // 使用文件数据库，存储在项目目录下
-            String dbUrl = "jdbc:sqlite:myblog_memory.db";
+            // 使用文件数据库，存储在 data 目录下
+            String dbUrl = "jdbc:sqlite:data/myblog_memory.db";
             Connection conn = DriverManager.getConnection(dbUrl);
             log.info("SQLite 数据库连接已创建: {}", dbUrl);
             return conn;

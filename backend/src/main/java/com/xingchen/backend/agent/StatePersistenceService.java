@@ -31,9 +31,9 @@ public class StatePersistenceService {
      */
     public void saveTaskState(String sessionId, AgentState state) {
         try {
-            String key = TASK_STATE_KEY_PREFIX + sessionId;
-            String stateJson = objectMapper.writeValueAsString(state);
-            redisTemplate.opsForValue().set(key, stateJson, Duration.ofHours(TASK_STATE_EXPIRE_HOURS));
+            String key = TASK_STATE_KEY_PREFIX + sessionId;// 任务状态的 Redis key
+            String stateJson = objectMapper.writeValueAsString(state);// 任务状态转为 JSON
+            redisTemplate.opsForValue().set(key, stateJson, Duration.ofHours(TASK_STATE_EXPIRE_HOURS));// 保存任务状态
             log.info("任务状态已保存: sessionId={}", sessionId);
         } catch (Exception e) {
             log.error("保存任务状态失败", e);

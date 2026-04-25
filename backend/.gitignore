@@ -31,3 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Runtime Data ###
+data/
+!data/.gitkeep
+*.db
+*.db-shm
+*.db-wal
+myblog_memory.db

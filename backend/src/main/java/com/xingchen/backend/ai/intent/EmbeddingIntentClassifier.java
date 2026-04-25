@@ -46,6 +46,12 @@ public class EmbeddingIntentClassifier implements IntentClassifierInterface {
             "publish the article",
             "将文章发布出去"
         ));
+        INTENT_EXAMPLES.put(Intent.IntentType.DELETE_ARTICLE, List.of(
+            "删除文章",
+            "delete the article",
+            "remove this article",
+            "删除 ID 为 123 的文章"
+        ));
         INTENT_EXAMPLES.put(Intent.IntentType.LIST_CATEGORIES, List.of(
             "查看我的分类列表",
             "列出我的分类",
@@ -108,6 +114,33 @@ public class EmbeddingIntentClassifier implements IntentClassifierInterface {
             "概括一下主要内容",
             "summarize this article",
             "给我个摘要"
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.CONTENT_AUDIT, List.of(
+            "审计我的文章内容",
+            "检查文章质量",
+            "analyze my articles quality",
+            "发现重复或低质量文章",
+            "内容审计"
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.OPTIMIZE_ARTICLE, List.of(
+            "优化文章质量",
+            "提升文章内容",
+            "improve my article",
+            "优化我的文章"
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.CONTENT_OPPORTUNITY, List.of(
+            "发现内容机会",
+            "找值得写的主题",
+            "find topics to write about",
+            "内容缺口分析",
+            "我应该写什么文章"
+        ));
+        INTENT_EXAMPLES.put(Intent.IntentType.ONLINE_SEARCH, List.of(
+            "搜索最新的技术趋势",
+            "search online for latest news",
+            "联网搜索",
+            "实时搜索",
+            "search the internet"
         ));
     }
     
@@ -222,6 +255,10 @@ public class EmbeddingIntentClassifier implements IntentClassifierInterface {
         INTENT_TOOLS.put(Intent.IntentType.CREATE_TAG, List.of("tag_manager"));
         INTENT_TOOLS.put(Intent.IntentType.EDIT_TAG, List.of("tag_manager"));
         INTENT_TOOLS.put(Intent.IntentType.DELETE_TAG, List.of("tag_manager"));
+        INTENT_TOOLS.put(Intent.IntentType.CONTENT_AUDIT, List.of("content_audit"));
+        INTENT_TOOLS.put(Intent.IntentType.CONTENT_OPPORTUNITY, List.of("content_opportunity"));
+        INTENT_TOOLS.put(Intent.IntentType.ONLINE_SEARCH, List.of("tavily_search"));
+        INTENT_TOOLS.put(Intent.IntentType.OPTIMIZE_ARTICLE, List.of("article_update", "content_audit"));
         INTENT_TOOLS.put(Intent.IntentType.CODE_GENERATE, List.of("code-executor"));
         INTENT_TOOLS.put(Intent.IntentType.KNOWLEDGE_QUERY, List.of("hybrid-search"));
     }
@@ -233,6 +270,8 @@ public class EmbeddingIntentClassifier implements IntentClassifierInterface {
                  DELETE_ARTICLE, LIST_ARTICLES, SEARCH_ARTICLES,
                  CREATE_CATEGORY, EDIT_CATEGORY, DELETE_CATEGORY, LIST_CATEGORIES,
                  CREATE_TAG, EDIT_TAG, DELETE_TAG, LIST_TAGS,
+                 CONTENT_AUDIT, CONTENT_OPPORTUNITY, OPTIMIZE_ARTICLE,
+                 ONLINE_SEARCH,
                  SCHEDULE_TASK, LIST_TASKS, CANCEL_TASK,
                  CODE_GENERATE, KNOWLEDGE_QUERY -> true;
             default -> false;

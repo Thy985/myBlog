@@ -20,17 +20,17 @@ import java.util.List;
 public class AgentWorkflow {
 
     private final AgentSessionManager sessionManager;
-    private final StatePersistenceService statePersistenceService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final StatePersistenceService statePersistenceService;//专门将AgentState写入硬盘
+    private final ObjectMapper objectMapper = new ObjectMapper();// 负责将 Java 对象（如 AgentState、TaskStep）转换为 JSON 字符串，或者将 JSON 转换回 Java 对象。
 
     /**
      * 任务步骤类
      */
     @Data
     public static class TaskStep {
-        private int index;
-        private String description;
-        private int total;
+        private int index;//步骤索引
+        private String description;//步骤描述
+        private int total;//步骤总数
 
         public TaskStep(int index, String description) {
             this.index = index;
@@ -44,7 +44,7 @@ public class AgentWorkflow {
     public AgentState initializeWorkflow(Long userId) {
         AgentState state = sessionManager.createSession(userId);
         state.markExecuting("初始化工作流");
-        sessionManager.updateSession(state);
+        sessionManager.updateSession(state);//更新会话状态
         return state;
     }
 
@@ -54,6 +54,12 @@ public class AgentWorkflow {
     public AgentState executeWorkflow(String sessionId, Long userId, String task) {
         AgentState state = sessionManager.getOrCreateSession(sessionId, userId);
         state.markExecuting(task);
+        
+        // 示例：存储上下文数据（类型安全）
+        state.putContext("task_type", "code_generation");
+        state.putContext("retry_count", 0);
+        state.putContext("enable_rag", true);
+        
         sessionManager.updateSession(state);
         
         // 这里可以添加具体的工作流执行逻辑

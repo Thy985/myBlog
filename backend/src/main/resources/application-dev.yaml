@@ -149,7 +149,7 @@ ai:
 # Tavily 搜索 API（用于智能体联网搜索）
 tavily:
   api:
-    key: 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
+    key: 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
 
 glm:
   api:

@@ -1,21 +1,17 @@
-const CACHE_NAME = 'xingchen-blog-v1'
-const OFFLINE_URL = '/'
+// Service Worker - 网络优先策略
+const CACHE_NAME = 'xingchen-blog-v2'
 
-const PRECACHE_URLS = [
-  '/',
-  '/index.html',
-  OFFLINE_URL
-]
-
+// 安装事件
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_URLS).catch(() => {})
+    caches.open(CACHE_NAME).then(() => {
+      console.log('[SW] Service Worker 安装成功')
     })
   )
   self.skipWaiting()
 })
 
+// 激活事件
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -27,48 +23,46 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
+// 获取事件 - 网络优先策略
 self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
 
+  // 只处理同源请求
   if (url.origin !== location.origin) {
-    event.respondWith(
-      fetch(request).catch(() => caches.match('/'))
-    )
     return
   }
 
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
-          return response
-        })
-        .catch(() => caches.match(OFFLINE_URL))
-    )
-    return
-  }
-
-  if (request.destination === 'image' || request.destination === 'font' || request.destination === 'style') {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        const fetchPromise = fetch(request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone()
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
-          }
-          return response
-        }).catch(() => cached)
-        return cached || fetchPromise
-      })
-    )
+  // 跳过 API 请求
+  if (url.pathname.startsWith('/api/')) {
     return
   }
 
   event.respondWith(
-    fetch(request).catch(() => caches.match(request))
+    fetch(request)
+      .then((response) => {
+        // 缓存成功的响应
+        if (response.ok) {
+          const clone = response.clone()
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, clone)
+          })
+        }
+        return response
+      })
+      .catch(() => {
+        // 网络失败时返回缓存
+        return caches.match(request).then((cached) => {
+          if (cached) {
+            return cached
+          }
+          // 导航请求失败时返回首页
+          if (request.mode === 'navigate') {
+            return caches.match('/')
+          }
+          throw new Error('Network and cache both failed')
+        })
+      })
   )
 })
 

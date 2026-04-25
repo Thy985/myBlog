@@ -2,7 +2,7 @@ package com.xingchen.backend.ai.gateway;
 
 import com.xingchen.backend.ai.model.AIRequest;
 import com.xingchen.backend.ai.model.AIResponse;
-import com.xingchen.backend.ai.orchestrator.AgentOrchestrator;
+import com.xingchen.backend.agent.AgentOrchestrator;
 import com.xingchen.backend.ai.security.SecurityFilterChain;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterRegistry;

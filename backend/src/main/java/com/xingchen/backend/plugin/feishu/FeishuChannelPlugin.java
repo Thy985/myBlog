@@ -1,41 +1,46 @@
 package com.xingchen.backend.plugin.feishu;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.lark.oapi.Client;
+import com.lark.oapi.core.utils.Jsons;
+import com.lark.oapi.event.EventDispatcher;
+import com.lark.oapi.service.im.ImService;
 import com.lark.oapi.service.im.v1.model.*;
 import com.xingchen.backend.plugin.AbstractChannelPlugin;
+import com.xingchen.backend.plugin.ChannelPlugin;
 import com.xingchen.backend.plugin.PluginConfig;
 import com.xingchen.backend.plugin.PluginStatus;
 import com.xingchen.backend.plugin.message.IncomingMessage;
 import com.xingchen.backend.plugin.message.OutgoingMessage;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Duration;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
-/**
- * 飞书通道插件
- *
- * 基于飞书官方 SDK 实现的消息通道
- */
 @Slf4j
 public class FeishuChannelPlugin extends AbstractChannelPlugin {
 
     private static final String CHANNEL_TYPE = "feishu";
     private static final String CHANNEL_NAME = "飞书";
 
-    // HTTP 客户端
+    private static final Duration RECONNECT_DELAY = Duration.ofSeconds(5);
+    private static final Duration MAX_RECONNECT_DELAY = Duration.ofMinutes(2);
+
+    private FeishuMessageHandler messageHandler;
+    private com.lark.oapi.ws.Client wsClient;
     private Client httpClient;
+    private ExecutorService executorService;
+    private ScheduledExecutorService scheduler;
 
-    // 消息去重缓存
-    private final Set<String> processedMessages = ConcurrentHashMap.newKeySet();
-    private static final int MAX_CACHE_SIZE = 1000;
-
-    // 连接配置
+    private Long userId = 1L;
     private String appId;
     private String appSecret;
-    private boolean encryptEnabled;
-    private String encryptKey;
+
+    private volatile boolean connected = false;
+    private ScheduledFuture<?> reconnectFuture;
+    private int consecutiveReconnectFailures = 0;
 
     @Override
     public String getChannelType() {
@@ -51,24 +56,21 @@ public class FeishuChannelPlugin extends AbstractChannelPlugin {
     public void load(com.xingchen.backend.plugin.context.PluginContext context) {
         super.load(context);
 
-        // 加载配置
+        this.messageHandler = new FeishuMessageHandler(this::onMessageReceived);
+
         PluginConfig config = context.getConfig();
-        log.info("飞书插件加载配置: config={}", config);
-        
+        log.info("飞书插件加载配置");
+
         if (config != null) {
-            log.info("飞书插件配置属性: properties={}", config.getProperties());
+            log.debug("飞书插件配置属性: properties={}", config.getProperties());
             this.appId = config.getString("appId", "");
             this.appSecret = config.getString("appSecret", "");
-            this.encryptEnabled = config.getBoolean("encryptEnabled", false);
-            this.encryptKey = config.getString("encryptKey", "");
-            log.info("飞书插件配置读取: appId={}, appSecret={}", 
-                    appId != null ? "***" : "null", 
-                    appSecret != null ? "***" : "null");
+            this.userId = (long) config.getInt("userId", 1);
+            log.info("飞书插件配置已读取, appId={}, userId={}", maskString(appId), userId);
         } else {
             log.warn("飞书插件配置为空");
         }
 
-        // 验证 appId 必须有，appSecret 可以在 initialize 阶段再获取
         if (appId == null || appId.isEmpty()) {
             throw new IllegalStateException("飞书配置不完整: appId 不能为空");
         }
@@ -76,126 +78,296 @@ public class FeishuChannelPlugin extends AbstractChannelPlugin {
         log.info("飞书通道插件加载完成");
     }
 
+    public void onMessageReceived(IncomingMessage message) {
+        if (messageHandler_ != null) {
+            messageHandler_.handle(message, this);
+        }
+    }
+
+    private ChannelPlugin.MessageHandler messageHandler_;
+
+    @Override
+    public void setMessageHandler(ChannelPlugin.MessageHandler handler) {
+        this.messageHandler_ = handler;
+    }
+
     @Override
     public void initialize() {
         super.initialize();
-        
-        // 检查是否需要延迟加载 appSecret
+
         if ((appSecret == null || appSecret.isEmpty()) && context != null && context.getConfig() != null) {
             if (Boolean.TRUE.equals(context.getConfig().getProperties().get("_needLazyLoadSecret"))) {
                 log.info("飞书插件 appSecret 将延迟加载，等待 ApplicationReadyEvent");
-                // 不创建 HTTP 客户端，等待后续刷新
                 return;
             }
         }
-        
-        // 验证配置完整性
+
         if (appSecret == null || appSecret.isEmpty()) {
             throw new IllegalStateException("飞书配置不完整: appSecret 不能为空");
         }
-        
-        // 创建 HTTP 客户端
+
+        this.executorService = Executors.newCachedThreadPool(r -> {
+            java.lang.Thread t = new java.lang.Thread(r, "feishu-ws-channel");
+            t.setDaemon(false);
+            return t;
+        });
+
+        this.scheduler = Executors.newScheduledThreadPool(2, r -> {
+            java.lang.Thread t = new java.lang.Thread(r, "feishu-scheduler");
+            t.setDaemon(false);
+            return t;
+        });
+
         this.httpClient = new Client.Builder(appId, appSecret).build();
-        
-        log.info("飞书事件处理器初始化完成");
+
+        log.info("飞书插件初始化完成");
     }
 
     @Override
     public void start() {
         super.start();
-        log.info("飞书插件已启动");
+        connect();
     }
 
     @Override
     public void stop() {
+        disconnect();
+        shutdownExecutors();
         super.stop();
-        log.info("飞书插件已停止");
     }
-    
-    /**
-     * 更新 appSecret（用于延迟加载）
-     */
+
+    private void shutdownExecutors() {
+        if (scheduler != null) {
+            scheduler.shutdownNow();
+            try {
+                if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                    log.warn("飞书调度线程池未能在5秒内终止");
+                }
+            } catch (InterruptedException e) {
+                java.lang.Thread.currentThread().interrupt();
+            }
+            scheduler = null;
+        }
+        if (executorService != null) {
+            executorService.shutdownNow();
+            try {
+                if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                    log.warn("飞书执行器线程池未能在5秒内终止");
+                }
+            } catch (InterruptedException e) {
+                java.lang.Thread.currentThread().interrupt();
+            }
+            executorService = null;
+        }
+    }
+
     public void updateAppSecret(String newAppSecret) {
         this.appSecret = newAppSecret;
-        // 重新创建 HTTP 客户端
-        if (this.appId != null && !this.appId.isEmpty() && this.appSecret != null && !this.appSecret.isEmpty()) {
+        if (httpClient != null) {
             this.httpClient = new Client.Builder(appId, appSecret).build();
-            log.info("飞书插件 HTTP 客户端已更新");
         }
+        log.info("飞书插件 appSecret 已更新");
     }
 
     @Override
     public void connect() {
-        log.info("飞书连接");
+        if (appId == null || appId.isBlank() || appSecret == null || appSecret.isBlank()) {
+            log.warn("飞书配置不完整，无法建立连接");
+            updateStatus(PluginStatus.ERROR);
+            return;
+        }
+
+        updateStatus(PluginStatus.CONNECTING);
+
+        try {
+            String decryptedSecret = appSecret;
+            if (appSecret.startsWith("ENC:")) {
+                decryptedSecret = com.xingchen.backend.util.AesUtil.getInstance().decrypt(appSecret);
+            }
+
+            final Long currentUserId = this.userId;
+            final String finalSecret = decryptedSecret;
+
+            EventDispatcher eventDispatcher = EventDispatcher.newBuilder("", "")
+                    .onP2MessageReceiveV1(new ImService.P2MessageReceiveV1Handler() {
+                        @Override
+                        public void handle(P2MessageReceiveV1 event) throws Exception {
+                            messageHandler.handleMessageEvent(event);
+                        }
+                    })
+                    .build();
+
+            wsClient = new com.lark.oapi.ws.Client.Builder(appId, finalSecret)
+                    .eventHandler(eventDispatcher)
+                    .build();
+
+            executorService.submit(() -> {
+                try {
+                    wsClient.start();
+                    connected = true;
+                    consecutiveReconnectFailures = 0;
+                    updateStatus(PluginStatus.RUNNING);
+                    log.info("飞书 WebSocket 长连接已启动 (userId={})", userId);
+                } catch (Exception e) {
+                    log.error("飞书 WebSocket 连接异常: {}", e.getMessage(), e);
+                    connected = false;
+                    updateStatus(PluginStatus.ERROR);
+                    scheduleReconnect();
+                }
+            });
+
+        } catch (Exception e) {
+            log.error("飞书连接失败: {}", e.getMessage(), e);
+            updateStatus(PluginStatus.ERROR);
+            scheduleReconnect();
+        }
+    }
+
+    private void scheduleReconnect() {
+        if (reconnectFuture != null && !reconnectFuture.isCancelled()) {
+            return;
+        }
+
+        consecutiveReconnectFailures++;
+        long delayMs = Math.min(
+                RECONNECT_DELAY.toMillis() * (long) Math.pow(2, consecutiveReconnectFailures - 1),
+                MAX_RECONNECT_DELAY.toMillis()
+        );
+
+        log.info("飞书连接断开，{} ms 后尝试重连 (第 {} 次)", delayMs, consecutiveReconnectFailures);
+
+        reconnectFuture = scheduler.schedule(() -> {
+            if (getStatus() != PluginStatus.STOPPED && getStatus() != PluginStatus.UNLOADED) {
+                log.info("尝试重新连接飞书...");
+                connect();
+            }
+        }, delayMs, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void disconnect() {
-        stop();
+        if (reconnectFuture != null && !reconnectFuture.isCancelled()) {
+            reconnectFuture.cancel(false);
+            reconnectFuture = null;
+        }
+
+        connected = false;
+
+        if (wsClient != null) {
+            log.info("飞书 WebSocket 连接已断开");
+            wsClient = null;
+        }
+        updateStatus(PluginStatus.STOPPED);
     }
 
     @Override
     public boolean isConnected() {
-        // 飞书 SDK 没有直接提供连接状态，通过状态推断
-        return getStatus() == PluginStatus.RUNNING;
+        return connected && wsClient != null && getStatus() == PluginStatus.RUNNING;
     }
 
     @Override
     public void sendMessage(OutgoingMessage message) {
-        try {
-            String chatId = message.getSessionId();
+        if (!isConnected()) {
+            throw new IllegalStateException("飞书客户端未连接");
+        }
 
+        String chatId = message.getSessionId();
+        if (chatId == null || chatId.isBlank()) {
+            throw new IllegalArgumentException("发送飞书消息失败: chatId 为空");
+        }
+
+        try {
             switch (message.getType()) {
-                case TEXT -> sendTextMessage(chatId, message.getContent());
+                case TEXT -> sendTextViaSdk(chatId, message.getContent());
                 case MARKDOWN -> sendMarkdownMessage(chatId, message.getContent());
                 case CARD -> sendCardMessage(chatId, message.getCardData());
-                default -> sendTextMessage(chatId, message.getContent());
+                default -> sendTextViaSdk(chatId, message.getContent());
             }
-
         } catch (Exception e) {
-            log.error("发送飞书消息失败", e);
+            log.error("发送飞书消息失败: chatId={}, error={}", chatId, e.getMessage(), e);
             throw new RuntimeException("发送消息失败", e);
         }
     }
 
     @Override
     public void replyMessage(String messageId, OutgoingMessage message) {
+        if (!isConnected()) {
+            throw new IllegalStateException("飞书客户端未连接");
+        }
+
         try {
             switch (message.getType()) {
-                case TEXT -> replyTextMessage(messageId, message.getContent());
+                case TEXT -> replyTextViaSdk(messageId, message.getContent());
                 case MARKDOWN -> replyMarkdownMessage(messageId, message.getContent());
                 case CARD -> replyCardMessage(messageId, message.getCardData());
-                default -> replyTextMessage(messageId, message.getContent());
+                default -> replyTextViaSdk(messageId, message.getContent());
             }
-
         } catch (Exception e) {
-            log.error("回复飞书消息失败", e);
+            log.error("回复飞书消息失败: messageId={}, error={}", messageId, e.getMessage(), e);
             throw new RuntimeException("回复消息失败", e);
         }
     }
 
-    // ========== 发送消息方法 ==========
-
-    private void sendTextMessage(String chatId, String text) {
+    private void sendTextViaSdk(String chatId, String text) {
+        if (httpClient == null) {
+            throw new IllegalStateException("飞书 HTTP 客户端未初始化");
+        }
         try {
+            String contentJson = Jsons.DEFAULT.toJson(Map.of("text", text != null ? text : ""));
+
             CreateMessageReq req = CreateMessageReq.newBuilder()
                     .receiveIdType("chat_id")
                     .createMessageReqBody(CreateMessageReqBody.newBuilder()
                             .receiveId(chatId)
                             .msgType("text")
-                            .content("{\"text\":\"" + escapeJson(text) + "\"}")
+                            .content(contentJson)
                             .build())
                     .build();
 
-            httpClient.im().message().create(req);
-
+            CreateMessageResp resp = httpClient.im().message().create(req);
+            if (!resp.success()) {
+                log.error("发送文本消息失败: code={}, msg={}", resp.getCode(), resp.getMsg());
+                throw new RuntimeException("发送文本消息失败: " + resp.getMsg());
+            }
         } catch (Exception e) {
-            log.error("发送文本消息失败", e);
-            throw new RuntimeException("发送失败", e);
+            log.error("发送文本消息失败: chatId={}", chatId, e);
+            throw new RuntimeException("发送文本消息失败", e);
+        }
+    }
+
+    private void replyTextViaSdk(String messageId, String text) {
+        if (httpClient == null) {
+            throw new IllegalStateException("飞书 HTTP 客户端未初始化");
+        }
+        try {
+            if (text != null && text.length() > 4000) {
+                text = text.substring(0, 4000) + "\n\n...(内容过长已截断)";
+            }
+            String contentJson = Jsons.DEFAULT.toJson(Map.of("text", text != null ? text : ""));
+
+            ReplyMessageReq req = ReplyMessageReq.newBuilder()
+                    .messageId(messageId)
+                    .replyMessageReqBody(ReplyMessageReqBody.newBuilder()
+                            .content(contentJson)
+                            .msgType("text")
+                            .build())
+                    .build();
+
+            ReplyMessageResp resp = httpClient.im().message().reply(req);
+            if (!resp.success()) {
+                log.error("回复文本消息失败: code={}, msg={}", resp.getCode(), resp.getMsg());
+                throw new RuntimeException("回复文本消息失败: " + resp.getMsg());
+            }
+        } catch (Exception e) {
+            log.error("回复文本消息失败: messageId={}", messageId, e);
+            throw new RuntimeException("回复文本消息失败", e);
         }
     }
 
     private void sendMarkdownMessage(String chatId, String markdown) {
+        if (httpClient == null) {
+            throw new IllegalStateException("飞书 HTTP 客户端未初始化");
+        }
         try {
             CreateMessageReq req = CreateMessageReq.newBuilder()
                     .receiveIdType("chat_id")
@@ -206,55 +378,21 @@ public class FeishuChannelPlugin extends AbstractChannelPlugin {
                             .build())
                     .build();
 
-            httpClient.im().message().create(req);
-
+            CreateMessageResp resp = httpClient.im().message().create(req);
+            if (!resp.success()) {
+                log.error("发送 Markdown 消息失败: code={}, msg={}", resp.getCode(), resp.getMsg());
+                throw new RuntimeException("发送 Markdown 消息失败: " + resp.getMsg());
+            }
         } catch (Exception e) {
-            log.error("发送 Markdown 消息失败", e);
-            throw new RuntimeException("发送失败", e);
-        }
-    }
-
-    private void sendCardMessage(String chatId, Map<String, Object> cardData) {
-        try {
-            String cardJson = new com.fasterxml.jackson.databind.ObjectMapper()
-                    .writeValueAsString(cardData);
-
-            CreateMessageReq req = CreateMessageReq.newBuilder()
-                    .receiveIdType("chat_id")
-                    .createMessageReqBody(CreateMessageReqBody.newBuilder()
-                            .receiveId(chatId)
-                            .msgType("interactive")
-                            .content(cardJson)
-                            .build())
-                    .build();
-
-            httpClient.im().message().create(req);
-
-        } catch (Exception e) {
-            log.error("发送卡片消息失败", e);
-            throw new RuntimeException("发送失败", e);
-        }
-    }
-
-    private void replyTextMessage(String messageId, String text) {
-        try {
-            ReplyMessageReq req = ReplyMessageReq.newBuilder()
-                    .messageId(messageId)
-                    .replyMessageReqBody(ReplyMessageReqBody.newBuilder()
-                            .content("{\"text\":\"" + escapeJson(text) + "\"}")
-                            .msgType("text")
-                            .build())
-                    .build();
-
-            httpClient.im().message().reply(req);
-
-        } catch (Exception e) {
-            log.error("回复文本消息失败", e);
-            throw new RuntimeException("回复失败", e);
+            log.error("发送 Markdown 消息失败: chatId={}", chatId, e);
+            throw new RuntimeException("发送 Markdown 消息失败", e);
         }
     }
 
     private void replyMarkdownMessage(String messageId, String markdown) {
+        if (httpClient == null) {
+            throw new IllegalStateException("飞书 HTTP 客户端未初始化");
+        }
         try {
             ReplyMessageReq req = ReplyMessageReq.newBuilder()
                     .messageId(messageId)
@@ -264,19 +402,55 @@ public class FeishuChannelPlugin extends AbstractChannelPlugin {
                             .build())
                     .build();
 
-            httpClient.im().message().reply(req);
-
+            ReplyMessageResp resp = httpClient.im().message().reply(req);
+            if (!resp.success()) {
+                log.error("回复 Markdown 消息失败: code={}, msg={}", resp.getCode(), resp.getMsg());
+                throw new RuntimeException("回复 Markdown 消息失败: " + resp.getMsg());
+            }
         } catch (Exception e) {
-            log.error("回复 Markdown 消息失败", e);
-            throw new RuntimeException("回复失败", e);
+            log.error("回复 Markdown 消息失败: messageId={}", messageId, e);
+            throw new RuntimeException("回复 Markdown 消息失败", e);
+        }
+    }
+
+    private void sendCardMessage(String chatId, Map<String, Object> cardData) {
+        if (httpClient == null) {
+            throw new IllegalStateException("飞书 HTTP 客户端未初始化");
+        }
+        if (cardData == null) {
+            throw new IllegalArgumentException("卡片数据不能为空");
+        }
+        try {
+            String cardJson = Jsons.DEFAULT.toJson(cardData);
+            CreateMessageReq req = CreateMessageReq.newBuilder()
+                    .receiveIdType("chat_id")
+                    .createMessageReqBody(CreateMessageReqBody.newBuilder()
+                            .receiveId(chatId)
+                            .msgType("interactive")
+                            .content(cardJson)
+                            .build())
+                    .build();
+
+            CreateMessageResp resp = httpClient.im().message().create(req);
+            if (!resp.success()) {
+                log.error("发送卡片消息失败: code={}, msg={}", resp.getCode(), resp.getMsg());
+                throw new RuntimeException("发送卡片消息失败: " + resp.getMsg());
+            }
+        } catch (Exception e) {
+            log.error("发送卡片消息失败: chatId={}", chatId, e);
+            throw new RuntimeException("发送卡片消息失败", e);
         }
     }
 
     private void replyCardMessage(String messageId, Map<String, Object> cardData) {
+        if (httpClient == null) {
+            throw new IllegalStateException("飞书 HTTP 客户端未初始化");
+        }
+        if (cardData == null) {
+            throw new IllegalArgumentException("卡片数据不能为空");
+        }
         try {
-            String cardJson = new com.fasterxml.jackson.databind.ObjectMapper()
-                    .writeValueAsString(cardData);
-
+            String cardJson = Jsons.DEFAULT.toJson(cardData);
             ReplyMessageReq req = ReplyMessageReq.newBuilder()
                     .messageId(messageId)
                     .replyMessageReqBody(ReplyMessageReqBody.newBuilder()
@@ -285,60 +459,42 @@ public class FeishuChannelPlugin extends AbstractChannelPlugin {
                             .build())
                     .build();
 
-            httpClient.im().message().reply(req);
-
+            ReplyMessageResp resp = httpClient.im().message().reply(req);
+            if (!resp.success()) {
+                log.error("回复卡片消息失败: code={}, msg={}", resp.getCode(), resp.getMsg());
+                throw new RuntimeException("回复卡片消息失败: " + resp.getMsg());
+            }
         } catch (Exception e) {
-            log.error("回复卡片消息失败", e);
-            throw new RuntimeException("回复失败", e);
+            log.error("回复卡片消息失败: messageId={}", messageId, e);
+            throw new RuntimeException("回复卡片消息失败", e);
         }
     }
 
     private String buildMarkdownCard(String markdown) {
-        return "{\"config\":{\"wide_screen_mode\":true},\"elements\":[{\"tag\":\"div\",\"text\":{\"tag\":\"lark_md\",\"content\":\"" +
-               escapeJson(markdown) + "\"}}]}";
+        try {
+            Map<String, Object> card = Map.of(
+                    "config", Map.of("wide_screen_mode", true),
+                    "elements", new Object[]{
+                            Map.of(
+                                    "tag", "div",
+                                    "text", Map.of(
+                                            "tag", "lark_md",
+                                            "content", markdown != null ? markdown : ""
+                                    )
+                            )
+                    }
+            );
+            return Jsons.DEFAULT.toJson(card);
+        } catch (Exception e) {
+            log.error("构建 Markdown 卡片失败", e);
+            return "{\"config\":{\"wide_screen_mode\":true},\"elements\":[{\"tag\":\"div\",\"text\":{\"tag\":\"lark_md\",\"content\":\"(消息解析失败)\"}}]}";
+        }
     }
 
-    private String escapeJson(String text) {
-        return text.replace("\\", "\\\\")
-                   .replace("\"", "\\\"")
-                   .replace("\n", "\\n")
-                   .replace("\r", "\\r")
-                   .replace("\t", "\\t");
-    }
-
-    private void sendWelcomeMessage(String chatId) {
-        String welcome = """
-            👋 你好！我是智能助手
-
-            我可以帮你：
-            • 💬 回答问题
-            • 📝 写文章
-            • 💻 写代码
-            • 🔍 搜索知识库
-
-            直接发送消息开始对话吧！
-            """;
-        sendMarkdownMessage(chatId, welcome);
-    }
-
-    private void sendHelpMessage(String chatId) {
-        String help = """
-            📖 使用帮助
-
-            **基本命令：**
-            • `/help` - 显示帮助
-            • `/clear` - 清除对话历史
-            • `/memory` - 查看我的记忆
-
-            **功能：**
-            • 直接输入问题，我会尽力回答
-            • 在群聊中 @我 可以触发对话
-            • 支持代码高亮和 Markdown
-            """;
-        sendMarkdownMessage(chatId, help);
-    }
-
-    private void sendSettingsMessage(String chatId) {
-        sendTextMessage(chatId, "设置功能开发中...");
+    private String maskString(String str) {
+        if (str == null || str.length() <= 4) {
+            return "***";
+        }
+        return str.substring(0, 4) + "***" + str.substring(str.length() - 4);
     }
 }

@@ -96,7 +96,7 @@ public class UserAIConfigService {
      * 刷新用户配置缓存
      */
     public void refreshUserConfig(Long userId) {
-        userProviderManager.clearUserCache(userId);
+        userProviderManager.clearUserProviderCache(userId);
         log.info("刷新用户 {} 的配置缓存", userId);
     }
     
