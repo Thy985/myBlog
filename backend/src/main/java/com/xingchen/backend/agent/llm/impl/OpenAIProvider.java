@@ -161,7 +161,7 @@ public class OpenAIProvider implements LLMProvider {
     public StreamingChatLanguageModel getStreamingModel() {
         return getStreamingModelInstance(defaultModel);
     }
-    /
+
     private synchronized ChatLanguageModel getChatModelInstance(String model) {
         if (chatModel == null) {
             chatModel = OpenAiChatModel.builder()
