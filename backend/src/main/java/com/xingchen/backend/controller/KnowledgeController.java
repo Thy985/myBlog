@@ -1,17 +1,17 @@
 package com.xingchen.backend.controller;
 
 import com.xingchen.backend.common.Result;
+import com.xingchen.backend.repository.ArticleSearchRepository.HybridSearchResult;
 import com.xingchen.backend.vector.HybridSearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 知识库控制器
- * 
+ *
  * 提供知识库管理接口
  */
 @RestController
@@ -26,13 +26,13 @@ public class KnowledgeController {
      * 混合检索
      */
     @GetMapping("/search")
-    public Result<List<HybridSearchService.HybridSearchResult>> search(
+    public Result<List<HybridSearchResult>> search(
             @RequestParam String query,
             @RequestParam(defaultValue = "5") int topK) {
-        
-        List<HybridSearchService.HybridSearchResult> results = 
+
+        List<HybridSearchResult> results =
                 hybridSearchService.hybridSearch(query, topK);
-        
+
         return Result.success(results);
     }
 
@@ -40,14 +40,14 @@ public class KnowledgeController {
      * 带过滤条件的检索
      */
     @GetMapping("/search/filter")
-    public Result<List<HybridSearchService.HybridSearchResult>> searchWithFilter(
+    public Result<List<HybridSearchResult>> searchWithFilter(
             @RequestParam String query,
             @RequestParam String category,
             @RequestParam(defaultValue = "5") int topK) {
-        
-        List<HybridSearchService.HybridSearchResult> results = 
+
+        List<HybridSearchResult> results =
                 hybridSearchService.hybridSearch(query, topK, "category", category);
-        
+
         return Result.success(results);
     }
 

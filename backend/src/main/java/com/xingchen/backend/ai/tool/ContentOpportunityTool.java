@@ -4,7 +4,6 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.xingchen.backend.common.PageResult;
 import com.xingchen.backend.service.ArticleService;
 import com.xingchen.backend.service.TavilySearchService;
-import com.xingchen.backend.vector.OpenSearchService;
 import com.xingchen.backend.vo.ArticleListVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +18,6 @@ import java.util.stream.Collectors;
 public class ContentOpportunityTool implements Tool {
 
     private final ArticleService articleService;
-    private final OpenSearchService openSearchService;
     private final TavilySearchService tavilySearchService;
 
     private static final List<String> POPULAR_TECH_TOPICS = List.of(

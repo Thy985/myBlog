@@ -1,6 +1,7 @@
 package com.xingchen.backend.service.impl;
 
 import com.xingchen.backend.messaging.EmbeddingProducer;
+import com.xingchen.backend.repository.ArticleSearchRepository.HybridSearchResult;
 import com.xingchen.backend.service.KnowledgeBaseService;
 import com.xingchen.backend.vector.HybridSearchService;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +10,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 知识库服务 V2（基于混合检索）
@@ -50,7 +50,7 @@ KnowledgeBaseServiceImplV2 implements KnowledgeBaseService {
 
     @Override
     public String search(String query, int topK) {
-        List<HybridSearchService.HybridSearchResult> results = hybridSearchService.hybridSearch(query, topK);
+        List<HybridSearchResult> results = hybridSearchService.hybridSearch(query, topK);
 
         if (results.isEmpty()) {
             return "";
@@ -61,9 +61,9 @@ KnowledgeBaseServiceImplV2 implements KnowledgeBaseService {
         sb.append("根据知识库检索到以下相关信息：\n\n");
 
         for (int i = 0; i < results.size(); i++) {
-            HybridSearchService.HybridSearchResult result = results.get(i);
+            HybridSearchResult result = results.get(i);
             sb.append("[").append(i + 1).append("] ")
-              .append(result.getTitle())
+              .append(result.title())
               .append(" (相关度: ").append(String.format("%.2f", result.getRrfScore())).append(")\n");
             sb.append(result.getSummary()).append("\n\n");
         }

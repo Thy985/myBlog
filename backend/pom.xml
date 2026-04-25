@@ -206,6 +206,9 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- pgvector 向量数据库支持 - 通过原生SQL使用，无需额外Java库 -->
+        <!-- PostgreSQL JDBC 驱动已支持 vector 类型和数组操作 -->
+
         <!-- 添加测试依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -229,6 +232,12 @@
         <dependency>
             <groupId>com.github.vladimir-bukhtoyarov</groupId>
             <artifactId>bucket4j-jcache</artifactId>
+            <version>7.6.0</version>
+        </dependency>
+        <!-- Bucket4j Redis 支持 - 用于分布式限流 -->
+        <dependency>
+            <groupId>com.github.vladimir-bukhtoyarov</groupId>
+            <artifactId>bucket4j-redis</artifactId>
             <version>7.6.0</version>
         </dependency>
 
