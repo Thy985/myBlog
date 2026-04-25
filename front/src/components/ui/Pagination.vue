@@ -141,7 +141,7 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['pageChange', 'sizeChange'])
+const emit = defineEmits(['page-change', 'size-change'])
 
 const jumpPage = ref(props.current)
 const localSize = ref(props.size)
@@ -187,7 +187,7 @@ const isValidJumpPage = computed(() => {
 // 处理页码变化
 const handlePageChange = (page) => {
     if (page >= 1 && page <= props.pages) {
-        emit('pageChange', page)
+        emit('page-change', page)
         jumpPage.value = page
     }
 }
@@ -195,7 +195,7 @@ const handlePageChange = (page) => {
 // 处理快速跳转
 const handleJumpToPage = () => {
     if (isValidJumpPage.value && jumpPage.value !== props.current) {
-        emit('pageChange', jumpPage.value)
+        emit('page-change', jumpPage.value)
     } else {
         // 重置为当前页
         jumpPage.value = props.current
@@ -204,7 +204,7 @@ const handleJumpToPage = () => {
 
 // 处理每页条数变化
 const handleSizeChange = () => {
-    emit('sizeChange', localSize.value)
+    emit('size-change', localSize.value)
 }
 
 // 监听外部props变化

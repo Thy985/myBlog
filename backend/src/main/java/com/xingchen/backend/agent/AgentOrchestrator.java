@@ -3,15 +3,16 @@ package com.xingchen.backend.agent;
 import com.xingchen.backend.ai.intent.IntentClassifierInterface;
 import com.xingchen.backend.ai.llm.LLMProvider;
 import com.xingchen.backend.ai.llm.UserLLMProviderManager;
-import com.xingchen.backend.ai.memory.MemoryContext;
 import com.xingchen.backend.ai.memory.MemoryManager;
-import com.xingchen.backend.ai.memory.UserMemoryManager;
+import com.xingchen.backend.ai.memory.UnifiedMemoryContext;
+import com.xingchen.backend.ai.memory.UnifiedMemoryService;
 import com.xingchen.backend.ai.model.AIRequest;
 import com.xingchen.backend.ai.model.AIResponse;
 import com.xingchen.backend.ai.model.Intent;
 import com.xingchen.backend.ai.security.SecurityFilterChain;
 import com.xingchen.backend.ai.tool.AIToolRegistry;
 import com.xingchen.backend.ai.tool.Tool;
+import com.xingchen.backend.service.KnowledgeBaseService;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -21,44 +22,42 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.function.Consumer;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
-/**
- * 智能助手执行器
- */
 public class AgentOrchestrator {
 
-    private final SecurityFilterChain securityFilterChain;//安全过滤器
-    private final IntentClassifierInterface intentClassifier;//意图分类器
-    private final UserMemoryManager userMemoryManager;//用户记忆管理器
-    private final AIToolRegistry toolRegistry;//工具注册器
-    private final UserLLMProviderManager userProviderManager;//用户LLM提供器管理器
-    private final CircuitBreakerRegistry circuitBreakerRegistry;//熔断器注册器
-    private final MeterRegistry meterRegistry;//仪表盘
+    private final SecurityFilterChain securityFilterChain;
+    private final IntentClassifierInterface intentClassifier;
+    private final UnifiedMemoryService unifiedMemoryService;
+    private final KnowledgeBaseService knowledgeBaseService;
+    private final AIToolRegistry toolRegistry;
+    private final UserLLMProviderManager userProviderManager;
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
+    private final MeterRegistry meterRegistry;
 
-    /*
-    * 处理请求
-     */
     public AIResponse handle(AIRequest request) {
-        long startTime = System.currentTimeMillis();//开始时间
-        Timer.Sample sample = Timer.start(meterRegistry);//创建计时器
+        long startTime = System.currentTimeMillis();
+        Timer.Sample sample = Timer.start(meterRegistry);
 
         try {
-            request = securityFilterChain.filter(request);//过滤器
+            request = securityFilterChain.filter(request);
 
-            Intent intent = intentClassifier.classify(request.getMessage());//意图分类
+            Intent intent = intentClassifier.classify(request.getMessage());
             log.debug("意图分类: type={}, confidence={}", intent.getType(), intent.getConfidence());
 
-            ExecutionPlan plan = buildExecutionPlan(request, intent);//构建执行计划
-            AIResponse response = executePlan(plan);//执行计划
+            ExecutionPlan plan = buildExecutionPlan(request, intent);
+            AIResponse response = executePlan(plan);
 
-            saveMemory(request, response);//保存记忆
+            if (response.isSuccess()) {
+                saveMemoryWithAnalysis(request, response);
+            }
 
-            long elapsed = System.currentTimeMillis() - startTime;//计算耗时
+            long elapsed = System.currentTimeMillis() - startTime;
             sample.stop(meterRegistry.timer("ai.orchestrator.handle",
                     "intent", intent.getType().name(),
-                    "success", String.valueOf(response.isSuccess())));//停止计时器
+                    "success", String.valueOf(response.isSuccess())));
 
             log.info("请求处理完成: intent={}, elapsed={}ms", intent.getType(), elapsed);
 
@@ -80,10 +79,9 @@ public class AgentOrchestrator {
         }
     }
 
-    /*
-    * 处理流式请求
-     */
     public void handleStream(AIRequest request, Consumer<AIResponse> onChunk) {
+        StringBuilder fullResponse = new StringBuilder();
+
         try {
             request = securityFilterChain.filter(request);
 
@@ -93,11 +91,45 @@ public class AgentOrchestrator {
                 return;
             }
 
-            Intent intent = intentClassifier.classify(request.getMessage()); //意图分类
+            Intent intent = intentClassifier.classify(request.getMessage());
 
-            LLMProvider userProvider = validateAndGetUserProvider(userId, onChunk);//获取用户LLM提供器
+            LLMProvider userProvider = validateAndGetUserProvider(userId, onChunk);
             if (userProvider != null && userProvider.supportsStreaming()) {
-                userProvider.streamChat(request, onChunk);
+                userProvider.streamChat(request, response -> {
+                    if (response.isSuccess() && response.getContent() != null) {
+                        fullResponse.append(response.getContent());
+                    }
+                    onChunk.accept(response);
+                });
+
+                if (fullResponse.length() > 0) {
+                    UnifiedMemoryService.MemoryRequirements requirements = new UnifiedMemoryService.MemoryRequirements(
+                        true, true, false, null, 10);
+                    UnifiedMemoryContext context = unifiedMemoryService.loadContext(userId, request.getSessionId(), requirements);
+
+                    UnifiedMemoryContext.MemoryItem userItem = UnifiedMemoryContext.MemoryItem.builder()
+                        .id(UUID.randomUUID().toString())
+                        .role("user")
+                        .content(request.getMessage())
+                        .timestamp(System.currentTimeMillis())
+                        .importance(0.6)
+                        .type(UnifiedMemoryContext.MemoryType.CONVERSATION)
+                        .category("CONVERSATION")
+                        .build();
+
+                    UnifiedMemoryContext.MemoryItem assistantItem = UnifiedMemoryContext.MemoryItem.builder()
+                        .id(UUID.randomUUID().toString())
+                        .role("assistant")
+                        .content(fullResponse.toString())
+                        .timestamp(System.currentTimeMillis())
+                        .importance(0.5)
+                        .type(UnifiedMemoryContext.MemoryType.CONVERSATION)
+                        .category("CONVERSATION")
+                        .build();
+
+                    unifiedMemoryService.addWorkingMemory(userId, request.getSessionId(), userItem);
+                    unifiedMemoryService.addWorkingMemory(userId, request.getSessionId(), assistantItem);
+                }
             }
 
         } catch (SecurityFilterChain.SecurityException e) {
@@ -109,10 +141,6 @@ public class AgentOrchestrator {
         }
     }
 
-    /**
-     * 验证并获取用户的LLM Provider
-     * @return LLMProvider,如果验证失败则返回null并通过onChunk发送错误消息(仅流式场景)
-     */
     private LLMProvider validateAndGetUserProvider(Long userId) {
         LLMProvider userProvider = userProviderManager.getUserProvider(userId);
         if (userProvider == null) {
@@ -123,9 +151,6 @@ public class AgentOrchestrator {
         return userProvider;
     }
 
-    /**
-     * 验证并获取用户的LLM Provider(流式场景)
-     */
     private LLMProvider validateAndGetUserProvider(Long userId, Consumer<AIResponse> onChunk) {
         LLMProvider userProvider = userProviderManager.getUserProvider(userId);
         if (userProvider == null) {
@@ -153,16 +178,16 @@ public class AgentOrchestrator {
                 .order(order++)
                 .type(ExecutionPlan.ExecutionStep.StepType.INTENT_CLASSIFICATION)
                 .description("意图分类: " + intent.getType())
-                .status(ExecutionPlan.ExecutionStep.StepStatus.COMPLETED)//步骤状态设为COMPLETED
+                .status(ExecutionPlan.ExecutionStep.StepStatus.COMPLETED)
                 .build());
 
         if (intent.isRequiresMemory()) {
             steps.add(ExecutionPlan.ExecutionStep.builder()
                     .order(order++)
-                    .type(ExecutionPlan.ExecutionStep.StepType.MEMORY_RETRIEVAL)//步骤类型设为MEMORY_RETRIEVAL
+                    .type(ExecutionPlan.ExecutionStep.StepType.MEMORY_RETRIEVAL)
                     .description("检索相关记忆")
-                    .status(ExecutionPlan.ExecutionStep.StepStatus.PENDING)//步骤状态设为PENDING
-                    .build());//添加步骤
+                    .status(ExecutionPlan.ExecutionStep.StepStatus.PENDING)
+                    .build());
         }
 
         if (request.needsRag()) {
@@ -206,8 +231,9 @@ public class AgentOrchestrator {
     private AIResponse executePlan(ExecutionPlan plan) {
         AIRequest request = plan.getOriginalRequest();
         Intent intent = plan.getIntent();
-        MemoryContext memoryContext = null;
+        UnifiedMemoryContext memoryContext = null;
         List<Tool.ToolResult> toolResults = new ArrayList<>();
+        String ragContext = null;
 
         for (ExecutionPlan.ExecutionStep step : plan.getSteps()) {
             if (step.getStatus() == ExecutionPlan.ExecutionStep.StepStatus.COMPLETED) {
@@ -220,11 +246,13 @@ public class AgentOrchestrator {
             try {
                 switch (step.getType()) {
                     case MEMORY_RETRIEVAL:
-                        memoryContext = userMemoryManager.load(
+                        UnifiedMemoryService.MemoryRequirements requirements = new UnifiedMemoryService.MemoryRequirements(
+                            intent.isRequiresMemory(), true, intent.isRequiresMemory(),
+                            intent.isRequiresMemory() ? request.getMessage() : null, 10);
+                        memoryContext = unifiedMemoryService.loadContext(
                                 request.getUserId(),
                                 request.getSessionId(),
-                                MemoryManager.MemoryRequirements.fromIntent(intent)
-                        );
+                                requirements);
                         break;
 
                     case TOOL_CALL:
@@ -233,8 +261,12 @@ public class AgentOrchestrator {
                         toolResults.add(result);
                         break;
 
+                    case RAG_RETRIEVAL:
+                        ragContext = knowledgeBaseService.search(request.getMessage(), 5);
+                        break;
+
                     case LLM_CALL:
-                        return executeLLMCall(request, intent, memoryContext, toolResults);
+                        return executeLLMCall(request, intent, memoryContext, toolResults, ragContext);
 
                     default:
                         break;
@@ -244,8 +276,8 @@ public class AgentOrchestrator {
                 step.setExecutionTime(System.currentTimeMillis() - stepStart);
 
             } catch (Exception e) {
-                step.setStatus(ExecutionPlan.ExecutionStep.StepStatus.FAILED);//步骤状态设为FAILED
-                step.setExecutionTime(System.currentTimeMillis() - stepStart);//执行时间
+                step.setStatus(ExecutionPlan.ExecutionStep.StepStatus.FAILED);
+                step.setExecutionTime(System.currentTimeMillis() - stepStart);
                 log.error("步骤执行失败: {}", step.getDescription(), e);
                 throw e;
             }
@@ -253,52 +285,41 @@ public class AgentOrchestrator {
 
         return AIResponse.error("执行计划异常");
     }
-    /**
-     * 执行工具调用
-     *
-     * @param toolName 工具名称
-     * @param request  请求
-     * @param intent   意图
-     * @return 工具调用结果
-     */
+
     private Tool.ToolResult executeTool(String toolName, AIRequest request, Intent intent) {
         Map<String, Object> params = new HashMap<>();
-        params.put("message", request.getMessage());//消息
-        params.put("intent", intent.getType().name());//意图
+        params.put("message", request.getMessage());
+        params.put("intent", intent.getType().name());
 
-        // 将意图识别出的实体参数添加到工具调用参数中
         if (intent.getEntities() != null) {
             for (Intent.Entity entity : intent.getEntities()) {
                 params.put(entity.getName(), entity.getValue());
             }
         }
 
-        return toolRegistry.execute(toolName, params);//执行工具调用
+        return toolRegistry.execute(toolName, params);
     }
-    /**
-     * 执行 LLM 调用
-     *
-     * @param request           请求
-     * @param intent            意图
-     * @param memoryContext     内存上下文
-     * @param toolResults       工具调用结果
-     * @return 响应
-     */
+
     private AIResponse executeLLMCall(AIRequest request, Intent intent,
-                                       MemoryContext memoryContext,
-                                       List<Tool.ToolResult> toolResults) {
+                                       UnifiedMemoryContext memoryContext,
+                                       List<Tool.ToolResult> toolResults,
+                                       String ragContext) {
         Long userId = request.getUserId();
         if (userId == null) {
             return AIResponse.error("用户未登录");
         }
-    
+
         StringBuilder systemPrompt = new StringBuilder();
         systemPrompt.append("你是一个小星Agent,帮助用户完成各种任务。\n\n");
-    
-        if (memoryContext != null && !memoryContext.isEmpty()) {//内存不为空
-            systemPrompt.append(memoryContext.toPromptText());//添加上下文
+
+        if (ragContext != null && !ragContext.isBlank()) {
+            systemPrompt.append("【知识库检索结果】\n").append(ragContext).append("\n");
         }
-    
+
+        if (memoryContext != null && !memoryContext.isEmpty()) {
+            systemPrompt.append(memoryContext.toPromptText());
+        }
+
         if (!toolResults.isEmpty()) {
             systemPrompt.append("【工具执行结果】\n");
             for (Tool.ToolResult result : toolResults) {
@@ -309,55 +330,112 @@ public class AgentOrchestrator {
                 }
             }
             systemPrompt.append("\n");
-            systemPrompt.append("请基于上述工具执行结果回答用户的问题。\n");
+            systemPrompt.append("请基于上述工具执行结果和知识库检索结果回答用户的问题。\n");
         }
-        //创建增强后的请求
+
         AIRequest enhancedRequest = AIRequest.builder()
                 .userId(userId)
                 .sessionId(request.getSessionId())
                 .message(request.getMessage())
-                .preferredModel(request.getPreferredModel())//使用 preferredModel
+                .preferredModel(request.getPreferredModel())
                 .systemPrompt(systemPrompt.toString())
                 .history(request.getHistory())
                 .stream(request.isStream())
-                .extraParams(request.getExtraParams())//额外参数
+                .extraParams(request.getExtraParams())
                 .build();
-    
+
         try {
-            LLMProvider userProvider = validateAndGetUserProvider(userId);//获取用户提供者
+            LLMProvider userProvider = validateAndGetUserProvider(userId);
             return userProvider.chat(enhancedRequest);
         } catch (IllegalStateException e) {
             return AIResponse.error(e.getMessage());
         }
     }
 
-
-
-    private void saveMemory(AIRequest request, AIResponse response) {
+    private void saveMemoryWithAnalysis(AIRequest request, AIResponse response) {
         if (request.getUserId() == null) {
             return;
         }
 
-        List<MemoryContext.MemoryItem> memories = new ArrayList<>();
+        if (request.getMessage() == null || request.getMessage().trim().length() < 3) {
+            return;
+        }
 
-        memories.add(MemoryContext.MemoryItem.builder()
+        UnifiedMemoryContext.MemoryItem userItem = UnifiedMemoryContext.MemoryItem.builder()
                 .id(UUID.randomUUID().toString())
                 .role("user")
                 .content(request.getMessage())
                 .timestamp(System.currentTimeMillis())
-                .type(MemoryContext.MemoryType.FACT)
-                .build());
+                .importance(assessMessageImportance(request.getMessage()))
+                .type(classifyMessageType(request.getMessage()))
+                .category(classifyMessageType(request.getMessage()).name())
+                .build();
 
-        if (response.isSuccess()) {
-            memories.add(MemoryContext.MemoryItem.builder()
+        unifiedMemoryService.addWorkingMemory(request.getUserId(), request.getSessionId(), userItem);
+
+        if (response.isSuccess() && response.getContent() != null && response.getContent().trim().length() > 5) {
+            UnifiedMemoryContext.MemoryItem assistantItem = UnifiedMemoryContext.MemoryItem.builder()
                     .id(UUID.randomUUID().toString())
                     .role("assistant")
                     .content(response.getContent())
                     .timestamp(System.currentTimeMillis())
-                    .type(MemoryContext.MemoryType.FACT)
-                    .build());
+                    .importance(Math.min(assessMessageImportance(request.getMessage()), 0.8))
+                    .type(UnifiedMemoryContext.MemoryType.CONVERSATION)
+                    .category("CONVERSATION")
+                    .build();
+
+            unifiedMemoryService.addWorkingMemory(request.getUserId(), request.getSessionId(), assistantItem);
         }
 
-        userMemoryManager.save(request.getUserId(), memories);
+        UnifiedMemoryService.MemoryAnalysis analysis = unifiedMemoryService.analyzeAndSave(
+                request.getUserId(), request.getMessage(), response.getContent());
+
+        if (analysis.saved()) {
+            log.info("记忆分析完成: {}", analysis.summary());
+        }
+    }
+
+    private double assessMessageImportance(String message) {
+        if (message == null || message.isBlank()) return 0.3;
+
+        double importance = 0.5;
+        int length = message.length();
+
+        if (length > 100) importance += 0.1;
+        if (length > 300) importance += 0.1;
+
+        Set<String> importantTriggers = Set.of(
+            "喜欢", "偏好", "习惯", "不要", "别用", "决定", "选择",
+            "采用", "使用", "不用", "放弃", "我叫", "我的名字", "我在"
+        );
+
+        for (String trigger : importantTriggers) {
+            if (message.contains(trigger)) {
+                importance += 0.1;
+                break;
+            }
+        }
+
+        return Math.min(importance, 1.0);
+    }
+
+    private UnifiedMemoryContext.MemoryType classifyMessageType(String message) {
+        if (message == null) return UnifiedMemoryContext.MemoryType.CONVERSATION;
+
+        Set<String> prefTriggers = Set.of("喜欢", "偏好", "习惯", "不要", "别用", "讨厌", "想要", "希望");
+        Set<String> decisionTriggers = Set.of("决定", "选择", "确定", "采用", "使用", "不用", "放弃");
+        Set<String> factTriggers = Set.of("我叫", "我的名字", "我在", "我做", "我的工作", "我是");
+
+        for (String trigger : prefTriggers) {
+            if (message.contains(trigger)) return UnifiedMemoryContext.MemoryType.PREFERENCE;
+        }
+        for (String trigger : decisionTriggers) {
+            if (message.contains(trigger)) return UnifiedMemoryContext.MemoryType.DECISION;
+        }
+        for (String trigger : factTriggers) {
+            if (message.contains(trigger)) return UnifiedMemoryContext.MemoryType.FACT;
+        }
+
+        return UnifiedMemoryContext.MemoryType.CONVERSATION;
     }
 }

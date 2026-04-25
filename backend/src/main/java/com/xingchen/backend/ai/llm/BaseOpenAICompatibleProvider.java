@@ -2,6 +2,7 @@ package com.xingchen.backend.ai.llm;
 
 import com.xingchen.backend.ai.model.AIRequest;
 import com.xingchen.backend.ai.model.AIResponse;
+import com.xingchen.backend.ai.util.MessageBuilder;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -11,6 +12,7 @@ import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.StreamingResponseHandler;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
@@ -87,7 +89,7 @@ public abstract class BaseOpenAICompatibleProvider implements LLMProvider {
 
             StringBuilder contentBuilder = new StringBuilder();
 
-            streamingModel.generate(messages, new dev.langchain4j.model.StreamingResponseHandler<AiMessage>() {
+            streamingModel.generate(messages, new StreamingResponseHandler<AiMessage>() {
                 @Override
                 public void onNext(String token) {
                     contentBuilder.append(token);
@@ -145,26 +147,10 @@ public abstract class BaseOpenAICompatibleProvider implements LLMProvider {
     }
 
     protected List<ChatMessage> buildMessages(AIRequest request) {
-        List<ChatMessage> messages = new ArrayList<>();
-
-        if (request.getSystemPrompt() != null && !request.getSystemPrompt().isEmpty()) {
-            messages.add(new SystemMessage(request.getSystemPrompt()));
-        }
-
-        if (request.getHistory() != null) {
-            for (Map<String, String> entry : request.getHistory()) {
-                String role = entry.get("role");
-                String content = entry.get("content");
-                if ("user".equals(role)) {
-                    messages.add(new UserMessage(content));
-                } else if ("assistant".equals(role)) {
-                    messages.add(new AiMessage(content));
-                }
-            }
-        }
-
-        messages.add(new UserMessage(request.getMessage()));
-
-        return messages;
+        return MessageBuilder.buildMessages(
+                request.getSystemPrompt(),
+                request.getHistory(),
+                request.getMessage()
+        );
     }
 }

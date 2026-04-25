@@ -32,8 +32,8 @@
           <button
             class="action-btn flex items-center gap-1 hover:text-blue-500 transition-colors"
             :class="{ 'text-blue-500': comment.isLiked }"
-            @click="handleLike"
             :aria-label="comment.isLiked ? '取消点赞' : '点赞'"
+            @click="handleLike"
           >
             <el-icon><Star v-if="!comment.isLiked" /><StarFilled v-else /></el-icon>
             <span>{{ comment.likeCount > 0 ? comment.likeCount : '点赞' }}</span>
@@ -42,8 +42,8 @@
           <!-- 回复 -->
           <button
             class="action-btn flex items-center gap-1 hover:text-blue-500 transition-colors"
-            @click="toggleReply"
             aria-label="回复评论"
+            @click="toggleReply"
           >
             <el-icon><ChatLineRound /></el-icon>
             <span>回复</span>
@@ -53,8 +53,8 @@
           <button
             v-if="canDelete"
             class="action-btn flex items-center gap-1 hover:text-red-500 transition-colors"
-            @click="handleDelete"
             aria-label="删除评论"
+            @click="handleDelete"
           >
             <el-icon><Delete /></el-icon>
             <span>删除</span>
@@ -64,8 +64,8 @@
           <button
             v-if="comment.replyCount > 0 && comment.level === 1"
             class="action-btn flex items-center gap-1 hover:text-blue-500 transition-colors"
-            @click="toggleReplies"
             :aria-label="showReplies ? '收起回复' : '查看回复'"
+            @click="toggleReplies"
           >
             <el-icon><ArrowDown v-if="!showReplies" /><ArrowUp v-else /></el-icon>
             <span>{{ showReplies ? '收起' : `查看${comment.replyCount}条回复` }}</span>

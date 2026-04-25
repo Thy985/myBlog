@@ -44,7 +44,7 @@
                     :total="total" 
                     :size="size" 
                     :pages="pages"
-                    @pageChange="searchArticles"
+                    @page-change="searchArticles"
                 />
 
             </div>

@@ -3,6 +3,7 @@ package com.xingchen.backend.agent.llm.impl;
 import com.xingchen.backend.agent.llm.LLMProvider;
 import com.xingchen.backend.ai.model.AIRequest;
 import com.xingchen.backend.ai.model.AIResponse;
+import com.xingchen.backend.ai.util.MessageBuilder;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -11,6 +12,8 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.StreamingResponseHandler;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
@@ -30,9 +33,9 @@ public abstract class BaseOpenAICompatibleProvider implements LLMProvider {
     protected final String apiKey;
     protected final String baseUrl;
     protected final String defaultModel;
-    protected final int timeoutSeconds;
+    protected final int timeoutSeconds;// 超时时间
 
-    protected final Map<String, ChatLanguageModel> chatModelCache = new ConcurrentHashMap<>();
+    protected final Map<String, ChatLanguageModel> chatModelCache = new ConcurrentHashMap<>();// 缓存
     protected final Map<String, StreamingChatLanguageModel> streamingModelCache = new ConcurrentHashMap<>();
 
     protected BaseOpenAICompatibleProvider(String apiKey, String baseUrl, String defaultModel, int timeoutSeconds) {
@@ -58,7 +61,7 @@ public abstract class BaseOpenAICompatibleProvider implements LLMProvider {
             ChatLanguageModel chatModel = getChatModel(model);
             List<ChatMessage> messages = buildMessages(request);
 
-            dev.langchain4j.model.output.Response<AiMessage> response = chatModel.generate(messages);
+            Response<AiMessage> response = chatModel.generate(messages);
 
             long elapsed = System.currentTimeMillis() - startTime;
             String content = response.content().text();
@@ -82,6 +85,11 @@ public abstract class BaseOpenAICompatibleProvider implements LLMProvider {
         }
     }
 
+    /**
+     * 构建消息列表
+     * @param request
+     * @return
+     */
     @Override
     public void streamChat(AIRequest request, Consumer<AIResponse> onChunk) {
         String model = request.getPreferredModel() != null ? request.getPreferredModel() : defaultModel;
@@ -91,22 +99,28 @@ public abstract class BaseOpenAICompatibleProvider implements LLMProvider {
             List<ChatMessage> messages = buildMessages(request);
             StringBuilder contentBuilder = new StringBuilder();
 
-            streamingModel.generate(messages, new dev.langchain4j.model.StreamingResponseHandler<AiMessage>() {
+            streamingModel.generate(messages, new StreamingResponseHandler<AiMessage>() {
+                /**
+                 * 每次接收一个token
+                 * @param token
+                 */
                 @Override
-                public void onNext(String token) {
-                    contentBuilder.append(token);
-                    onChunk.accept(AIResponse.chunk(token));
+                public void onNext(String token) {// 每次接收一个token
+                    contentBuilder.append(token);//追加 token
+                    onChunk.accept(AIResponse.chunk(token));//发送 chunk
                 }
-
+                /**
+                 * 输出完成
+                 * @param response
+                 */
                 @Override
-                public void onComplete(dev.langchain4j.model.output.Response<AiMessage> response) {
+                public void onComplete(Response<AiMessage> response) {
                     onChunk.accept(AIResponse.builder()
                             .type(AIResponse.ResponseType.STREAM_END)
                             .content(contentBuilder.toString())
                             .model(model)
                             .build());
                 }
-
                 @Override
                 public void onError(Throwable error) {
                     log.error("{} 流式调用失败", getProviderName(), error);
@@ -123,7 +137,7 @@ public abstract class BaseOpenAICompatibleProvider implements LLMProvider {
     @Override
     public boolean supportsStreaming() {
         return true;
-    }
+    }// 支持流式输出
 
     @Override
     public boolean supportsToolCalling() {
@@ -133,7 +147,7 @@ public abstract class BaseOpenAICompatibleProvider implements LLMProvider {
     @Override
     public boolean isAvailable() {
         return apiKey != null && !apiKey.isEmpty();
-    }
+    }// 是否可用
 
     @Override
     public ChatLanguageModel getChatModel() {
@@ -145,6 +159,11 @@ public abstract class BaseOpenAICompatibleProvider implements LLMProvider {
         return getStreamingModel(defaultModel);
     }
 
+    /**
+     * 获取 ChatModel
+     * @param model
+     * @return
+     */
     protected synchronized ChatLanguageModel getChatModel(String model) {
         return chatModelCache.computeIfAbsent(model, m ->
             OpenAiChatModel.builder()
@@ -155,7 +174,11 @@ public abstract class BaseOpenAICompatibleProvider implements LLMProvider {
                     .build()
         );
     }
-
+    /**
+     * 获取 StreamingChatModel
+     * @param model
+     * @return
+     */
     protected synchronized StreamingChatLanguageModel getStreamingModel(String model) {
         return streamingModelCache.computeIfAbsent(model, m ->
             OpenAiStreamingChatModel.builder()
@@ -166,27 +189,16 @@ public abstract class BaseOpenAICompatibleProvider implements LLMProvider {
                     .build()
         );
     }
-
+/**
+     * 构建消息列表（委托给 MessageBuilder）
+     * @param request AI 请求对象
+     * @return ChatMessage 列表
+     */
     protected List<ChatMessage> buildMessages(AIRequest request) {
-        List<ChatMessage> messages = new ArrayList<>();
-
-        if (request.getSystemPrompt() != null && !request.getSystemPrompt().isEmpty()) {
-            messages.add(new SystemMessage(request.getSystemPrompt()));
-        }
-
-        if (request.getHistory() != null) {
-            for (Map<String, String> entry : request.getHistory()) {
-                String role = entry.get("role");
-                String content = entry.get("content");
-                if ("user".equals(role)) {
-                    messages.add(new UserMessage(content));
-                } else if ("assistant".equals(role)) {
-                    messages.add(new AiMessage(content));
-                }
-            }
-        }
-
-        messages.add(new UserMessage(request.getMessage()));
-        return messages;
+        return MessageBuilder.buildMessages(
+                request.getSystemPrompt(),
+                request.getHistory(),
+                request.getMessage()
+        );
     }
 }

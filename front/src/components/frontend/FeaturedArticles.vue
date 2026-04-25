@@ -228,23 +228,8 @@ const calculateReadTime = (content) => {
 }
 
 .article-card:hover {
-    transform: translateY(-8px);
+    transform: translateY(-4px);
     box-shadow: var(--shadow-card);
-}
-
-.card-border-gradient {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--gradient-1);
-    opacity: 0;
-    transition: opacity var(--transition-normal);
-}
-
-.article-card:hover .card-border-gradient {
-    opacity: 1;
 }
 
 .card-image-wrapper {

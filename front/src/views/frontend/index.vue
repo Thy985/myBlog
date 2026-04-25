@@ -17,8 +17,8 @@
             />
 
             <div class="container mx-auto max-w-screen-xl px-4 py-16">
-                <div class="grid grid-cols-1 lg:grid-cols-4 gap-10">
-                    <div class="lg:col-span-3">
+                <div class="flex flex-col lg:flex-row gap-10">
+                    <div class="flex-1 min-w-0">
                         <div class="section-header-inline mb-8">
                             <h2 class="text-2xl font-bold flex items-center gap-3">
                                 <span class="w-1 h-8 bg-primary rounded-full"></span>
@@ -54,13 +54,13 @@
                                 :total="total"
                                 :size="size"
                                 :pages="pages"
-                                @pageChange="(page) => articlePagination.fetchData(page)"
-                                @sizeChange="(newSize) => articlePagination.changeSize(newSize)"
+                                @page-change="(page) => articlePagination.fetchData(page)"
+                                @size-change="(newSize) => articlePagination.changeSize(newSize)"
                             />
                         </div>
                     </div>
 
-                    <div class="lg:col-span-1">
+                    <div class="hidden lg:block w-80 flex-shrink-0">
                         <div class="sticky top-24 space-y-8">
                             <UserInfoCard></UserInfoCard>
 

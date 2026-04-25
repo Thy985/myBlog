@@ -13,7 +13,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * 用户级记忆管理器
  * 每个用户的记忆完全隔离
+ * @deprecated 请使用 {@link UnifiedMemoryServiceImpl}
  */
+@Deprecated
 @Component
 @RequiredArgsConstructor
 @Slf4j

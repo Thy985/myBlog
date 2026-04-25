@@ -16,20 +16,15 @@ import java.util.regex.Pattern;
 @Slf4j
 public class SemanticChunker {
 
-    // 默认分块大小
-    private static final int DEFAULT_CHUNK_SIZE = 800;
-    // 重叠大小
-    private static final int CHUNK_OVERLAP = 100;
-    // 最小块大小
-    private static final int MIN_CHUNK_SIZE = 200;
+    private static final int DEFAULT_CHUNK_SIZE = 400;
+    private static final int CHUNK_OVERLAP = 80;
+    private static final int MIN_CHUNK_SIZE = 100;
 
-    // 句子结束符
+    private static final int MAX_TOKEN_ESTIMATE = 500;
+
     private static final Pattern SENTENCE_END = Pattern.compile("[。！？.!?]+");
-    // 段落边界
     private static final Pattern PARAGRAPH_BOUNDARY = Pattern.compile("\n\s*\n");
-    // 代码块标记
     private static final Pattern CODE_BLOCK = Pattern.compile("```[\\s\\S]*?```");
-    // 标题标记
     private static final Pattern HEADING = Pattern.compile("^#{1,6}\\s+.+$", Pattern.MULTILINE);
 
     /**

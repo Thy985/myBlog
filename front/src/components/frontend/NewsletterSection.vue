@@ -76,8 +76,18 @@ onUnmounted(() => {
     }
 })
 
+const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+}
+
 const handleSubscribe = async () => {
     if (!email.value || isSubmitting.value) {return}
+
+    if (!isValidEmail(email.value)) {
+        alert('请输入有效的邮箱地址')
+        return
+    }
 
     isSubmitting.value = true
 

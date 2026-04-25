@@ -1,11 +1,6 @@
 <template>
     <section ref="heroRef" class="hero-section">
-        <div class="hero-bg">
-            <div class="grid-overlay"></div>
-            <div class="gradient-orb gradient-orb-1"></div>
-            <div class="gradient-orb gradient-orb-2"></div>
-            <div class="gradient-orb gradient-orb-3"></div>
-        </div>
+        <div class="hero-bg"></div>
 
         <div class="hero-content">
             <div class="hero-badge" :class="{ 'animate-fade-in': isVisible }">
@@ -32,18 +27,18 @@
                 </button>
             </div>
 
-            <div class="hero-stats" :class="{ 'animate-fade-in': isVisible }">
-                <div class="stat-item">
+            <div v-if="hasRealStats" class="hero-stats" :class="{ 'animate-fade-in': isVisible }">
+                <div v-if="stats.articleCount > 0" class="stat-item">
                     <span class="stat-value">{{ stats.articleCount }}</span>
                     <span class="stat-label">技术文章</span>
                 </div>
-                <div class="stat-divider"></div>
-                <div class="stat-item">
+                <div v-if="stats.articleCount > 0 && stats.totalViews > 0" class="stat-divider"></div>
+                <div v-if="stats.totalViews > 0" class="stat-item">
                     <span class="stat-value">{{ formatCount(stats.totalViews) }}</span>
                     <span class="stat-label">总阅读量</span>
                 </div>
-                <div class="stat-divider"></div>
-                <div class="stat-item">
+                <div v-if="stats.totalViews > 0 && stats.subscriberCount > 0" class="stat-divider"></div>
+                <div v-if="stats.subscriberCount > 0" class="stat-item">
                     <span class="stat-value">{{ formatCount(stats.subscriberCount) }}</span>
                     <span class="stat-label">活跃读者</span>
                 </div>
@@ -60,7 +55,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 
 defineProps({
     stats: {
@@ -77,6 +72,11 @@ defineEmits(['browseArticles', 'learnMore'])
 
 const heroRef = ref(null)
 const isVisible = ref(false)
+
+const hasRealStats = computed(() => {
+    const { articleCount, totalViews, subscriberCount } = props.stats || {}
+    return articleCount > 0 || totalViews > 0 || subscriberCount > 0
+})
 
 const formatCount = (num) => {
     if (num >= 10000) {
@@ -136,61 +136,7 @@ onUnmounted(() => {
     right: 0;
     bottom: 0;
     z-index: 0;
-}
-
-.grid-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image:
-        linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
-    background-size: 60px 60px;
-    mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
-    -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
-}
-
-.gradient-orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.5;
-    animation: float 20s ease-in-out infinite;
-}
-
-.gradient-orb-1 {
-    top: -20%;
-    left: -10%;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(99, 102, 241, 0.3) 0%, transparent 70%);
-    animation-delay: 0s;
-}
-
-.gradient-orb-2 {
-    top: 40%;
-    right: -15%;
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(236, 72, 153, 0.25) 0%, transparent 70%);
-    animation-delay: -7s;
-}
-
-.gradient-orb-3 {
-    bottom: -10%;
-    left: 30%;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, transparent 70%);
-    animation-delay: -14s;
-}
-
-@keyframes float {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    33% { transform: translate(30px, -30px) rotate(5deg); }
-    66% { transform: translate(-20px, 20px) rotate(-5deg); }
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(236, 72, 153, 0.05) 50%, rgba(245, 158, 11, 0.03) 100%);
 }
 
 .hero-content {

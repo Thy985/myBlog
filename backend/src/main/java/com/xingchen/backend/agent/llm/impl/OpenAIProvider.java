@@ -5,6 +5,7 @@ import com.xingchen.backend.agent.llm.model.LLMRequest;
 import com.xingchen.backend.agent.llm.model.LLMResponse;
 import com.xingchen.backend.ai.model.AIRequest;
 import com.xingchen.backend.ai.model.AIResponse;
+import com.xingchen.backend.ai.util.MessageBuilder;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -14,6 +15,7 @@ import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.StreamingResponseHandler;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
@@ -95,7 +97,7 @@ public class OpenAIProvider implements LLMProvider {
             List<ChatMessage> messages = buildMessages(request);
             StringBuilder contentBuilder = new StringBuilder();
 
-            streamingModelInstance.generate(messages, new dev.langchain4j.model.StreamingResponseHandler<AiMessage>() {
+            streamingModelInstance.generate(messages, new StreamingResponseHandler<AiMessage>() {
                 @Override
                 public void onNext(String token) {
                     contentBuilder.append(token);
@@ -159,7 +161,7 @@ public class OpenAIProvider implements LLMProvider {
     public StreamingChatLanguageModel getStreamingModel() {
         return getStreamingModelInstance(defaultModel);
     }
-
+    /
     private synchronized ChatLanguageModel getChatModelInstance(String model) {
         if (chatModel == null) {
             chatModel = OpenAiChatModel.builder()
@@ -171,7 +173,12 @@ public class OpenAIProvider implements LLMProvider {
         }
         return chatModel;
     }
-
+    /**
+     * 获取流式模型
+     *
+     * @param model
+     * @return
+     */
     private synchronized StreamingChatLanguageModel getStreamingModelInstance(String model) {
         if (streamingModel == null) {
             streamingModel = OpenAiStreamingChatModel.builder()
@@ -183,27 +190,17 @@ public class OpenAIProvider implements LLMProvider {
         }
         return streamingModel;
     }
-
+    /**
+     * 构建消息
+     *
+     * @param request
+     * @return
+     */
     protected List<ChatMessage> buildMessages(AIRequest request) {
-        List<ChatMessage> messages = new ArrayList<>();
-
-        if (request.getSystemPrompt() != null && !request.getSystemPrompt().isEmpty()) {
-            messages.add(new SystemMessage(request.getSystemPrompt()));
-        }
-
-        if (request.getHistory() != null) {
-            for (Map<String, String> entry : request.getHistory()) {
-                String role = entry.get("role");
-                String content = entry.get("content");
-                if ("user".equals(role)) {
-                    messages.add(new UserMessage(content));
-                } else if ("assistant".equals(role)) {
-                    messages.add(new AiMessage(content));
-                }
-            }
-        }
-
-        messages.add(new UserMessage(request.getMessage()));
-        return messages;
+        return MessageBuilder.buildMessages(
+                request.getSystemPrompt(),
+                request.getHistory(),
+                request.getMessage()
+        );
     }
 }

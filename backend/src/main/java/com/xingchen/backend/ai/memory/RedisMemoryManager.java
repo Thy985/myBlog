@@ -13,7 +13,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * 基于Redis的记忆管理器
  * 管理工作记忆和短期记忆
+ * @deprecated 请使用 {@link UnifiedMemoryServiceImpl}
  */
+@Deprecated
 @Component
 @RequiredArgsConstructor
 @Slf4j

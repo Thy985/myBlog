@@ -184,12 +184,12 @@ const goTagArticleListPage = (tagId, tagName) => {
     background: var(--bg-card);
     border-radius: var(--radius-xl);
     overflow: hidden;
-    transition: transform var(--transition-bounce), box-shadow var(--transition-bounce);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     box-shadow: var(--shadow-sm);
 }
 
 .article-card:hover {
-    transform: translateY(-8px);
+    transform: translateY(-4px);
     box-shadow: var(--shadow-card);
 }
 

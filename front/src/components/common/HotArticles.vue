@@ -50,8 +50,8 @@
     <div v-if="hotArticles.length > 0" class="mt-4 text-center">
       <button
         class="text-sm text-primary-color hover:text-primary-color/90 transition-colors duration-200"
-        @click="viewMore"
         aria-label="查看更多文章"
+        @click="viewMore"
       >
         查看更多 <svg class="w-4 h-4 inline ml-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7l3-3 3 3m0 6l-3 3-3-3" />
