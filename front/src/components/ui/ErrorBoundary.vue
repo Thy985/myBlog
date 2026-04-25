@@ -108,7 +108,7 @@ function handleGoHome() {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #fee2e2 0%, #f87171 100%);
+  background: var(--color-error-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -121,7 +121,7 @@ function handleGoHome() {
 
 .error-boundary-icon {
   font-size: 28px;
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .error-boundary-compact .error-boundary-icon {
@@ -168,7 +168,7 @@ function handleGoHome() {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   border: none;
   outline: none;
 }
@@ -178,13 +178,12 @@ function handleGoHome() {
 }
 
 .error-boundary-btn-primary {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  background: var(--color-primary);
   color: white;
 }
 
 .error-boundary-btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--primary-light);
+  background: var(--color-primary-hover);
 }
 
 .error-boundary-btn-secondary {

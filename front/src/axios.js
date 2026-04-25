@@ -13,13 +13,31 @@ const instance = axios.create({
 
 let isRefreshing = false
 let refreshSubscribers = []
+let refreshPromise = null
+
+let cachedToken = null
+let cachedCsrfToken = null
+
+function updateCachedTokens() {
+  cachedToken = getToken()
+  cachedCsrfToken = getCsrfToken()
+}
 
 function onRefreshTokenComplete(newToken, newRefreshToken) {
   setToken(newToken)
   setRefreshToken(newRefreshToken)
+  updateCachedTokens()
   refreshSubscribers.forEach(callback => callback(newToken))
   refreshSubscribers = []
   isRefreshing = false
+  refreshPromise = null
+}
+
+function onRefreshTokenFailed(error) {
+  refreshSubscribers.forEach(callback => callback(Promise.reject(error)))
+  refreshSubscribers = []
+  isRefreshing = false
+  refreshPromise = null
 }
 
 function addRefreshSubscriber(callback) {
@@ -27,17 +45,21 @@ function addRefreshSubscriber(callback) {
 }
 
 function refreshToken() {
-  if (isRefreshing) {
-    return new Promise(resolve => {
+  if (isRefreshing && refreshPromise) {
+    return new Promise((resolve, reject) => {
       addRefreshSubscriber(token => {
-        resolve(token)
+        if (token instanceof Error || token instanceof Promise) {
+          reject(token)
+        } else {
+          resolve(token)
+        }
       })
     })
   }
 
   isRefreshing = true
 
-  return instance.post('/auth/refresh', {})
+  refreshPromise = instance.post('/auth/refresh', {})
     .then(response => {
       const { token, refreshToken: newRefreshToken } = response.data
       onRefreshTokenComplete(token, newRefreshToken)
@@ -60,24 +82,26 @@ function refreshToken() {
         }, 1000)
       }
 
+      onRefreshTokenFailed(error)
       return Promise.reject(error)
     })
-    .finally(() => {
-      if (isRefreshing) {
-        isRefreshing = false
-      }
-    })
+
+  return refreshPromise
 }
 
 instance.interceptors.request.use((config) => {
-  const token = getToken()
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  if (!cachedToken) {
+    updateCachedTokens()
   }
-  const csrfToken = getCsrfToken()
-  if (csrfToken && ['post', 'put', 'patch', 'delete'].includes(config.method)) {
-    config.headers['X-XSRF-TOKEN'] = csrfToken
+
+  if (cachedToken) {
+    config.headers.Authorization = `Bearer ${cachedToken}`
   }
+
+  if (cachedCsrfToken && ['post', 'put', 'patch', 'delete'].includes(config.method)) {
+    config.headers['X-XSRF-TOKEN'] = cachedCsrfToken
+  }
+
   return config
 }, (error) => {
   return Promise.reject(error)
@@ -92,7 +116,8 @@ instance.interceptors.response.use((response) => {
   if (status === API_STATUS.UNAUTHORIZED && !config._isRetry) {
     config._isRetry = true
     return refreshToken().then(() => {
-      config.headers.Authorization = `Bearer ${getToken()}`
+      updateCachedTokens()
+      config.headers.Authorization = `Bearer ${cachedToken}`
       return instance(config)
     }).catch(() => {
       return Promise.reject(error)
@@ -110,5 +135,10 @@ instance.interceptors.response.use((response) => {
 
   return Promise.reject(error)
 })
+
+export function invalidateTokenCache() {
+  cachedToken = null
+  cachedCsrfToken = null
+}
 
 export default instance

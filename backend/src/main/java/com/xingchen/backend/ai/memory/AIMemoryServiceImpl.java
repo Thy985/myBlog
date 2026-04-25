@@ -15,7 +15,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * AI 记忆服务实现
  * 支持工作记忆、短期记忆和长期记忆
+ * @deprecated 请使用 {@link UnifiedMemoryServiceImpl}
  */
+@Deprecated
 @Service
 @Slf4j
 @RequiredArgsConstructor

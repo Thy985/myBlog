@@ -197,7 +197,8 @@ server_info_temp/
 *.7z
 
 # Frontend build output (already built)
-frontend/
+frontend/dist/
+frontend/build/
 
 # Backend target folder
 backend/target/

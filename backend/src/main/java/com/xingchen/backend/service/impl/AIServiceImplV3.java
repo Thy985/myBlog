@@ -17,6 +17,7 @@ import com.xingchen.backend.service.KnowledgeBaseService;
 import com.xingchen.backend.service.MemoryService;
 import com.xingchen.backend.service.UserApiKeyService;
 import com.xingchen.backend.config.MultiModelConfig;
+import com.xingchen.backend.ai.util.MessageBuilder;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -713,30 +714,7 @@ public class AIServiceImplV3 implements AIService {
     // ========== 私有方法 ==========
 
     private List<ChatMessage> buildMessages(String message, List<Map<String, String>> history, String systemPrompt) {
-        List<ChatMessage> messages = new ArrayList<>();
-        
-        // System Prompt
-        if (systemPrompt != null && !systemPrompt.isEmpty()) {
-            messages.add(new SystemMessage(systemPrompt));
-        }
-        
-        // 历史消息
-        if (history != null) {
-            for (Map<String, String> msg : history) {
-                String role = msg.get("role");
-                String content = msg.get("content");
-                if ("user".equals(role)) {
-                    messages.add(new UserMessage(content));
-                } else if ("assistant".equals(role)) {
-                    messages.add(new AiMessage(content));
-                }
-            }
-        }
-        
-        // 当前消息
-        messages.add(new UserMessage(message));
-        
-        return messages;
+        return MessageBuilder.buildMessages(systemPrompt, history, message);
     }
 
     private String buildRagPrompt(String message, String kbContext) {

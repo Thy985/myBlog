@@ -191,10 +191,12 @@ async function processContent() {
 }
 
 // Post-render processing
+let renderTimer = null
+
 async function postRender() {
   await nextTick()
   await nextTick()
-  setTimeout(() => {
+  renderTimer = setTimeout(() => {
     emit('rendered')
   }, 100)
 }
@@ -210,7 +212,9 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  // imageObserver cleanup placeholder
+  if (renderTimer) {
+    clearTimeout(renderTimer)
+  }
 })
 
 defineExpose({
@@ -279,7 +283,7 @@ defineExpose({
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 :deep(.code-copy-btn:hover) {
@@ -287,8 +291,8 @@ defineExpose({
 }
 
 :deep(.code-copy-btn.copied) {
-  background: var(--success-color);
-  color: white;
+  background: var(--color-success);
+  color: var(--bg-card);
 }
 
 :deep(pre code) {
@@ -313,7 +317,7 @@ defineExpose({
 
 /* Mermaid container */
 :deep(.mermaid-block) {
-  background: white;
+  background: var(--bg-card);
   border-radius: 0.5rem;
   padding: 1rem;
   margin: 1.5rem 0;

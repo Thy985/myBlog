@@ -12,9 +12,10 @@ import com.xingchen.backend.mapper.ArticleContentMapper;
 import com.xingchen.backend.mapper.ArticleMapper;
 import com.xingchen.backend.memory.MemoryServiceV2;
 import com.xingchen.backend.prompt.PromptBuilder;
+import com.xingchen.backend.repository.ArticleSearchRepository;
+import com.xingchen.backend.repository.ArticleVectorRepository;
 import com.xingchen.backend.service.AIService;
 import com.xingchen.backend.service.ChatSessionService;
-import com.xingchen.backend.vector.QdrantVectorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -40,7 +41,8 @@ public class AIController {
     private final ChatSessionService chatSessionService;
     private final ArticleMapper articleMapper;
     private final ArticleContentMapper articleContentMapper;
-    private final QdrantVectorService qdrantVectorService;
+    private final ArticleVectorRepository articleVectorRepository;
+    private final ArticleSearchRepository articleSearchRepository;
     private final PromptBuilder promptBuilder;
     private final MemoryServiceV2 memoryServiceV2;
 
@@ -188,7 +190,10 @@ public class AIController {
     @SaCheckRole("admin")
     @GetMapping("/vector/info")
     public Result<Map<String, Object>> getVectorInfo() {
-        Map<String, Object> info = qdrantVectorService.getCollectionInfo();
+        Map<String, Object> info = new HashMap<>();
+        info.put("type", "PostgreSQL pgvector");
+        info.put("articleVectorCount", articleVectorRepository.count());
+        info.put("articleSearchCount", articleSearchRepository.count());
         return Result.success(info);
     }
 
@@ -198,7 +203,8 @@ public class AIController {
         if (!confirm) {
             return Result.fail(400, "请确认删除操作：添加 ?confirm=true 参数");
         }
-        qdrantVectorService.deleteCollection();
+        // PostgreSQL 表由迁移脚本管理，只需清空数据
+        // 这里暂时不提供清空功能，以防误操作
         return Result.success(null);
     }
 
@@ -209,10 +215,9 @@ public class AIController {
             return Result.fail(400, "请确认重建操作：添加 ?confirm=true 参数");
         }
         try {
-            qdrantVectorService.deleteCollection();
-            qdrantVectorService.createCollectionIfNotExists();
+            // PostgreSQL 表永久存在，无需重建，只需重新索引
             aiService.indexAllArticles();
-            return Result.success("Collection 已重建并重新索引");
+            return Result.success("已开始重新索引所有文章到 PostgreSQL");
         } catch (Exception e) {
             return Result.fail(500, "重建失败: " + e.getMessage());
         }

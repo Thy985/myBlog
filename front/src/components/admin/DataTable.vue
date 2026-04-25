@@ -173,7 +173,7 @@ defineEmits([
 <style scoped>
 .data-table-card {
   border-radius: 8px;
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .data-table-card:hover {
@@ -191,7 +191,7 @@ defineEmits([
 .card-title {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -201,13 +201,13 @@ defineEmits([
   align-items: center;
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-subtle);
   flex-wrap: wrap;
   gap: 12px;
 }
 
 .pagination-info {
-  color: #606266;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 

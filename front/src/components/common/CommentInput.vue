@@ -18,9 +18,10 @@
       <div v-if="isFocused || content" class="input-actions flex justify-between items-center mt-3">
         <!-- 表情和工具 -->
         <div class="tools flex items-center gap-2">
-          <el-button 
-            size="small" 
+          <el-button
+            size="small"
             text
+            aria-label="选择表情"
             @click="showEmojiPicker = !showEmojiPicker"
           >
             <el-icon>
@@ -150,7 +151,7 @@ const insertEmoji = (emoji) => {
 }
 
 // 提交评论
-const handleSubmit = async () => {
+const handleSubmit = () => {
   if (!content.value.trim()) {
     ElMessage.warning('评论内容不能为空')
     return
@@ -164,7 +165,6 @@ const handleSubmit = async () => {
   submitting.value = true
   try {
     emit('submit', content.value.trim())
-    // 清空输入框
     content.value = ''
     isFocused.value = false
   } catch (error) {
@@ -194,13 +194,13 @@ const handleCancel = () => {
 
 :deep(.el-textarea__inner) {
   border-radius: 8px;
-  border-color: #e0e0e0;
-  transition: all 0.3s;
+  border-color: var(--border-color);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 :deep(.el-textarea__inner:focus) {
-  border-color: #409eff;
-  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-subtle);
 }
 
 .input-actions {
@@ -237,7 +237,7 @@ const handleCancel = () => {
 }
 
 .emoji-item {
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .emoji-item:hover {

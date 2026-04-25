@@ -67,7 +67,7 @@ const sizeClass = computed(() => {
   border-radius: 9999px;
   font-weight: 500;
   border: 1px solid transparent;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Primary */
@@ -83,9 +83,9 @@ const sizeClass = computed(() => {
 
 /* Secondary */
 .tech-badge-secondary {
-  background: rgba(139, 92, 246, 0.15);
-  color: #A78BFA;
-  border-color: rgba(139, 92, 246, 0.3);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  border-color: var(--color-accent-glow);
 }
 
 /* Success */
@@ -146,8 +146,8 @@ const sizeClass = computed(() => {
 }
 
 .dot-secondary {
-  background: #A78BFA;
-  box-shadow: 0 0 6px rgba(139, 92, 246, 0.6);
+  background: var(--color-accent);
+  box-shadow: 0 0 6px var(--color-accent-glow);
 }
 
 .dot-success {

@@ -63,7 +63,7 @@ const formData = ref({
   confirmPassword: ''
 })
 
-const handleSubmit = async () => {
+const handleSubmit = () => {
   if (formData.value.newPassword !== formData.value.confirmPassword) {
     showMessage('两次输入的密码不一致', 'warning')
     return

@@ -30,6 +30,13 @@ public class RegexIntentClassifier implements IntentClassifierInterface {
             0.85,
             List.of("article_update")
         ),
+        // 删除文章
+        new IntentPattern(
+            Intent.IntentType.DELETE_ARTICLE,
+            Pattern.compile(".*(删除|remove|delete).*(文章|article).*"),
+            0.9,
+            List.of("article_delete")
+        ),
         // 发布文章
         new IntentPattern(
             Intent.IntentType.PUBLISH_ARTICLE,
@@ -127,6 +134,34 @@ public class RegexIntentClassifier implements IntentClassifierInterface {
             Pattern.compile(".*(查询|搜索|find).*(知识库|knowledge|文档).*"),
             0.75,
             List.of("hybrid-search")
+        ),
+        // 内容审计
+        new IntentPattern(
+            Intent.IntentType.CONTENT_AUDIT,
+            Pattern.compile(".*(审计|检查|分析|审核).*(文章|内容|质量).*"),
+            0.85,
+            List.of("content_audit")
+        ),
+        // 优化文章
+        new IntentPattern(
+            Intent.IntentType.OPTIMIZE_ARTICLE,
+            Pattern.compile(".*(优化|改进|improve|优化).*(文章|内容|质量).*"),
+            0.8,
+            List.of("article_update")
+        ),
+        // 内容机会发现
+        new IntentPattern(
+            Intent.IntentType.CONTENT_OPPORTUNITY,
+            Pattern.compile(".*(发现|找|find|discover).*(内容|topic|主题|机会|缺口).*"),
+            0.85,
+            List.of("content_opportunity")
+        ),
+        // 联网搜索
+        new IntentPattern(
+            Intent.IntentType.ONLINE_SEARCH,
+            Pattern.compile(".*(搜索|search|联网|online|实时).*"),
+            0.9,
+            List.of("tavily_search")
         )
     );
 

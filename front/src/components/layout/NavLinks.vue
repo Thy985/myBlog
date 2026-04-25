@@ -66,6 +66,6 @@
   height: 0.125rem;
   background-color: var(--primary-color);
   border-radius: 9999px;
-  transition: all 0.3s ease-in-out;
+  transition: width 0.3s ease, background-color 0.3s ease;
 }
 </style>

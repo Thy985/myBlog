@@ -1,5 +1,5 @@
 /* ============================================
-   Design Tokens - 统一设计变量 (v2.0)
+   Design Tokens - 统一设计变量 (v3.0)
    Single Source of Truth for all design values
 
    ✅ 推荐使用: --color-*, --bg-*, --text-*, --border-*
@@ -13,10 +13,13 @@
   --color-primary-subtle: rgba(99, 102, 241, 0.15);
   --color-primary-glow: rgba(99, 102, 241, 0.4);
 
-  --color-accent: #60A5FA;
-  --color-accent-hover: #93C5FD;
-  --color-accent-subtle: rgba(96, 165, 250, 0.15);
-  --color-accent-glow: rgba(96, 165, 250, 0.4);
+  --color-secondary: #EC4899;
+  --color-secondary-hover: #F472B6;
+  --color-secondary-subtle: rgba(236, 72, 153, 0.15);
+
+  --color-accent: #F59E0B;
+  --color-accent-hover: #FBBF24;
+  --color-accent-subtle: rgba(245, 158, 11, 0.15);
 
   --color-success: #34D399;
   --color-success-subtle: rgba(16, 185, 129, 0.15);
@@ -29,6 +32,12 @@
   --color-error: #F87171;
   --color-error-subtle: rgba(239, 68, 68, 0.15);
   --color-error-glow: rgba(239, 68, 68, 0.3);
+
+  /* === GRADIENT TOKENS === */
+  --gradient-1: linear-gradient(135deg, #6366F1 0%, #EC4899 50%, #F59E0B 100%);
+  --gradient-2: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+  --gradient-primary: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  --gradient-subtle: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(236, 72, 153, 0.05) 100%);
 
   /* === SEMANTIC TOKENS (Light Mode) === */
   --bg-primary: #ffffff;
@@ -50,17 +59,22 @@
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-xl: 18px;
+  --radius-2xl: 24px;
   --radius-full: 9999px;
 
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.2);
+  --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.15);
   --shadow-glow: 0 0 20px var(--color-primary-glow);
   --shadow-glow-sm: 0 0 10px var(--color-primary-subtle);
+  --shadow-primary: 0 4px 15px rgba(99, 102, 241, 0.4);
 
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
   --transition-slow: 400ms ease;
+  --transition-bounce: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
   /* === GLASS TOKENS === */
   --glass-bg: rgba(255, 255, 255, 0.7);
@@ -68,7 +82,8 @@
   --glass-border: rgba(255, 255, 255, 0.2);
   --glass-border-hover: rgba(255, 255, 255, 0.3);
   --glass-blur: 8px;
-  --glass-blur-lg: 12px;
+  --glass-blur-lg: 20px;
+  --glass-blur-xl: 32px;
 
   /* === DEPRECATED ALIASES (将在 v3.0 移除) === */
   /* 请迁移到对应的 --color-* / --bg-* / --text-* 变量 */
@@ -133,26 +148,33 @@
 
 /* === DARK MODE === */
 .dark {
-  /* === SEMANTIC TOKENS (Dark Mode) === */
-  --bg-primary: #0A0A0B;
-  --bg-secondary: #111113;
-  --bg-tertiary: #16161A;
-  --bg-card: #16161A;
-  --bg-elevated: #1A1A1D;
+  /* === SEMANTIC TOKENS (Dark Mode) - Modern Dark Theme === */
+  --bg-primary: #0F172A;
+  --bg-secondary: #1E293B;
+  --bg-tertiary: #334155;
+  --bg-card: #1E293B;
+  --bg-elevated: #334155;
 
-  --text-primary: #F3F4F6;
-  --text-secondary: #E5E7EB;
-  --text-muted: #71717A;
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
 
-  --border-color: #27272A;
-  --border-subtle: #3F3F46;
-  --border-hover: #52525B;
+  --border-color: #334155;
+  --border-subtle: #1E293B;
+  --border-hover: #475569;
 
   /* === GLASS TOKENS === */
-  --glass-bg: rgba(22, 22, 26, 0.85);
-  --glass-bg-hover: rgba(30, 30, 35, 0.9);
+  --glass-bg: rgba(15, 23, 42, 0.8);
+  --glass-bg-hover: rgba(30, 41, 59, 0.9);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-border-hover: rgba(255, 255, 255, 0.2);
+
+  /* === SHADOW TOKENS (Enhanced for dark mode) === */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.4);
 
   /* === DEPRECATED ALIASES (Dark Mode) === */
   --background-primary: var(--bg-primary);

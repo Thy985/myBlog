@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 // 路由懒加载
-const AdminIndex = () => import('@/views/admin/index.vue')
+const AdminIndex = () => import('@/views/admin/Index.vue')
 const About = () => import('@/views/about.vue')
 const NotFound = () => import('@/views/404.vue')
 const AdminLogin = () => import('@/views/admin/login.vue')
@@ -37,8 +37,17 @@ const UserLogin = () => import('@/views/frontend/Login.vue')
 const UserRegister = () => import('@/views/frontend/Register.vue')
 const UserForgotPassword = () => import('@/views/frontend/ForgotPassword.vue')
 const UserVerifyMfa = () => import('@/views/frontend/VerifyMfa.vue')
+const UserNotificationList = () => import('@/views/frontend/notification-list.vue')
 
 const routes = [
+  {
+    path: '/user/notifications',
+    component: UserNotificationList,
+    meta: {
+      title: '我的通知',
+      requiresAuth: true
+    }
+  },
   {
     // 指定访问路径
     path: '/admin',

@@ -70,7 +70,7 @@ const props = defineProps({
   // 标题
   title: {
     type: String,
-    default: '暂无数据'
+    default: '暂无内容'
   },
   // 描述
   description: {
@@ -160,12 +160,10 @@ const handleSecondaryAction = () => {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary-subtle) 0%, var(--color-primary) 100%);
+  background: var(--color-primary-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px var(--color-primary-subtle);
-  opacity: 0.9;
 }
 
 .empty-state-compact .empty-state-icon-bg {
@@ -220,7 +218,7 @@ const handleSecondaryAction = () => {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   border: none;
   outline: none;
 }
@@ -230,13 +228,12 @@ const handleSecondaryAction = () => {
 }
 
 .empty-state-btn-primary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary) 100%);
+  background: var(--color-primary);
   color: white;
 }
 
 .empty-state-btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-subtle);
+  background: var(--color-primary-hover);
 }
 
 .empty-state-btn-secondary {
@@ -267,7 +264,7 @@ const handleSecondaryAction = () => {
 }
 
 .dark .empty-state-icon-bg {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  background: var(--color-primary-subtle);
 }
 
 .dark .empty-state-btn-secondary {

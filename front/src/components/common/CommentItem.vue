@@ -17,20 +17,22 @@
           <span class="time text-sm text-gray-500">{{ formatTime(comment.createdTime) }}</span>
         </div>
 
-        <!-- 评论文本 -->
+        <!-- 评论文本 (使用 sanitizeHtml 防止 XSS) -->
         <div class="comment-text text-gray-700 mb-3">
           <span v-if="comment.replyTo" class="reply-to text-blue-500">
             @{{ comment.replyTo }}
           </span>
-          {{ comment.content }}
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <span v-html="sanitizeHtml(comment.content)"></span>
         </div>
 
         <!-- 操作按钮 -->
         <div class="comment-actions flex items-center gap-4 text-sm">
           <!-- 点赞 -->
-          <button 
+          <button
             class="action-btn flex items-center gap-1 hover:text-blue-500 transition-colors"
             :class="{ 'text-blue-500': comment.isLiked }"
+            :aria-label="comment.isLiked ? '取消点赞' : '点赞'"
             @click="handleLike"
           >
             <el-icon><Star v-if="!comment.isLiked" /><StarFilled v-else /></el-icon>
@@ -38,8 +40,9 @@
           </button>
 
           <!-- 回复 -->
-          <button 
+          <button
             class="action-btn flex items-center gap-1 hover:text-blue-500 transition-colors"
+            aria-label="回复评论"
             @click="toggleReply"
           >
             <el-icon><ChatLineRound /></el-icon>
@@ -47,9 +50,10 @@
           </button>
 
           <!-- 删除(仅自己的评论) -->
-          <button 
+          <button
             v-if="canDelete"
             class="action-btn flex items-center gap-1 hover:text-red-500 transition-colors"
+            aria-label="删除评论"
             @click="handleDelete"
           >
             <el-icon><Delete /></el-icon>
@@ -57,9 +61,10 @@
           </button>
 
           <!-- 查看回复 -->
-          <button 
+          <button
             v-if="comment.replyCount > 0 && comment.level === 1"
             class="action-btn flex items-center gap-1 hover:text-blue-500 transition-colors"
+            :aria-label="showReplies ? '收起回复' : '查看回复'"
             @click="toggleReplies"
           >
             <el-icon><ArrowDown v-if="!showReplies" /><ArrowUp v-else /></el-icon>
@@ -101,6 +106,7 @@ import { Star, StarFilled, ChatLineRound, Delete, ArrowDown, ArrowUp } from '@el
 import { ElMessageBox } from 'element-plus'
 import CommentInput from './CommentInput.vue'
 import { fromNow } from '@/utils/dayjs'
+import { sanitizeHtml } from '@/utils/xss'
 
 const props = defineProps({
   comment: {
@@ -136,9 +142,9 @@ const toggleReply = () => {
 }
 
 // 切换回复列表
-const toggleReplies = async () => {
+const toggleReplies = () => {
   showReplies.value = !showReplies.value
-  
+
   // 如果是展开且还没有加载回复，则加载
   if (showReplies.value && (!props.comment.replies || props.comment.replies.length === 0)) {
     emit('load-replies', props.comment)
@@ -184,7 +190,7 @@ const handleReplySubmit = (content) => {
 }
 
 .comment-item:not(:last-child) {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .comment-avatar {
@@ -221,16 +227,21 @@ const handleReplySubmit = (content) => {
   cursor: pointer;
   padding: 4px 8px;
   border-radius: var(--radius-sm);
-  transition: all var(--transition-normal);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .action-btn:hover {
   background-color: var(--bg-tertiary);
 }
 
+.action-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .replies {
   padding-left: 48px;
-  border-left: 2px solid #f0f0f0;
+  border-left: 2px solid var(--border-color);
 }
 
 /* 回复样式 */

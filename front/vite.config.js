@@ -36,32 +36,36 @@ export default defineConfig({
     }
   },
   build: {
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-        pure_funcs: ['console.log', 'console.warn', 'console.error'],
-        passes: 2
-      },
-      mangle: {
-        toplevel: true
-      },
-      format: {
-        comments: false
-      }
-    },
+    minify: 'esbuild',
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['vue', 'vue-router', 'pinia'],
-          element: ['element-plus', '@element-plus/icons-vue'],
-          echarts: ['echarts'],
-          viewer: ['viewerjs'],
-          markdown: ['md-editor-v3'],
-          axios: ['axios'],
-          dayjs: ['dayjs'],
-          utils: ['dompurify', 'nprogress', 'gsap', 'animate.css']
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('element-plus')) {
+              return 'element'
+            }
+            if (id.includes('echarts')) {
+              return 'echarts'
+            }
+            if (id.includes('md-editor-v3')) {
+              return 'markdown'
+            }
+            if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router')) {
+              return 'vendor'
+            }
+            if (id.includes('axios')) {
+              return 'axios'
+            }
+            if (id.includes('dayjs')) {
+              return 'dayjs'
+            }
+            if (id.includes('viewerjs')) {
+              return 'viewer'
+            }
+            if (id.includes('dompurify') || id.includes('nprogress') || id.includes('gsap') || id.includes('animate.css')) {
+              return 'utils'
+            }
+          }
         },
         entryFileNames: 'assets/js/[name].[hash].js',
         chunkFileNames: 'assets/js/[name].[hash].js',
@@ -82,13 +86,14 @@ export default defineConfig({
     assetsDir: 'assets',
     outDir: 'dist',
     sourcemap: false,
-    chunkSizeWarningLimit: 800,
+    chunkSizeWarningLimit: 500,
     modulePreload: {
-      polyfill: true
+      polyfill: false
     },
     cssCodeSplit: true,
     manifest: true,
-    assetsInlineLimit: 4096
+    assetsInlineLimit: 4096,
+    target: 'esnext'
   },
   optimizeDeps: {
     include: [

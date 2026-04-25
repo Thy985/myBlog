@@ -1,26 +1,25 @@
 <template>
-  <div 
-    class="carousel-container relative overflow-hidden rounded-xl shadow-lg"
+  <div
+    class="carousel-container relative overflow-hidden rounded-xl"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
     @touchstart="handleTouchStart"
     @touchend="handleTouchEnd"
   >
     <!-- 加载状态 -->
-    <div v-if="loading" class="carousel-bg flex items-center justify-center bg-background-secondary">
-      <div class="animate-pulse flex flex-col items-center gap-3">
-        <div class="w-12 h-12 rounded-full bg-background-tertiary"></div>
-        <div class="w-32 h-4 rounded bg-background-tertiary"></div>
+    <div v-if="loading" class="carousel-bg flex items-center justify-center">
+      <div class="loading-placeholder">
+        <div class="loading-shimmer"></div>
       </div>
     </div>
 
     <!-- 空状态 -->
-    <div v-else-if="!hasItems" class="carousel-bg flex items-center justify-center bg-background-secondary">
-      <div class="text-center text-text-tertiary">
-        <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+    <div v-else-if="!hasItems" class="carousel-bg flex items-center justify-center">
+      <div class="empty-placeholder">
+        <svg class="w-16 h-16 mb-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
         </svg>
-        <p>暂无轮播内容</p>
+        <p class="text-white/60 text-lg font-medium">暂无轮播内容</p>
       </div>
     </div>
 
@@ -30,17 +29,37 @@
       class="carousel-wrapper flex overflow-hidden"
       :style="{ transform: `translateX(-${currentIndex * 100}%)`, transitionDuration: `${transitionDuration}ms` }"
     >
-      <div 
-        v-for="(item, index) in carouselItems" 
+      <div
+        v-for="(item, index) in carouselItems"
         :key="item.id || index"
         class="carousel-item flex-shrink-0 w-full relative"
       >
         <div class="carousel-bg relative overflow-hidden">
-          <!-- 响应式图片 -->
-          <picture v-if="item.imageWebp">
+          <!-- 动态渐变占位背景（当没有图片时显示） -->
+          <div
+            v-if="!hasImage(item)"
+            class="absolute inset-0 gradient-placeholder"
+            :style="{ background: getGradientPlaceholder(item) }"
+          >
+            <div class="absolute inset-0 bg-black/20"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="text-center p-8">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <span class="text-white text-3xl font-bold">{{ getTitleInitial(item.title) }}</span>
+                </div>
+                <h3 class="text-2xl md:text-3xl font-bold text-white mb-2 line-clamp-2">
+                  {{ item.title }}
+                </h3>
+                <p class="text-white/70 text-sm line-clamp-1">{{ item.description || '暂无描述' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 实际图片（当有图片时显示） -->
+          <picture v-if="item.imageWebp && hasImage(item)">
             <source :srcset="item.imageWebp" type="image/webp">
             <img
-              :src="resolveImageUrl(item)"
+              :src="item.titleImage || item.imageUrl"
               :srcset="generateSrcSet(item)"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 1200px"
               class="w-full h-full object-cover carousel-image"
@@ -49,12 +68,11 @@
               height="400"
               loading="lazy"
               decoding="async"
-              @error="handleImageError(item)"
             />
           </picture>
           <img
-            v-else
-            :src="resolveImageUrl(item)"
+            v-else-if="hasImage(item)"
+            :src="item.titleImage || item.imageUrl"
             :srcset="generateSrcSet(item)"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 1200px"
             class="w-full h-full object-cover carousel-image"
@@ -63,26 +81,25 @@
             height="400"
             loading="lazy"
             decoding="async"
-            @error="handleImageError(item)"
           />
-          
-          <!-- 渐变遮罩 -->
-          <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
-          
-          <!-- 轮播内容 -->
-          <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-8 md:p-10">
-            <span v-if="item.tag" class="inline-block px-2 py-1 mb-2 text-xs font-medium bg-primary-color text-white rounded">
-              {{ item.tag }}
+
+          <!-- 渐变遮罩（仅图片模式时显示） -->
+          <div v-if="hasImage(item)" class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
+
+          <!-- 轮播内容（仅图片模式时显示） -->
+          <div v-if="hasImage(item)" class="absolute bottom-0 left-0 right-0 p-6 sm:p-8 md:p-10">
+            <span v-if="item.categoryName" class="inline-block px-3 py-1 mb-3 text-xs font-semibold rounded-full bg-white/20 backdrop-blur-sm text-white">
+              {{ item.categoryName }}
             </span>
             <h3 class="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2 line-clamp-2">
               {{ item.title }}
             </h3>
-            <p class="text-gray-200 text-sm sm:text-base mb-4 line-clamp-2">
+            <p class="text-white/80 text-sm sm:text-base mb-4 line-clamp-2">
               {{ item.description || '暂无描述' }}
             </p>
-            <button 
-              v-if="item.link"
-              class="inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors backdrop-blur-sm"
+            <button
+              v-if="item.link || item.id"
+              class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all backdrop-blur-sm hover:scale-105"
               @click="handleClick(item)"
             >
               查看详情
@@ -94,26 +111,26 @@
         </div>
       </div>
     </div>
-    
-    <!-- 轮播指示器 - 改进点击区域 -->
+
+    <!-- 轮播指示器 -->
     <div v-if="hasItems && carouselItems.length > 1" class="carousel-indicators absolute bottom-4 left-0 right-0 flex justify-center gap-2">
-      <button 
-        v-for="(item, index) in carouselItems" 
+      <button
+        v-for="(item, index) in carouselItems"
         :key="index"
         class="group relative p-1"
         :aria-label="`跳转到第${index + 1}张`"
         @click="goToSlide(index)"
       >
-        <span 
+        <span
           class="block w-8 h-1.5 rounded-full transition-all duration-300"
-          :class="currentIndex === index ? 'bg-white' : 'bg-white/40 group-hover:bg-white/60'"
+          :class="currentIndex === index ? 'bg-white shadow-lg' : 'bg-white/40 group-hover:bg-white/60'"
         ></span>
       </button>
     </div>
-    
-    <!-- 左右箭头 - 悬停显示 -->
+
+    <!-- 左右箭头 -->
     <template v-if="hasItems && carouselItems.length > 1">
-      <button 
+      <button
         class="carousel-arrow carousel-arrow-left"
         aria-label="上一张"
         @click="prevSlide"
@@ -122,7 +139,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
         </svg>
       </button>
-      <button 
+      <button
         class="carousel-arrow carousel-arrow-right"
         aria-label="下一张"
         @click="nextSlide"
@@ -132,9 +149,9 @@
         </svg>
       </button>
     </template>
-    
+
     <!-- 轮播暂停/播放控制按钮 -->
-    <button 
+    <button
       v-if="hasItems && carouselItems.length > 1"
       class="carousel-play-control"
       :aria-label="isPlaying ? '暂停轮播' : '播放轮播'"
@@ -151,8 +168,8 @@
 
     <!-- 进度条 -->
     <div v-if="hasItems && isPlaying && carouselItems.length > 1" class="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
-      <div 
-        class="h-full bg-primary-color transition-all ease-linear"
+      <div
+        class="h-full progress-bar"
         :style="{ width: `${progress}%` }"
       ></div>
     </div>
@@ -162,11 +179,9 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import logger from '@/utils/logger'
 
 const router = useRouter()
 
-// Props
 const props = defineProps({
   items: {
     type: Array,
@@ -186,7 +201,6 @@ const props = defineProps({
   }
 })
 
-// 响应式数据
 const currentIndex = ref(0)
 const intervalId = ref(null)
 const isPlaying = ref(true)
@@ -196,27 +210,46 @@ const progress = ref(0)
 const progressInterval = ref(null)
 const touchStartX = ref(0)
 
-// 占位图
-const placeholderImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400"%3E%3Crect fill="%23f3f4f6" width="1200" height="400"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="24" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3E暂无图片%3C/text%3E%3C/svg%3E'
-const fallbackImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400"%3E%3Crect fill="%23e5e7eb" width="1200" height="400"/%3E%3Ctext fill="%236b7280" font-family="sans-serif" font-size="20" dy="10.5" x="50%25" y="50%25" text-anchor="middle"%3E图片加载失败%3C/text%3E%3C/svg%3E'
+const _fallbackImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400%3E%3Crect fill="%231e293b" width="1200" height="400"/%3E%3C/svg%3E'
 
-const errorIndexSet = new Set()
+const gradients = [
+  'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+  'linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%)',
+  'linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #667eea 100%)',
+  'linear-gradient(135deg, #fa709a 0%, #fee140 50%, #fa709a 100%)',
+  'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 50%, #a18cd1 100%)',
+  'linear-gradient(135deg, #6366f1 0%, #ec4899 50%, #f59e0b 100%)',
+  'linear-gradient(135deg, #0c3483 0%, #a2b6df 50%, #6b8cce 100%)',
+  'linear-gradient(135deg, #ff0844 0%, #ffb199 50%, #ff0844 100%)',
+  'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+  'linear-gradient(135deg, #11998e 0%, #38ef7d 50%, #11998e 100%)'
+]
 
 const carouselItems = computed(() => props.items || [])
 const hasItems = computed(() => carouselItems.value.length > 0)
 
-function resolveImageUrl(item) {
-  if (errorIndexSet.has(item.id)) {return fallbackImage}
-  return item.titleImage || item.imageUrl || placeholderImage
+const hasImage = (item) => {
+  if (!item) {return false}
+  return !!(item.titleImage || item.imageUrl)
 }
 
-function resolveLink(item) {
+const resolveLink = (item) => {
   if (item.link) {return item.link}
   if (item.id) {return `/article/${item.id}`}
   return null
 }
 
-// 生成响应式图片srcset
+const getTitleInitial = (title) => {
+  if (!title) {return '?'}
+  return title.charAt(0).toUpperCase()
+}
+
+const getGradientPlaceholder = (item) => {
+  if (!item || !item.id) {return gradients[0]}
+  const index = item.id % gradients.length
+  return gradients[index]
+}
+
 const generateSrcSet = (item) => {
   if (!item.responsiveImages) {return null}
   return item.responsiveImages
@@ -224,7 +257,6 @@ const generateSrcSet = (item) => {
     .join(', ')
 }
 
-// 方法
 const nextSlide = () => {
   if (!hasItems.value) {return}
   currentIndex.value = (currentIndex.value + 1) % carouselItems.value.length
@@ -242,10 +274,9 @@ const goToSlide = (index) => {
   resetProgress()
 }
 
-// 自动播放控制
 const startAutoPlay = () => {
   if (!props.autoplay || !isPlaying.value || isPaused.value || !hasItems.value) {return}
-  
+
   stopAutoPlay()
   intervalId.value = setInterval(nextSlide, props.interval)
   startProgress()
@@ -259,7 +290,6 @@ const stopAutoPlay = () => {
   stopProgress()
 }
 
-// 进度条动画
 const startProgress = () => {
   stopProgress()
   progress.value = 0
@@ -283,7 +313,6 @@ const resetProgress = () => {
   }
 }
 
-// 切换轮播状态
 const toggleAutoPlay = () => {
   isPlaying.value = !isPlaying.value
   if (isPlaying.value) {
@@ -293,7 +322,6 @@ const toggleAutoPlay = () => {
   }
 }
 
-// 鼠标悬停控制
 const handleMouseEnter = () => {
   isPaused.value = true
   stopAutoPlay()
@@ -306,7 +334,6 @@ const handleMouseLeave = () => {
   }
 }
 
-// 触摸滑动支持
 const handleTouchStart = (e) => {
   touchStartX.value = e.touches[0].clientX
   stopAutoPlay()
@@ -315,7 +342,7 @@ const handleTouchStart = (e) => {
 const handleTouchEnd = (e) => {
   const touchEndX = e.changedTouches[0].clientX
   const diff = touchStartX.value - touchEndX
-  
+
   if (Math.abs(diff) > 50) {
     if (diff > 0) {
       nextSlide()
@@ -323,13 +350,12 @@ const handleTouchEnd = (e) => {
       prevSlide()
     }
   }
-  
+
   if (isPlaying.value) {
     startAutoPlay()
   }
 }
 
-// 点击处理
 const handleClick = (item) => {
   const link = resolveLink(item)
   if (!link) {return}
@@ -340,15 +366,6 @@ const handleClick = (item) => {
   }
 }
 
-// 图片错误处理（使用 Set 追踪，不修改 props/computed 数据）
-const handleImageError = (item) => {
-  if (item?.id) {
-    errorIndexSet.add(item.id)
-  }
-  logger.error(`轮播图图片加载失败: ${item?.title || item?.id || 'unknown'}`)
-}
-
-// 监听items变化
 watch(() => props.items, (newItems) => {
   if (newItems && newItems.length > 0) {
     currentIndex.value = 0
@@ -358,7 +375,6 @@ watch(() => props.items, (newItems) => {
   }
 }, { immediate: true })
 
-// 生命周期
 onMounted(() => {
   if (props.autoplay && hasItems.value) {
     startAutoPlay()
@@ -389,11 +405,26 @@ onUnmounted(() => {
 }
 
 .carousel-bg {
-  height: 320px;
+  height: 400px;
   position: relative;
 }
 
-/* 图片懒加载时的淡入效果 */
+@media (max-width: 768px) {
+  .carousel-bg {
+    height: 320px;
+  }
+}
+
+@media (max-width: 480px) {
+  .carousel-bg {
+    height: 240px;
+  }
+}
+
+.gradient-placeholder {
+  transition: background 0.5s ease;
+}
+
 .carousel-image {
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -413,27 +444,28 @@ onUnmounted(() => {
   gap: 4px;
 }
 
-/* 箭头按钮 - 默认隐藏，悬停显示 */
 .carousel-arrow {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background-color: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   opacity: 0;
   z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .carousel-arrow:hover {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(99, 102, 241, 0.6);
   transform: translateY(-50%) scale(1.1);
 }
 
@@ -449,28 +481,28 @@ onUnmounted(() => {
   right: 16px;
 }
 
-/* 播放/暂停控制按钮 */
 .carousel-play-control {
   position: absolute;
   top: 16px;
   right: 16px;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   opacity: 0;
   z-index: 10;
-  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .carousel-play-control:hover {
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(99, 102, 241, 0.6);
   transform: scale(1.1);
 }
 
@@ -478,33 +510,71 @@ onUnmounted(() => {
   opacity: 1;
 }
 
-/* 响应式调整 */
+.progress-bar {
+  background: var(--gradient-1);
+  transition: width 50ms linear;
+}
+
+.empty-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-secondary);
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
 @media (max-width: 768px) {
-  .carousel-bg {
-    height: 240px;
-  }
-  
   .carousel-indicators {
     bottom: 12px;
   }
-  
+
   .carousel-arrow {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     opacity: 1;
   }
-  
+
   .carousel-arrow-left {
     left: 8px;
   }
-  
+
   .carousel-arrow-right {
     right: 8px;
   }
-  
+
   .carousel-play-control {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     top: 8px;
     right: 8px;
     opacity: 1;
@@ -512,32 +582,30 @@ onUnmounted(() => {
 }
 
 @media (max-width: 480px) {
-  .carousel-bg {
-    height: 200px;
-  }
-  
   .carousel-indicators {
     bottom: 8px;
   }
-  
+
   .carousel-arrow {
-    width: 28px;
-    height: 28px;
+    width: 44px;
+    height: 44px;
   }
 }
 
-/* 减少动画偏好支持 */
 @media (prefers-reduced-motion: reduce) {
   .carousel-wrapper {
     transition-duration: 0ms !important;
   }
-  
-  .carousel-image {
-    transition: none;
-  }
-  
+
+  .carousel-image,
   .carousel-arrow,
-  .carousel-play-control {
+  .carousel-play-control,
+  .loading-shimmer {
+    transition: none;
+    animation: none;
+  }
+
+  .gradient-placeholder {
     transition: none;
   }
 }

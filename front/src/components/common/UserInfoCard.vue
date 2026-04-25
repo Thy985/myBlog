@@ -64,11 +64,11 @@
         </el-card>
     </div> -->
 
-    <div class="glass rounded-xl p-5 transition-all duration-300 hover:border-glass-border-hover">
+    <div class="bg-card border border-border-color rounded-xl p-5 transition-all duration-300 hover:border-border-hover">
         <div class="flex flex-col items-center py-2">
             <!-- Avatar with ring effect -->
             <div class="relative mb-4">
-                <div class="w-20 h-20 rounded-full ring-4 ring-primary-color/30 shadow-lg shadow-primary-color/20 overflow-hidden">
+                <div class="w-20 h-20 rounded-full ring-4 ring-primary-color/30 shadow-lg overflow-hidden">
                     <img
                       class="w-full h-full object-cover"
                       :src="getAvatarUrl"
@@ -95,8 +95,8 @@
                 {{ store.setting.introduction }}
             </p>
 
-            <!-- Divider with gradient -->
-            <div class="w-full h-px bg-gradient-to-r from-transparent via-border-color to-transparent mb-4"></div>
+            <!-- Divider -->
+            <div class="w-full h-px bg-border-color mb-4"></div>
 
             <!-- Social Media Links - Prominent display -->
             <div class="w-full">
@@ -212,11 +212,11 @@ const defaultAvatar = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/s
     gap: 4px;
     padding: 10px 14px;
     border-radius: 12px;
-    transition: all 0.25s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
     text-decoration: none;
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
 }
 
 .social-icon:hover {

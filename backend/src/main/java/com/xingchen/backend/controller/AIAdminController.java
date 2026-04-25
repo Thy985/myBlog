@@ -57,8 +57,9 @@ public class AIAdminController {
         var stats = userAIConfigService.getUserMemoryStats(userId);
         
         return Result.success(Map.of(
-                "shortTermMemoryCount", stats.shortTermMemoryCount(),
-                "activeSessions", stats.activeSessions()
+                "shortTermMemoryCount", stats.shortTermCount(),
+                "longTermMemoryCount", stats.longTermCount(),
+                "workingMemoryCount", stats.workingCount()
         ));
     }
     

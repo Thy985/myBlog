@@ -18,7 +18,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/user/apikey")
 @RequiredArgsConstructor
-@SaCheckRole("ADMIN")
 public class UserApiKeyController {
 
     private final UserApiKeyService userApiKeyService;
@@ -29,10 +28,10 @@ public class UserApiKeyController {
     public Result<Map<String, Object>> getApiKey() {
         Long userId = StpUtil.getLoginIdAsLong();
         UserApiKey apiKey = userApiKeyService.getByUserId(userId);
-        
+
         Map<String, Object> result = new HashMap<>();
         result.put("availableProviders", userApiKeyService.getAvailableProviders());
-        
+
         if (apiKey != null) {
             Map<String, Object> keyInfo = new HashMap<>();
             keyInfo.put("provider", apiKey.getProvider());
@@ -46,7 +45,7 @@ public class UserApiKeyController {
         } else {
             result.put("apiKey", null);
         }
-        
+
         return Result.success(result);
     }
 
@@ -90,12 +89,12 @@ public class UserApiKeyController {
     public Result<Map<String, Object>> getUsage() {
         Long userId = StpUtil.getLoginIdAsLong();
         UserApiKey apiKey = userApiKeyService.getByUserId(userId);
-        
+
         Map<String, Object> result = new HashMap<>();
         result.put("used", apiKey != null ? apiKey.getUsed() : 0);
         result.put("quota", apiKey != null ? apiKey.getQuota() : null);
         result.put("valid", userApiKeyService.isApiKeyValid(userId));
-        
+
         return Result.success(result);
     }
 
@@ -122,7 +121,7 @@ public class UserApiKeyController {
         return Result.success(result);
     }
 
-    @SaCheckLogin
+    @SaCheckRole("ADMIN")
     @GetMapping("/admin/list")
     public Result<List<Map<String, Object>>> listAllApiKeys() {
         List<UserApiKey> apiKeys = userApiKeyService.getAllForAdmin();

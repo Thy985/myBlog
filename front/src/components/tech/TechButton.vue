@@ -4,9 +4,6 @@
       'tech-btn',
       `tech-btn-${variant}`,
       sizeClass,
-      { 'glow-border': glow, 'animate-glow-pulse': glow && pulse },
-      { 'shimmer': shimmer },
-      { 'animate-float': float },
       className
     ]"
     :disabled="disabled || loading"
@@ -68,22 +65,6 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  glow: {
-    type: Boolean,
-    default: false
-  },
-  shimmer: {
-    type: Boolean,
-    default: false
-  },
-  float: {
-    type: Boolean,
-    default: false
-  },
-  pulse: {
-    type: Boolean,
-    default: false
-  },
   className: {
     type: String,
     default: ''
@@ -109,11 +90,9 @@ const sizeClass = computed(() => {
   gap: 8px;
   border-radius: 8px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
   cursor: pointer;
   border: none;
-  position: relative;
-  overflow: hidden;
 }
 
 .tech-btn:disabled {
@@ -127,14 +106,12 @@ const sizeClass = computed(() => {
 
 /* Primary */
 .tech-btn-primary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  background: var(--color-primary);
   color: white;
-  box-shadow: 0 0 20px var(--color-primary-glow);
 }
 
 .tech-btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 0 30px var(--color-primary-glow);
+  background: var(--color-primary-hover);
 }
 
 /* Secondary */
@@ -153,26 +130,24 @@ const sizeClass = computed(() => {
 /* Ghost */
 .tech-btn-ghost {
   background: transparent;
-  color: #F3F4F6;
+  color: var(--text-secondary);
   border: 1px solid transparent;
 }
 
 .tech-btn-ghost:hover:not(:disabled) {
   background: var(--color-primary-subtle);
   color: var(--color-primary);
-  border-color: var(--color-primary-glow);
+  border-color: var(--color-primary-subtle);
 }
 
 /* Accent */
 .tech-btn-accent {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  background: var(--color-accent);
   color: white;
-  box-shadow: 0 0 20px var(--color-accent-glow);
 }
 
 .tech-btn-accent:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 0 30px var(--color-accent-glow);
+  background: var(--color-accent-hover);
 }
 
 .icon-slot {

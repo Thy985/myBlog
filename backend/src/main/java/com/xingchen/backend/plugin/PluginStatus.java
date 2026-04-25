@@ -8,6 +8,8 @@ public enum PluginStatus {
     LOADED,
     /** 初始化中 */
     INITIALIZING,
+    /** 连接中 */
+    CONNECTING,
     /** 已初始化 */
     INITIALIZED,
     /** 运行中 */

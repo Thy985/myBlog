@@ -41,7 +41,7 @@ v-model="pickDate" type="daterange" range-separator="至" start-placeholder="开
                 <el-table-column prop="title" label="标题" min-width="300">
                     <template #default="scope">
                         <div class="flex items-center gap-3">
-                            <el-image v-if="scope.row.titleImage" :src="scope.row.titleImage" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;" />
+                            <el-image v-if="scope.row.titleImage" :src="scope.row.titleImage" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;" :lazy="true" />
                             <span class="font-medium text-gray-800">{{ scope.row.title }}</span>
                         </div>
                     </template>
@@ -196,7 +196,7 @@ class="avatar-uploader border-2 border-dashed border-gray-300 rounded-lg p-4 tex
 
 <script setup>
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ref, reactive } from 'vue'
+import { ref, reactive, onUnmounted } from 'vue'
 import { createArticle, getArticles, deleteArticle, getArticle, updateArticle } from '@/api/modules/article'
 import { uploadFile } from '@/api/admin/file'
 import { MdEditor } from 'md-editor-v3'
@@ -327,7 +327,7 @@ const onUploadImg = async (files, callback) => {
 
 const previewArticle = (row) => {
     // 打开一个新页面
-    const routeData = router.resolve({ path: '/article/detail', query: { articleId: row.id } })
+    const routeData = router.resolve({ name: 'article', params: { id: String(row.id) } })
     window.open(routeData.href, '_blank')
 }
 
@@ -487,19 +487,25 @@ const remoteMethod = (query) => {
     logger.debug(options.value)
     if (query) {
         tagSelectLoading.value = true
-        setTimeout(() => {
+        tagSelectTimer = setTimeout(() => {
             tagSelectLoading.value = false
             selectTags(query).then((e) => {
                 if (e.code === 200) {
                     options.value = e.data
                 }
             })
-            //   options.value = list.value.filter((item) => {
-            //     return item.label.toLowerCase().includes(query.toLowerCase())
-            //   })
         }, 200)
     }
 }
+
+let tagSelectTimer = null
+
+onUnmounted(() => {
+    if (tagSelectTimer) {
+        clearTimeout(tagSelectTimer)
+        tagSelectTimer = null
+    }
+})
 </script>
 
 <style scoped>
@@ -537,7 +543,7 @@ const remoteMethod = (query) => {
 
 .el-icon.avatar-uploader-icon {
     font-size: 28px;
-    color: #8c939d;
+    color: var(--text-muted);
     width: 178px;
     height: 178px;
     text-align: center;

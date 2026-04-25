@@ -1,15 +1,17 @@
 import router from '@/router/index'
 import { getToken, clearTempAuthInfo, setRedirectUrl, getRedirectUrl } from '@/composables/auth'
-import { showMessage, showPageLoading, hidePageLoading } from '@/utils'
+import { showMessage, showPageLoading, hidePageLoading, resetPageLoading } from '@/utils'
 import logger from '@/utils/logger'
 
 const API_TIMEOUT = 5000
 
-let authStore = null
-let settingsStore = null
-let isStoresInitialized = false
+const storeState = {
+  authStore: null,
+  settingsStore: null,
+  initPromise: null
+}
 
-const pendingRequests = new Map()
+let userInfoPromise = null
 
 function withTimeout(promise, timeoutMs) {
   return Promise.race([
@@ -21,20 +23,27 @@ function withTimeout(promise, timeoutMs) {
 }
 
 async function initStores() {
-  if (isStoresInitialized && authStore && settingsStore) {
-    return { authStore, settingsStore }
+  if (storeState.authStore && storeState.settingsStore) {
+    return { authStore: storeState.authStore, settingsStore: storeState.settingsStore }
   }
 
-  try {
-    const { useAuthStore, useSettingsStore } = await import('@/stores')
-    authStore = useAuthStore()
-    settingsStore = useSettingsStore()
-    isStoresInitialized = true
-    return { authStore, settingsStore }
-  } catch (err) {
-    logger.error('Store init failed:', err.message)
-    return { authStore: null, settingsStore: null }
+  if (storeState.initPromise) {
+    return storeState.initPromise
   }
+
+  storeState.initPromise = (async () => {
+    try {
+      const { useAuthStore, useSettingsStore } = await import('@/stores')
+      storeState.authStore = useAuthStore()
+      storeState.settingsStore = useSettingsStore()
+      return { authStore: storeState.authStore, settingsStore: storeState.settingsStore }
+    } catch (err) {
+      logger.error('Store init failed:', err.message)
+      return { authStore: null, settingsStore: null }
+    }
+  })()
+
+  return storeState.initPromise
 }
 
 async function fetchUserInfoWithCache(store) {
@@ -44,127 +53,168 @@ async function fetchUserInfoWithCache(store) {
     return store.user
   }
 
-  const requestKey = 'userInfo'
-  if (pendingRequests.has(requestKey)) {
-    return pendingRequests.get(requestKey)
+  if (userInfoPromise) {
+    return userInfoPromise
   }
 
-  const requestPromise = (async () => {
-    try {
-      const result = withTimeout(store.getAdminInfo(), API_TIMEOUT)
-      return await result
-    } finally {
-      pendingRequests.delete(requestKey)
-    }
-  })()
+  userInfoPromise = withTimeout(store.getAdminInfo(), API_TIMEOUT)
+    .finally(() => {
+      userInfoPromise = null
+    })
 
-  pendingRequests.set(requestKey, requestPromise)
-  return requestPromise
+  return userInfoPromise
 }
 
-let navigationHeld = false
-let pendingNavigation = null
-
-router.beforeEach(async (to, from, next) => {
-  logger.debug('Route guard:', to.path)
-
-  if (navigationHeld && pendingNavigation) {
-    pendingNavigation()
-    navigationHeld = false
-    pendingNavigation = null
-  }
-
-  showPageLoading()
-
+function handleAuthNavigation(to, from, next) {
   const token = getToken()
+  const isAdminRoute = to.path.startsWith('/admin')
 
-  const stores = await initStores()
-  authStore = stores.authStore
-  settingsStore = stores.settingsStore
-
-  if (!authStore) {
-    if (to.path.startsWith('/admin')) {
-      showMessage('系统错误，请稍后重试', 'error')
-      next({ path: '/' })
-      return
-    }
-    next()
+  if (navigationGuard) {
+    pendingNavigation = { to, from, next }
     return
   }
+  navigationGuard = true
 
-  if (token && authStore) {
-    try {
-      await fetchUserInfoWithCache(authStore)
-    } catch (err) {
-      logger.error('获取用户信息失败:', err.message)
-    }
+  if (isAdminRoute) {
+    showPageLoading()
   }
 
-  if (to.path === '/login') {
-    clearTempAuthInfo()
-  }
+  ;(async () => {
+    const stores = await initStores()
+    const authStore = stores.authStore
 
-  if (!to.path.startsWith('/admin')) {
-    if (to.meta.requiresAuth && !token) {
-      setRedirectUrl(to.fullPath)
-      showMessage('请先登录', 'warning')
-      next({ path: '/login' })
-      return
-    }
-    next()
-    return
-  }
-
-  if (!token && to.path.startsWith('/admin')) {
-    setRedirectUrl(to.fullPath)
-    showMessage('请先登录', 'warning')
-    next({ path: '/admin/login' })
-    return
-  }
-
-  if (to.path === '/admin/login') {
-    if (token) {
-      const redirectUrl = getRedirectUrl()
-      if (redirectUrl && redirectUrl !== '/login' && redirectUrl !== '/admin/login') {
-        next({ path: redirectUrl })
+    if (!authStore) {
+      if (isAdminRoute) {
+        showMessage('系统错误，请稍后重试', 'error')
+        navigationGuard = false
+        hidePageLoading()
+        next({ path: '/' })
         return
       }
-      next({ path: from.path || '/' })
-      return
-    }
-    next()
-    return
-  }
-
-  if (to.path.startsWith('/admin') && token && authStore) {
-    const user = authStore.user
-    if (user && user.role === 'admin') {
+      navigationGuard = false
+      hidePageLoading()
       next()
       return
     }
 
-    if (!user || Object.keys(user).length === 0) {
-      try {
-        await fetchUserInfoWithCache(authStore)
-        if (authStore.user && authStore.user.role === 'admin') {
-          next()
+    if (to.path === '/login') {
+      clearTempAuthInfo()
+      if (token) {
+        const redirectUrl = getRedirectUrl()
+        if (redirectUrl && redirectUrl !== '/login' && redirectUrl !== '/admin/login') {
+          navigationGuard = false
+          hidePageLoading()
+          next({ path: redirectUrl })
           return
         }
-      } catch (error) {
-        logger.error('获取管理员信息失败:', error.message)
-        setRedirectUrl(to.fullPath)
-        showMessage('请重新登录', 'warning')
-        next({ path: '/admin/login' })
+        navigationGuard = false
+        hidePageLoading()
+        next({ path: '/' })
         return
       }
+      navigationGuard = false
+      hidePageLoading()
+      next()
+      return
     }
 
-    showMessage('权限不足，无法访问后台', 'error')
-    next({ path: '/' })
-    return
-  }
+    if (!isAdminRoute) {
+      if (to.meta.requiresAuth && !token) {
+        setRedirectUrl(to.fullPath)
+        showMessage('请先登录', 'warning')
+        navigationGuard = false
+        hidePageLoading()
+        next({ path: '/login' })
+        return
+      }
+      navigationGuard = false
+      hidePageLoading()
+      next()
+      return
+    }
 
-  next()
+    if (!token && isAdminRoute) {
+      setRedirectUrl(to.fullPath)
+      showMessage('请先登录', 'warning')
+      navigationGuard = false
+      hidePageLoading()
+      next({ path: '/admin/login' })
+      return
+    }
+
+    if (to.path === '/admin/login') {
+      if (token) {
+        const redirectUrl = getRedirectUrl()
+        if (redirectUrl && redirectUrl !== '/login' && redirectUrl !== '/admin/login') {
+          navigationGuard = false
+          hidePageLoading()
+          next({ path: redirectUrl })
+          return
+        }
+        navigationGuard = false
+        hidePageLoading()
+        next({ path: from.path || '/' })
+        return
+      }
+      navigationGuard = false
+      hidePageLoading()
+      next()
+      return
+    }
+
+    if (isAdminRoute && token && authStore) {
+      let user = authStore.user
+
+      if (user && user.role === 'admin') {
+        navigationGuard = false
+        hidePageLoading()
+        next()
+        return
+      }
+
+      if (!user || Object.keys(user).length === 0) {
+        try {
+          user = await fetchUserInfoWithCache(authStore)
+        } catch (error) {
+          logger.error('获取管理员信息失败:', error.message)
+          if (error.message === '请求超时') {
+            showMessage('获取用户信息超时，请检查网络', 'error')
+          } else {
+            showMessage('请重新登录', 'warning')
+          }
+          setRedirectUrl(to.fullPath)
+          navigationGuard = false
+          hidePageLoading()
+          next({ path: '/admin/login' })
+          return
+        }
+      }
+
+      if (user && user.role === 'admin') {
+        navigationGuard = false
+        hidePageLoading()
+        next()
+        return
+      }
+
+      showMessage('权限不足，无法访问后台', 'error')
+      navigationGuard = false
+      hidePageLoading()
+      next({ path: '/' })
+      return
+    }
+
+    navigationGuard = false
+    hidePageLoading()
+    next()
+  })()
+}
+
+let navigationGuard = false
+let pendingNavigation = null
+
+router.beforeEach((to, from, next) => {
+  handleAuthNavigation(to, from, next)
 })
 
 router.afterEach((to) => {
@@ -174,15 +224,22 @@ router.afterEach((to) => {
   }
   document.title = title
 
-  hidePageLoading()
-  navigationHeld = false
-  pendingNavigation = null
+  if (pendingNavigation) {
+    const { to, from, next } = pendingNavigation
+    pendingNavigation = null
+    navigationGuard = false
+    resetPageLoading()
+    router.push(to.path).catch(() => {})
+  } else {
+    navigationGuard = false
+  }
 })
 
 router.onError((error) => {
   hidePageLoading()
+  resetPageLoading()
   logger.error('路由导航错误:', error.message)
   showMessage('页面导航失败，请稍后重试', 'error')
-  navigationHeld = false
+  navigationGuard = false
   pendingNavigation = null
 })

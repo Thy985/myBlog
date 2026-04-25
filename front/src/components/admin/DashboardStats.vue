@@ -35,7 +35,7 @@ defineProps({
 <style scoped>
 .stat-card {
   border-radius: 12px;
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   padding: 20px;
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -63,7 +63,7 @@ defineProps({
   height: 48px;
   border-radius: 12px;
   margin-right: 16px;
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .stat-card:hover .stat-icon {

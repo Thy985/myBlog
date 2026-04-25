@@ -433,7 +433,7 @@ const tableRowClassName = ({ rowIndex }) => {
 /* 搜索栏样式 */
 .search-card {
     border-radius: 8px;
-    transition: all 0.3s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .search-card:hover {
@@ -455,7 +455,7 @@ const tableRowClassName = ({ rowIndex }) => {
 
 .form-label {
     font-weight: 500;
-    color: #303133;
+    color: var(--text-primary);
     white-space: nowrap;
 }
 
@@ -471,7 +471,7 @@ const tableRowClassName = ({ rowIndex }) => {
 }
 
 .action-button {
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .action-button:hover {
@@ -481,11 +481,11 @@ const tableRowClassName = ({ rowIndex }) => {
 /* 列表卡片样式 */
 .list-card {
     border-radius: 8px;
-    transition: all 0.3s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .list-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px var(--shadow-md);
 }
 
 .card-header {
@@ -494,23 +494,23 @@ const tableRowClassName = ({ rowIndex }) => {
     align-items: center;
     margin-bottom: 20px;
     padding-bottom: 15px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .card-title {
     font-size: 18px;
     font-weight: 600;
-    color: #303133;
+    color: var(--text-primary);
     margin: 0;
 }
 
 .add-button {
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .add-button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+    box-shadow: 0 2px 8px var(--color-primary-subtle);
 }
 
 /* 表格样式 */
@@ -520,7 +520,7 @@ const tableRowClassName = ({ rowIndex }) => {
 }
 
 .category-table th {
-    background-color: #fafafa;
+    background-color: var(--bg-secondary);
     font-weight: 600;
 }
 
@@ -529,15 +529,15 @@ const tableRowClassName = ({ rowIndex }) => {
 }
 
 .category-table tr:hover {
-    background-color: #f5f7fa;
+    background-color: var(--bg-tertiary);
 }
 
 .even-row {
-    background-color: #fafafa;
+    background-color: var(--bg-secondary);
 }
 
 .odd-row {
-    background-color: #ffffff;
+    background-color: var(--bg-card);
 }
 
 /* 表格操作按钮 */
@@ -547,7 +547,7 @@ const tableRowClassName = ({ rowIndex }) => {
 }
 
 .action-btn {
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
     padding: 4px 12px;
 }
 
@@ -570,7 +570,7 @@ const tableRowClassName = ({ rowIndex }) => {
     align-items: center;
     margin-top: 30px;
     padding-top: 20px;
-    border-top: 1px solid #f0f0f0;
+    border-top: 1px solid var(--border-color);
 }
 
 /* 表单样式 */
@@ -659,6 +659,6 @@ const tableRowClassName = ({ rowIndex }) => {
 }
 
 :deep(.el-loading-text) {
-    color: #409eff;
+    color: var(--color-accent);
 }
 </style>

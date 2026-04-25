@@ -456,7 +456,7 @@ onMounted(() => {
 .users-container {
     padding: 20px;
     min-height: 100vh;
-    background-color: #f5f7fa;
+    background-color: var(--bg-secondary);
 }
 
 .users-card {
@@ -469,14 +469,14 @@ onMounted(() => {
     justify-content: space-between;
     align-items: center;
     padding: 20px;
-    background-color: #ffffff;
-    border-bottom: 1px solid #ebeef5;
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .page-title {
     font-size: 20px;
     font-weight: 600;
-    color: #303133;
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -494,7 +494,7 @@ onMounted(() => {
 
 .stat-card {
     border-radius: 8px;
-    transition: all 0.3s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .stat-card:hover {
@@ -510,13 +510,13 @@ onMounted(() => {
 .stat-value {
     font-size: 24px;
     font-weight: 600;
-    color: #409eff;
+    color: var(--color-accent);
     margin-bottom: 8px;
 }
 
 .stat-label {
     font-size: 14px;
-    color: #606266;
+    color: var(--text-secondary);
 }
 
 .filter-section {
@@ -525,7 +525,7 @@ onMounted(() => {
     gap: 16px;
     margin-bottom: 24px;
     padding: 20px;
-    background-color: #f8f9fa;
+    background-color: var(--bg-secondary);
     border-radius: 8px;
 }
 
@@ -558,7 +558,7 @@ onMounted(() => {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background-color: #409eff;
+    background-color: var(--color-accent);
     color: white;
     display: flex;
     align-items: center;
@@ -569,7 +569,7 @@ onMounted(() => {
 
 .user-name {
     font-weight: 500;
-    color: #303133;
+    color: var(--text-primary);
 }
 
 .role-tag, .status-tag {
@@ -580,7 +580,7 @@ onMounted(() => {
 
 .action-btn {
     margin-right: 8px;
-    transition: all 0.3s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .action-btn:hover {
@@ -588,11 +588,11 @@ onMounted(() => {
 }
 
 .view-btn {
-    color: #409eff;
+    color: var(--color-accent);
 }
 
 .edit-btn {
-    color: #67c23a;
+    color: var(--color-success);
 }
 
 .pagination-section {
@@ -605,7 +605,7 @@ onMounted(() => {
 
 .pagination-info {
     font-size: 14px;
-    color: #606266;
+    color: var(--text-secondary);
 }
 
 .pagination {
@@ -621,7 +621,7 @@ onMounted(() => {
     justify-content: flex-end;
     gap: 10px;
     padding: 16px 24px;
-    border-top: 1px solid #ebeef5;
+    border-top: 1px solid var(--border-color);
 }
 
 /* 响应式设计 */

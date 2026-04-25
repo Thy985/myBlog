@@ -20,11 +20,12 @@ import org.springframework.context.annotation.Configuration;
  * - 无需配置加密策略
  * - 实时接收飞书消息事件
  *
- * 注意：此配置类已被弃用，请使用 FeishuWebSocketManager 进行多用户连接管理
- * 启用条件：application.yaml 中配置 feishu.bot.enabled=true
+ * @deprecated 已弃用，请使用 FeishuChannelPlugin 进行多用户连接管理。
+ *             启用条件：application.yaml 中配置 feishu.bot.enabled=true AND feishu.bot.use-legacy=true
+ *             未来版本将移除此配置类。
  */
 @Configuration
-@ConditionalOnProperty(name = "feishu.bot.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "feishu.bot.use-legacy", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 @Deprecated

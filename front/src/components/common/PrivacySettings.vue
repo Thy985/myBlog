@@ -75,7 +75,7 @@ const formData = ref({
   systemNotifications: true
 })
 
-const handleSubmit = async () => {
+const handleSubmit = () => {
   emit('update', { ...formData.value })
 }
 </script>

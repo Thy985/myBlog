@@ -45,8 +45,8 @@ describe('Pagination组件测试', () => {
     const nextLink = links[links.length - 1]
     await nextLink.trigger('click')
 
-    expect(wrapper.emitted('pageChange')).toBeTruthy()
-    expect(wrapper.emitted('pageChange')[0]).toEqual([2])
+    expect(wrapper.emitted('page-change')).toBeTruthy()
+    expect(wrapper.emitted('page-change')[0]).toEqual([2])
   })
 
   it('点击上一页应该触发事件', async () => {
@@ -64,7 +64,7 @@ describe('Pagination组件测试', () => {
     const prevLink = links[0]
     await prevLink.trigger('click')
 
-    expect(wrapper.emitted('pageChange')[0]).toEqual([1])
+    expect(wrapper.emitted('page-change')[0]).toEqual([1])
   })
 
   it('点击具体页码应该触发事件', async () => {
@@ -83,7 +83,7 @@ describe('Pagination组件测试', () => {
     // 点击第3个链接（第2页）
     if (pageLinks.length > 2) {
       await pageLinks[2].trigger('click')
-      expect(wrapper.emitted('pageChange')[0]).toEqual([2])
+      expect(wrapper.emitted('page-change')[0]).toEqual([2])
     }
   })
 

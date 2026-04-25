@@ -89,7 +89,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { verifyAndEnableMfa } from '@/api/auth'
-import { setRedirectUrl, getRedirectUrl, saveAuthInfo, getMfaTempInfo, clearTempAuthInfo, getToken } from '@/composables/auth'
+import { setRedirectUrl, getRedirectUrl, saveAuthInfo, getMfaTempInfo, clearTempAuthInfo } from '@/composables/auth'
 import { useAuthStore } from '@/stores/auth'
 import logger from '@/utils/logger'
 import { API_STATUS } from '@/composables/api'
@@ -299,7 +299,7 @@ onUnmounted(() => {
   border-radius: 16px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
   padding: 40px;
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   backdrop-filter: blur(10px);
 }
 
@@ -402,7 +402,7 @@ onUnmounted(() => {
 
 .resend-code-link {
   font-size: 14px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .resend-code-link:hover {
@@ -411,7 +411,7 @@ onUnmounted(() => {
 
 .go-back-link {
   font-size: 14px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .go-back-link:hover {
@@ -426,7 +426,7 @@ onUnmounted(() => {
   border-radius: 8px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
 }
@@ -444,7 +444,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: all 0.6s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .verify-mfa-button:hover::before {

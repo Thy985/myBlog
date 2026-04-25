@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { reactive, watch } from 'vue'
+import { reactive, watch, onUnmounted } from 'vue'
 import gsap from 'gsap'
 
 const props = defineProps({
@@ -17,8 +17,13 @@ const d = reactive({
     num: 0
 })
 
+let animationRef = null
+
 function animateToValue() {
-    gsap.to(d, {
+    if (animationRef) {
+        animationRef.kill()
+    }
+    animationRef = gsap.to(d, {
         duration: 0.5,
         num: props.value
     })
@@ -26,4 +31,10 @@ function animateToValue() {
 animateToValue()
 
 watch(() => props.value, () => animateToValue())
+
+onUnmounted(() => {
+    if (animationRef) {
+        animationRef.kill()
+    }
+})
 </script>

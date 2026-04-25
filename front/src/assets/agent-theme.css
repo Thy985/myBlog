@@ -1,14 +1,13 @@
 /* ============================================
    Agent 专用样式
-   基于 tech-theme.css 扩展，专用于智能体 UI
+   基于 tech-theme.css 扩展，专用于智能�?UI
 
    CSS变量已迁移到 tokens/design-tokens.css
-   --agent-* 变量引用 --tech-* 变量，它们现在都在 design-tokens.css 中定义
-   ============================================ */
+   --agent-* 变量引用 --tech-* 变量，它们现在都�?design-tokens.css 中定�?   ============================================ */
 
 :root {
-    /* --agent-* 变量现在通过 --tech-* 引用，已在 design-tokens.css 中定义 */
-    /* 以下保留仅用于特定于 agent 的值 */
+    /* --agent-* 变量现在通过 --tech-* 引用，已�?design-tokens.css 中定�?*/
+    /* 以下保留仅用于特定于 agent 的�?*/
 
     --agent-font-mono: 'Fira Code', 'JetBrains Mono', 'SF Mono', monospace;
     --agent-font-sans: -apple-system-font, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -35,7 +34,12 @@
     color: var(--agent-text);
 }
 
-/* ---- 思考过程面板 ---- */
+.dark .agent-msg-ai {
+    background: rgba(30, 30, 35, 0.98);
+    border-color: rgba(99, 102, 241, 0.15);
+}
+
+/* ---- 思考过程面�?---- */
 .agent-thought-panel {
     background: rgba(10, 10, 11, 0.6);
     border: 1px solid rgba(99, 102, 241, 0.12);
@@ -87,6 +91,14 @@
 .agent-intent--chat { background: rgba(99, 102, 241, 0.12); color: #818CF8; border: 1px solid rgba(99, 102, 241, 0.25); }
 .agent-intent--default { background: rgba(156, 163, 175, 0.12); color: #9CA3AF; border: 1px solid rgba(156, 163, 175, 0.25); }
 
+/* Dark mode intent colors */
+.dark .agent-intent--create { background: rgba(16, 185, 129, 0.2); color: #6EE7B7; border-color: rgba(16, 185, 129, 0.4); }
+.dark .agent-intent--edit { background: rgba(59, 130, 246, 0.2); color: #93C5FD; border-color: rgba(59, 130, 246, 0.4); }
+.dark .agent-intent--search { background: rgba(234, 179, 8, 0.2); color: #FDE047; border-color: rgba(234, 179, 8, 0.4); }
+.dark .agent-intent--code { background: rgba(14, 165, 233, 0.2); color: #7DD3FC; border-color: rgba(14, 165, 233, 0.4); }
+.dark .agent-intent--chat { background: rgba(99, 102, 241, 0.2); color: #A5B4FC; border-color: rgba(99, 102, 241, 0.4); }
+.dark .agent-intent--default { background: rgba(156, 163, 175, 0.2); color: #CBD5E1; border-color: rgba(156, 163, 175, 0.4); }
+
 .agent-intent__confidence {
     position: absolute;
     bottom: 0;
@@ -135,6 +147,12 @@
 .agent-tool__icon--executing { background: rgba(99, 102, 241, 0.15); color: #818CF8; }
 .agent-tool__icon--completed { background: rgba(16, 185, 129, 0.15); color: #4ADE80; }
 .agent-tool__icon--failed { background: rgba(239, 68, 68, 0.15); color: #F87171; }
+
+/* Dark mode tool icons */
+.dark .agent-tool__icon--pending { background: rgba(156, 163, 175, 0.25); color: #CBD5E1; }
+.dark .agent-tool__icon--executing { background: rgba(99, 102, 241, 0.25); color: #A5B4FC; }
+.dark .agent-tool__icon--completed { background: rgba(16, 185, 129, 0.25); color: #6EE7B7; }
+.dark .agent-tool__icon--failed { background: rgba(239, 68, 68, 0.25); color: #FCA5A5; }
 
 .agent-tool__detail {
     padding: 0 14px 12px;
@@ -187,7 +205,7 @@
     border-radius: 6px;
     margin-bottom: 8px;
     border: 1px solid transparent;
-    transition: all var(--agent-transition-fast);
+    transition: all 0.2s ease;
 }
 
 .agent-rag__item:last-child { margin-bottom: 0; }
@@ -211,7 +229,7 @@
     flex-shrink: 0;
 }
 
-/* ---- 进度条 ---- */
+/* ---- 进度�?---- */
 .agent-progress {
     position: relative;
     height: 3px;
@@ -246,7 +264,7 @@
     font-size: 14px;
     line-height: 1.5;
     resize: none;
-    transition: all var(--agent-transition-normal);
+    transition: all 0.2s ease;
     min-height: var(--agent-input-min-h);
     max-height: var(--agent-input-max-h);
 }
@@ -266,7 +284,7 @@
     color: var(--agent-text-muted);
 }
 
-/* ---- 发送按钮 ---- */
+/* ---- 发送按�?---- */
 .agent-send-btn {
     width: 40px;
     height: 40px;
@@ -278,7 +296,7 @@
     color: white;
     border: none;
     cursor: pointer;
-    transition: all var(--agent-transition-fast);
+    transition: all 0.2s ease;
     flex-shrink: 0;
 }
 
@@ -307,7 +325,7 @@
     color: white;
     border: none;
     cursor: pointer;
-    transition: all var(--agent-transition-fast);
+    transition: all 0.2s ease;
     flex-shrink: 0;
 }
 
@@ -323,7 +341,7 @@
     color: var(--agent-text-secondary);
     background: transparent;
     cursor: pointer;
-    transition: all var(--agent-transition-fast);
+    transition: all 0.2s ease;
     white-space: nowrap;
 }
 
@@ -333,7 +351,7 @@
     color: var(--agent-primary-hover);
 }
 
-/* ---- 状态标签 ---- */
+/* ---- 状态标�?---- */
 .agent-status {
     display: inline-flex;
     align-items: center;
@@ -348,6 +366,12 @@
 .agent-status--executing { background: rgba(99, 102, 241, 0.12); color: #818CF8; }
 .agent-status--completed { background: rgba(16, 185, 129, 0.12); color: #4ADE80; }
 .agent-status--failed { background: rgba(239, 68, 68, 0.12); color: #F87171; }
+
+/* Dark mode status */
+.dark .agent-status--pending { background: rgba(156, 163, 175, 0.2); color: #CBD5E1; }
+.dark .agent-status--executing { background: rgba(99, 102, 241, 0.2); color: #A5B4FC; }
+.dark .agent-status--completed { background: rgba(16, 185, 129, 0.2); color: #6EE7B7; }
+.dark .agent-status--failed { background: rgba(239, 68, 68, 0.2); color: #FCA5A5; }
 
 /* ---- 打字光标 ---- */
 .agent-cursor {
@@ -410,7 +434,7 @@
     transform: rotate(180deg);
 }
 
-/* ---- 无障碍 ---- */
+/* ---- 无障�?---- */
 @media (prefers-reduced-motion: reduce) {
     .agent-cursor,
     .agent-loading-dots span,

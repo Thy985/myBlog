@@ -49,6 +49,9 @@ public class SkillExecutor {
     private final ArticleQueryTool articleQueryTool;
     private final CategoryTool categoryTool;
     private final TagTool tagTool;
+    private final ContentAuditTool contentAuditTool;
+    private final ContentOpportunityTool contentOpportunityTool;
+    private final TavilyTool tavilyTool;
 
     private final ExpressionParser expressionParser = new SpelExpressionParser();
 
@@ -356,6 +359,9 @@ public class SkillExecutor {
                 case "article" -> invokeArticleTool(tool, params);
                 case "category" -> invokeCategoryTool(tool, params);
                 case "tag" -> invokeTagTool(tool, params);
+                case "audit" -> invokeAuditTool(tool, params);
+                case "opportunity" -> invokeOpportunityTool(tool, params);
+                case "online-search" -> invokeOnlineSearchTool(tool, params);
                 default -> throw new UnsupportedOperationException("不支持的工具类型: " + toolType);
             };
         } catch (Exception e) {
@@ -862,6 +868,117 @@ public class SkillExecutor {
                     "toolId", toolId,
                     "error", "标签工具执行失败: " + e.getMessage(),
                     "type", "tag"
+            );
+        }
+    }
+
+    /**
+     * 调用内容审计工具
+     */
+    private Object invokeAuditTool(ToolOption tool, Map<String, Object> params) {
+        String toolId = tool.getToolId();
+        log.info("调用内容审计工具: toolId={}", toolId);
+
+        try {
+            ToolResult result = contentAuditTool.execute(params);
+
+            if (result.success()) {
+                return Map.of(
+                        "success", true,
+                        "toolId", toolId,
+                        "data", result.data(),
+                        "message", result.message(),
+                        "type", "audit"
+                );
+            } else {
+                return Map.of(
+                        "success", false,
+                        "toolId", toolId,
+                        "error", result.message(),
+                        "type", "audit"
+                );
+            }
+        } catch (Exception e) {
+            log.error("内容审计工具调用失败: toolId={}, error={}", toolId, e.getMessage());
+            return Map.of(
+                    "success", false,
+                    "toolId", toolId,
+                    "error", "内容审计工具执行失败: " + e.getMessage(),
+                    "type", "audit"
+            );
+        }
+    }
+
+    /**
+     * 调用内容机会发现工具
+     */
+    private Object invokeOpportunityTool(ToolOption tool, Map<String, Object> params) {
+        String toolId = tool.getToolId();
+        log.info("调用内容机会发现工具: toolId={}", toolId);
+
+        try {
+            ToolResult result = contentOpportunityTool.execute(params);
+
+            if (result.success()) {
+                return Map.of(
+                        "success", true,
+                        "toolId", toolId,
+                        "data", result.data(),
+                        "message", result.message(),
+                        "type", "opportunity"
+                );
+            } else {
+                return Map.of(
+                        "success", false,
+                        "toolId", toolId,
+                        "error", result.message(),
+                        "type", "opportunity"
+                );
+            }
+        } catch (Exception e) {
+            log.error("内容机会发现工具调用失败: toolId={}, error={}", toolId, e.getMessage());
+            return Map.of(
+                    "success", false,
+                    "toolId", toolId,
+                    "error", "内容机会发现工具执行失败: " + e.getMessage(),
+                    "type", "opportunity"
+            );
+        }
+    }
+
+    /**
+     * 调用联网搜索工具（Tavily）
+     */
+    private Object invokeOnlineSearchTool(ToolOption tool, Map<String, Object> params) {
+        String toolId = tool.getToolId();
+        log.info("调用联网搜索工具: toolId={}", toolId);
+
+        try {
+            ToolResult result = tavilyTool.execute(params);
+
+            if (result.success()) {
+                return Map.of(
+                        "success", true,
+                        "toolId", toolId,
+                        "data", result.data(),
+                        "message", result.message(),
+                        "type", "search"
+                );
+            } else {
+                return Map.of(
+                        "success", false,
+                        "toolId", toolId,
+                        "error", result.message(),
+                        "type", "search"
+                );
+            }
+        } catch (Exception e) {
+            log.error("联网搜索工具调用失败: toolId={}, error={}", toolId, e.getMessage());
+            return Map.of(
+                    "success", false,
+                    "toolId", toolId,
+                    "error", "联网搜索工具执行失败: " + e.getMessage(),
+                    "type", "search"
             );
         }
     }

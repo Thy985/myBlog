@@ -393,6 +393,53 @@ public class ToolRegistry {
                 .latency(100)
                 .accuracy(1.0)
                 .build());
+
+        // 内容审计工具
+        registerTool(ToolOption.builder()
+                .toolId("content_audit")
+                .toolType("audit")
+                .description("内容质量审计：识别重复内容、低质量文章、提出优化建议")
+                .capabilities(Map.of(
+                        "content-audit", 0.95,
+                        "duplicate-detection", 0.92,
+                        "quality-analysis", 0.90,
+                        "optimization-suggestion", 0.88
+                ))
+                .cost(0.0)
+                .latency(5000)
+                .accuracy(0.95)
+                .build());
+
+        // 内容机会发现工具
+        registerTool(ToolOption.builder()
+                .toolId("content_opportunity")
+                .toolType("opportunity")
+                .description("内容机会发现：分析用户搜索行为，发现内容缺口，推荐值得撰写的主题")
+                .capabilities(Map.of(
+                        "opportunity-discovery", 0.92,
+                        "gap-analysis", 0.90,
+                        "topic-recommendation", 0.88,
+                        "seo-keyword-analysis", 0.85
+                ))
+                .cost(0.0)
+                .latency(10000)
+                .accuracy(0.90)
+                .build());
+
+        // Tavily 联网搜索工具
+        registerTool(ToolOption.builder()
+                .toolId("tavily_search")
+                .toolType("online-search")
+                .description("Tavily 联网搜索：实时搜索互联网最新信息，支持技术趋势、热门话题等")
+                .capabilities(Map.of(
+                        "online-search", 0.95,
+                        "trending-topics", 0.92,
+                        "news-search", 0.90
+                ))
+                .cost(0.0)
+                .latency(5000)
+                .accuracy(0.92)
+                .build());
     }
     
     /**

@@ -36,11 +36,11 @@ export const useMainStore = defineStore('main', () => {
     return authStore.isLoggedIn()
   }
 
-  async function getAdminInfo() {
+  function getAdminInfo() {
     return authStore.getAdminInfo()
   }
 
-  async function getBlogSetting() {
+  function getBlogSetting() {
     return settingsStore.getBlogSetting()
   }
 

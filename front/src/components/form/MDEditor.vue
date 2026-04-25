@@ -1,37 +1,41 @@
 <template>
     <div id="editor">
-        <mavonEditor v-model="myContent" font-size="18px"  style="height: 100%;" @change="mdChange"></mavonEditor>
+        <mavonEditor
+            v-model="myContent"
+            font-size="18px"
+            style="height: 100%;"
+            @change="handleChange"
+        />
     </div>
 </template>
-<script>
-// Local Registration
+
+<script setup>
+import { ref, watch } from 'vue'
 import { mavonEditor } from 'mavon-editor'
-import { reactive, toRefs } from 'vue'
 import 'mavon-editor/dist/css/index.css'
-export default {
-    name: 'Editor',
-    components: {
-        mavonEditor
-        // or 'mavon-editor': mavonEditor
-    },
-    props: ['content'],
-    setup(props, { emit }) {
-        const state = reactive({
-            myContent: ''
-        })
 
-        const mdChange = () => {
-            emit('event', state.myContent)
-        }
-
-        return {
-            ...toRefs(state),
-            mdChange
-        }
+const props = defineProps({
+    content: {
+        type: String,
+        default: ''
     }
+})
+
+const emit = defineEmits(['event'])
+
+const myContent = ref('')
+
+const handleChange = (value) => {
+    emit('event', value)
 }
 
+watch(() => props.content, (newVal) => {
+    if (newVal !== myContent.value) {
+        myContent.value = newVal || ''
+    }
+}, { immediate: true })
 </script>
+
 <style>
 #editor {
     margin: auto;

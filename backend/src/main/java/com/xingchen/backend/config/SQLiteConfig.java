@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -21,9 +22,16 @@ public class SQLiteConfig {
         try {
             // 确保 SQLite JDBC 驱动已加载
             Class.forName("org.sqlite.JDBC");
-            
-            // 使用文件数据库，存储在项目目录下
-            String dbUrl = "jdbc:sqlite:myblog_memory.db";
+
+            // 确保 data 目录存在
+            File dataDir = new File("data");
+            if (!dataDir.exists()) {
+                dataDir.mkdirs();
+                log.info("创建数据目录: {}", dataDir.getAbsolutePath());
+            }
+
+            // 使用文件数据库，存储在 data 目录下
+            String dbUrl = "jdbc:sqlite:data/myblog_memory.db";
             Connection conn = DriverManager.getConnection(dbUrl);
             log.info("SQLite 数据库连接已创建: {}", dbUrl);
             return conn;

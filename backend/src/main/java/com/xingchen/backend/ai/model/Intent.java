@@ -53,10 +53,14 @@ public class Intent {
         CREATE_TAG,         // 创建标签
         EDIT_TAG,           // 编辑标签
         DELETE_TAG,          // 删除标签
+        CONTENT_AUDIT,      // 内容审计
+        CONTENT_OPPORTUNITY, // 内容机会发现
+        OPTIMIZE_ARTICLE,   // 优化文章
         SCHEDULE_TASK,      // 定时任务
         LIST_TASKS,         // 列出任务
         CANCEL_TASK,        // 取消任务
         SEARCH,             // 搜索
+        ONLINE_SEARCH,      // 联网搜索
         SUMMARIZE,          // 总结
         TRANSLATE,          // 翻译
         CODE_GENERATE,      // 代码生成

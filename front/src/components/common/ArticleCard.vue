@@ -5,87 +5,99 @@
         @mouseenter="handleMouseEnter"
         @mouseleave="handleMouseLeave"
     >
-        <!-- 图片区域 -->
-        <div class="card-image-wrapper">
-            <a class="cursor-pointer block overflow-hidden rounded-t-xl" @click="goArticleDetail(article.id)">
-                <div class="image-container">
-                    <img
-                        ref="imageRef"
-                        :data-src="article.titleImage"
-                        class="card-image"
-                        :alt="article.title"
-                        :src="article.titleImage || placeholderImage"
-                        width="800"
-                        height="450"
-                        loading="lazy"
-                        decoding="async"
-                        @load="imageLoaded = true"
-                        @error="handleImageError"
-                    />
-                    <div v-if="!imageLoaded" class="image-skeleton">
-                        <div class="skeleton-shimmer"></div>
+        <div class="card-inner">
+            <div class="card-image-wrapper">
+                <a class="cursor-pointer block overflow-hidden" @click="goArticleDetail(article.id)">
+                    <div class="image-container">
+                        <div
+                            v-if="!article.titleImage"
+                            class="card-placeholder"
+                        >
+                            <img
+                                :src="getPlaceholderImage()"
+                                class="w-full h-full object-cover"
+                                :alt="article.title"
+                            />
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+                            <div class="placeholder-content">
+                                <h3 class="text-white font-bold line-clamp-2 px-4">{{ article.title }}</h3>
+                            </div>
+                        </div>
+                        <img
+                            v-else
+                            ref="imageRef"
+                            :data-src="article.titleImage"
+                            class="card-image"
+                            :alt="article.title"
+                            :src="article.titleImage"
+                            width="800"
+                            height="450"
+                            loading="lazy"
+                            decoding="async"
+                            @load="imageLoaded = true"
+                            @error="handleImageError"
+                        />
+                        <div v-if="!imageLoaded && article.titleImage" class="image-skeleton">
+                            <div class="skeleton-shimmer"></div>
+                        </div>
+                    </div>
+                    <div v-if="article.categoryName" class="category-badge">
+                        {{ article.categoryName }}
+                    </div>
+                    <div class="gradient-overlay"></div>
+                </a>
+            </div>
+
+            <div class="card-content">
+                <div v-if="displayTags.length > 0" class="tags-section">
+                    <span
+                        v-for="item in displayTags"
+                        :key="item"
+                        class="tag-item"
+                        tabindex="0"
+                        role="button"
+                        :aria-label="`查看标签 ${item} 的文章`"
+                        @click="goTagArticleListPage(null, item)"
+                        @keydown.enter="goTagArticleListPage(null, item)"
+                    >
+                        {{ item }}
+                    </span>
+                </div>
+
+                <a class="cursor-pointer block" @click="goArticleDetail(article.id)">
+                    <h2 class="card-title">
+                        {{ article.title }}
+                    </h2>
+                </a>
+
+                <p class="card-description">{{ article.description }}</p>
+
+                <div class="card-footer">
+                    <div class="author">
+                        <div class="author-avatar">
+                            {{ authorInitial }}
+                        </div>
+                        <span class="author-name">{{ article.authorName || '匿名' }}</span>
+                    </div>
+                    <div class="meta-right">
+                        <span class="meta-item">
+                            <svg class="meta-icon" aria-hidden="true" viewBox="0 0 20 20">
+                                <path fill="currentColor" d="M5 1v3m5-3v3m5-3v3M1 7h18M5 11h10M2 3h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/>
+                            </svg>
+                            {{ formatDate(article.createdTime) }}
+                        </span>
+                        <span class="meta-item">
+                            <svg class="meta-icon" aria-hidden="true" viewBox="0 0 20 20">
+                                <path fill="currentColor" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                                <path fill="currentColor" d="M19 12v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-7m16-4a2 2 0 0 0-2-2H3a2 2 0 0 0-2 2m16 0a2 2 0 0 0-2-2H3a2 2 0 0 0-2 2"/>
+                            </svg>
+                            {{ article.readCount || 0 }}
+                        </span>
                     </div>
                 </div>
-                <!-- 分类标签覆盖在图片上 -->
-                <div v-if="article.categoryName" class="category-badge">
-                    {{ article.categoryName }}
-                </div>
-            </a>
-        </div>
-
-        <!-- 内容区域 -->
-        <div class="card-content">
-            <!-- 标签区域 - 改进视觉层次 -->
-            <div v-if="displayTags.length > 0" class="tags-section">
-                <span
-                    v-for="item in displayTags"
-                    :key="item"
-                    class="tag-item"
-                    tabindex="0"
-                    role="button"
-                    :aria-label="`查看标签 ${item} 的文章`"
-                    @click="goTagArticleListPage(null, item)"
-                    @keydown.enter="goTagArticleListPage(null, item)"
-                >
-                    {{ item }}
-                </span>
-            </div>
-
-            <!-- 标题 -->
-            <a class="cursor-pointer block" @click="goArticleDetail(article.id)">
-                <h2 class="card-title">
-                    {{ article.title }}
-                </h2>
-            </a>
-
-            <!-- 描述 -->
-            <p class="card-description">{{ article.description }}</p>
-
-            <!-- meta 信息 -->
-            <div class="card-meta">
-                <div class="meta-left">
-                    <span class="meta-item">
-                        <svg class="meta-icon" aria-hidden="true" viewBox="0 0 20 20">
-                            <path
-stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                d="M5 1v3m5-3v3m5-3v3M1 7h18M5 11h10M2 3h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
-                        </svg>
-                        {{ formatDate(article.createdTime) }}
-                    </span>
-                    <span class="meta-item">
-                        <svg class="meta-icon" aria-hidden="true" viewBox="0 0 20 20">
-                            <path
-stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                            <path
-stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                d="M19 12v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-7m16-4a2 2 0 0 0-2-2H3a2 2 0 0 0-2 2m16 0V5a2 2 0 0 0-2-2H3a2 2 0 0 0-2 2v3m16 4v-3m0 0V5m0 4a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2m16 0a2 2 0 0 0-2-2H3a2 2 0 0 0-2 2" />
-                        </svg>
-                        {{ article.readCount || 0 }}
-                    </span>
-                </div>
             </div>
         </div>
+        <div class="card-border-gradient"></div>
     </div>
 </template>
 
@@ -107,14 +119,38 @@ const emit = defineEmits([
 
 const imageRef = ref(null)
 const imageLoaded = ref(false)
-const placeholderImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450"%3E%3Crect fill="%23f3f4f6" width="800" height="450"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-family="sans-serif" font-size="24"%3E暂无封面%3C/text%3E%3C/svg%3E'
-const fallbackImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450"%3E%3Crect fill="%23e5e7eb" width="800" height="450"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%236b7280" font-family="sans-serif" font-size="20"%3E图片加载失败%3C/text%3E%3C/svg%3E'
+const isHovered = ref(false)
+
+const fallbackImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450%3E%3Crect fill="%231e293b" width="800" height="450"/%3E%3C/svg%3E'
+
+const getPlaceholderImage = () => {
+    if (!props.article.id) {return fallbackImage}
+    return `https://picsum.photos/seed/${props.article.id}/800/450`
+}
+
+const _getTitleInitial = () => {
+    const title = props.article.title || ''
+    return title.charAt(0).toUpperCase() || '?'
+}
+
+const authorInitial = computed(() => {
+    const name = props.article.authorName || '匿名'
+    return name.charAt(0).toUpperCase()
+})
 
 const handleImageError = (e) => {
     if (e.target.src !== fallbackImage) {
         e.target.src = fallbackImage
     }
     imageLoaded.value = true
+}
+
+const handleMouseEnter = () => {
+    isHovered.value = true
+}
+
+const handleMouseLeave = () => {
+    isHovered.value = false
 }
 
 const displayTags = computed(() => {
@@ -144,18 +180,41 @@ const goTagArticleListPage = (tagId, tagName) => {
 
 <style scoped>
 .article-card {
+    position: relative;
     background: var(--bg-card);
-    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     overflow: hidden;
-    transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     box-shadow: var(--shadow-sm);
 }
 
 .article-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    border-color: var(--border-hover);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card);
+}
+
+.card-inner {
+    position: relative;
+    z-index: 1;
+}
+
+.card-border-gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-1);
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    z-index: 2;
+}
+
+.article-card:hover .card-border-gradient {
+    opacity: 1;
+    transform: scaleX(1);
 }
 
 .card-image-wrapper {
@@ -171,6 +230,22 @@ const goTagArticleListPage = (tagId, tagName) => {
     overflow: hidden;
 }
 
+.card-placeholder {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+}
+
+.placeholder-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px;
+}
+
 .card-image {
     width: 100%;
     height: 100%;
@@ -179,10 +254,24 @@ const goTagArticleListPage = (tagId, tagName) => {
 }
 
 .article-card:hover .card-image {
-    transform: scale(1.05);
+    transform: scale(1.08);
 }
 
-/* 图片骨架屏 */
+.gradient-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.3), transparent);
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+}
+
+.article-card:hover .gradient-overlay {
+    opacity: 1;
+}
+
 .image-skeleton {
     position: absolute;
     top: 0;
@@ -197,27 +286,32 @@ const goTagArticleListPage = (tagId, tagName) => {
 .skeleton-shimmer {
     width: 100%;
     height: 100%;
-    background: rgba(255, 255, 255, 0.3);
-    animation: pulse 1.5s ease-in-out infinite;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
 }
 
 @keyframes pulse {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    50% { opacity: 0.6; }
 }
 
 .category-badge {
     position: absolute;
     top: 12px;
     left: 12px;
-    background: var(--color-primary);
+    padding: 6px 14px;
+    background: var(--gradient-1);
     color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
+    border-radius: var(--radius-full);
     font-size: 12px;
-    font-weight: 500;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
-    z-index: 2;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    z-index: 3;
 }
 
 .card-content {
@@ -234,22 +328,26 @@ const goTagArticleListPage = (tagId, tagName) => {
 .tag-item {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
     padding: 4px 10px;
     background: var(--color-primary-subtle);
     color: var(--color-primary);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     border: 1px solid transparent;
 }
 
 .tag-item:hover {
-    background: var(--color-primary);
+    background: var(--gradient-1);
     color: white;
     transform: scale(1.05);
+}
+
+.tag-item:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .card-title {
@@ -262,7 +360,7 @@ const goTagArticleListPage = (tagId, tagName) => {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    transition: color 0.2s ease;
+    transition: color var(--transition-fast);
 }
 
 .article-card:hover .card-title {
@@ -272,7 +370,7 @@ const goTagArticleListPage = (tagId, tagName) => {
 .card-description {
     font-size: 14px;
     color: var(--text-secondary);
-    line-height: 1.6;
+    line-height: 1.7;
     margin-bottom: 16px;
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -280,7 +378,7 @@ const goTagArticleListPage = (tagId, tagName) => {
     overflow: hidden;
 }
 
-.card-meta {
+.card-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -288,60 +386,101 @@ const goTagArticleListPage = (tagId, tagName) => {
     border-top: 1px solid var(--border-subtle);
 }
 
-.meta-left {
+.author {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
+}
+
+.author-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--gradient-1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+}
+
+.author-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.meta-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .meta-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     font-size: 13px;
     color: var(--text-muted);
 }
 
 .meta-icon {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
 }
 
-/* 响应式优化 */
 @media (max-width: 640px) {
     .card-content {
         padding: 16px;
     }
-    
+
     .card-title {
         font-size: 16px;
     }
-    
+
     .card-description {
         font-size: 13px;
         -webkit-line-clamp: 2;
     }
+
+    .meta-right {
+        gap: 8px;
+    }
+
+    .meta-item {
+        font-size: 12px;
+    }
 }
 
-/* 减少动画偏好支持 */
 @media (prefers-reduced-motion: reduce) {
     .article-card,
     .card-image,
+    .gradient-overlay,
+    .card-border-gradient,
     .tag-item {
         transition: none;
     }
-    
+
     .image-skeleton,
     .skeleton-shimmer {
         animation: none;
     }
-    
+
     .article-card:hover {
         transform: none;
     }
-    
+
     .article-card:hover .card-image {
         transform: none;
+    }
+
+    .article-card:hover .card-title {
+        color: var(--text-primary);
+    }
+
+    .article-card:hover .card-border-gradient {
+        transform: scaleX(0);
     }
 }
 </style>

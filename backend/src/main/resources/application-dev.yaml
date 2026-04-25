@@ -123,13 +123,26 @@ qdrant:
   collection: myblog_articles
   vector-size: 512
 
-# OpenSearch 配置
-opensearch:
-  host: localhost
-  port: 9201
-  username: admin
-  password: OpenSearch@2024!
-  index: myblog_search
+# OpenSearch 配置（已废弃，迁移到 PostgreSQL）
+# opensearch:
+#   host: localhost
+#   port: 9201
+#   username: admin
+#   password: OpenSearch@2024!
+#   index: myblog_search
+
+# PostgreSQL 向量数据库配置
+spring:
+  datasource:
+    postgresql:
+      url: jdbc:postgresql://localhost:5432/myblog
+      username: admin
+      password: admin123
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 20
+        minimum-idle: 5
+        connection-timeout: 30000
 
 # AI 模型配置
 ai:
@@ -149,7 +162,7 @@ ai:
 # Tavily 搜索 API（用于智能体联网搜索）
 tavily:
   api:
-    key: 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
+    key: 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
 
 glm:
   api:

@@ -195,10 +195,11 @@ export function useArticleDetail() {
         ElMessage.error(errorMessage.value)
       })
     } finally {
+      safeUpdate(() => {
+        loading.value = false
+      })
+
       if (!isUnmounted) {
-        safeUpdate(() => {
-          loading.value = false
-        })
         generateToc()
         fetchRelatedArticles(articleId)
       }
@@ -206,7 +207,7 @@ export function useArticleDetail() {
   }
 
   // Navigate to article detail (使用 RESTful URL)
-  async function goArticleDetail(articleId) {
+  function goArticleDetail(articleId) {
     if (!articleId) {
       ElMessage.warning('Article ID does not exist')
       return
@@ -216,7 +217,7 @@ export function useArticleDetail() {
       router.push({ name: 'article', params: { id: String(articleId) } })
     } catch (err) {
       logger.error('Failed to navigate to article detail:', err)
-      // 回退到 query 模式
+      // 回退到 query 模式（兼容旧路径）
       router.push({ path: '/article/detail', query: { articleId: String(articleId) } })
     }
   }
@@ -253,12 +254,12 @@ export function useArticleDetail() {
 
   // Navigate to category article list
   function goCategoryArticleListPage(id, name) {
-    router.push({ path: '/category/list', query: { id: id, name: name } })
+    router.push({ name: 'category-articles', params: { id: String(id), name: encodeURIComponent(name || '') } })
   }
 
   // Navigate to tag article list
   function goTagArticleListPage(id, name) {
-    router.push({ path: '/tag/list', query: { id: id, name: name } })
+    router.push({ name: 'tag-articles', params: { id: String(id), name: encodeURIComponent(name || '') } })
   }
 
   // Update article read count

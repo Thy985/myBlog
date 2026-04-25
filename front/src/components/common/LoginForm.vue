@@ -135,7 +135,7 @@ const handleSubmit = async () => {
   }
 }
 
-const validate = async () => {
+const validate = () => {
   return formRef.value?.validate()
 }
 
@@ -170,7 +170,7 @@ defineExpose({
     font-size: 14px;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .remember-checkbox:hover {
@@ -179,7 +179,7 @@ defineExpose({
 
 .forgot-password-link {
   font-size: 14px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .forgot-password-link:hover {
@@ -220,7 +220,7 @@ defineExpose({
 
 .register-button {
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .register-button:hover {

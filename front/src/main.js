@@ -117,8 +117,8 @@ function initApp() {
       })
       logger.debug('博客设置信息初始化成功')
 
-      // 注册 Service Worker（PWA 离线支持）
-      if ('serviceWorker' in navigator) {
+      // 注册 Service Worker（PWA 离线支持）- 仅在生产环境
+      if ('serviceWorker' in navigator && import.meta.env.PROD) {
         try {
           const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
           reg.addEventListener('updatefound', () => {

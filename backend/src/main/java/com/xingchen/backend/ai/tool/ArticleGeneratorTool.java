@@ -5,13 +5,16 @@ import com.xingchen.backend.dto.ArticleCreateDTO;
 import com.xingchen.backend.service.AIService;
 import com.xingchen.backend.service.ArticleService;
 import com.xingchen.backend.service.ImageService;
+import com.xingchen.backend.service.SEOService;
 import com.xingchen.backend.vo.ArticleVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 文章生成工具
@@ -25,6 +28,7 @@ public class ArticleGeneratorTool implements Tool {
     private final AIService aiService;
     private final ArticleService articleService;
     private final ImageService imageService;
+    private final SEOService seoService;
 
     @Override
     public String getName() {
@@ -33,7 +37,7 @@ public class ArticleGeneratorTool implements Tool {
 
     @Override
     public String getDescription() {
-        return "生成博客文章，支持指定主题、字数和风格，生成后保存为草稿";
+        return "生成SEO优化的博客文章，支持指定主题、关键词、字数和风格，生成后保存为草稿";
     }
 
     @Override
@@ -47,15 +51,29 @@ public class ArticleGeneratorTool implements Tool {
                         null
                 ),
                 new ToolParameter(
+                        "primaryKeyword",
+                        "主关键词（SEO优化用）",
+                        "string",
+                        false,
+                        null
+                ),
+                new ToolParameter(
+                        "secondaryKeywords",
+                        "次关键词列表（SEO优化用）",
+                        "array",
+                        false,
+                        null
+                ),
+                new ToolParameter(
                         "wordCount",
                         "文章字数",
                         "integer",
                         false,
-                        1000
+                        1500
                 ),
                 new ToolParameter(
                         "style",
-                        "文章风格",
+                        "文章风格：technical/tutorial/review/news",
                         "string",
                         false,
                         "technical"
@@ -94,7 +112,10 @@ public class ArticleGeneratorTool implements Tool {
     @Override
     public ToolResult execute(Map<String, Object> parameters) {
         String topic = (String) parameters.get("topic");
-        Integer wordCount = (Integer) parameters.getOrDefault("wordCount", 1000);
+        String primaryKeyword = (String) parameters.get("primaryKeyword");
+        @SuppressWarnings("unchecked")
+        List<String> secondaryKeywords = (List<String>) parameters.get("secondaryKeywords");
+        Integer wordCount = (Integer) parameters.getOrDefault("wordCount", 1500);
         String style = (String) parameters.getOrDefault("style", "technical");
         Integer categoryId = (Integer) parameters.getOrDefault("categoryId", 1);
         @SuppressWarnings("unchecked")
@@ -102,28 +123,31 @@ public class ArticleGeneratorTool implements Tool {
         Boolean saveAsDraft = (Boolean) parameters.getOrDefault("saveAsDraft", true);
         Boolean autoCover = (Boolean) parameters.getOrDefault("autoCover", true);
 
-        log.info("执行文章生成工具: topic={}, wordCount={}, style={}, autoCover={}", topic, wordCount, style, autoCover);
+        if (primaryKeyword == null || primaryKeyword.isEmpty()) {
+            primaryKeyword = seoService.extractPrimaryKeyword(topic);
+        }
+
+        log.info("执行SEO优化文章生成: topic={}, primaryKeyword={}, wordCount={}, style={}",
+                topic, primaryKeyword, wordCount, style);
 
         try {
-            // 检查用户是否登录
             if (!StpUtil.isLogin()) {
                 return ToolResult.error("用户未登录，无法生成文章");
             }
             Long userId = StpUtil.getLoginIdAsLong();
 
-            // 构建生成提示词
-            String prompt = buildGenerationPrompt(topic, wordCount, style);
+            String prompt = seoService.buildSEOOptimizedPrompt(
+                    topic, wordCount, style, primaryKeyword, secondaryKeywords);
 
-            // 调用AI生成文章
             String generatedContent = aiService.chat(prompt);
 
-            // 生成标题
-            String title = generateTitle(topic, style);
+            SEOService.SEOAnalysisResult seoAnalysis = seoService.analyzeSEO(
+                    generatedContent, topic, primaryKeyword);
 
-            // 生成摘要
-            String summary = generateSummary(generatedContent, 200);
+            String optimizedTitle = seoService.optimizeTitle(topic, primaryKeyword);
+            String metaDescription = seoService.generateMetaDescription(
+                    generatedContent, primaryKeyword, 160);
 
-            // 生成封面图
             String coverImage = null;
             if (autoCover) {
                 coverImage = imageService.searchCoverImage(topic, 1200, 630);
@@ -131,108 +155,79 @@ public class ArticleGeneratorTool implements Tool {
             }
 
             if (saveAsDraft) {
-                // 创建文章DTO
                 ArticleCreateDTO createDTO = new ArticleCreateDTO();
-                createDTO.setTitle(title);
+                createDTO.setTitle(optimizedTitle);
                 createDTO.setContent(generatedContent);
-                createDTO.setSummary(summary);
+                createDTO.setSummary(metaDescription);
                 createDTO.setTitleImage(coverImage);
                 createDTO.setCategoryId(categoryId.longValue());
                 createDTO.setTagIds(tagIds);
-                createDTO.setViewStatus(0); // 0-私密（草稿状态）
+                createDTO.setViewStatus(0);
 
-                // 保存文章
                 ArticleVO articleVO = articleService.createArticle(userId, createDTO);
 
-                Map<String, Object> result = Map.of(
-                        "articleId", articleVO.getId(),
-                        "title", articleVO.getTitle(),
-                        "coverImage", coverImage,
-                        "wordCount", generatedContent.length(),
-                        "preview", summary,
-                        "status", "draft",
-                        "message", "文章已生成并保存为草稿，ID: " + articleVO.getId()
-                );
+                List<Map<String, Object>> keywordList = seoAnalysis.getKeywords().stream()
+                        .limit(5)
+                        .map(k -> {
+                            Map<String, Object> m = new HashMap<>();
+                            m.put("keyword", k.getKeyword());
+                            m.put("frequency", k.getFrequency());
+                            m.put("score", k.getScore());
+                            return m;
+                        })
+                        .collect(Collectors.toList());
 
-                return ToolResult.success(result, "文章生成成功，已保存为草稿");
+                Map<String, Object> result = new HashMap<>();
+                result.put("articleId", articleVO.getId());
+                result.put("title", optimizedTitle);
+                result.put("originalTopic", topic);
+                result.put("primaryKeyword", primaryKeyword);
+                result.put("coverImage", coverImage);
+                result.put("wordCount", generatedContent.length());
+                result.put("seoScore", seoAnalysis.getSeoScore());
+                result.put("keywords", keywordList);
+                result.put("preview", metaDescription);
+                result.put("status", "draft");
+                result.put("message", String.format("SEO优化文章已生成并保存为草稿，ID: %d，SEO评分: %s",
+                        articleVO.getId(), seoAnalysis.getSeoScore().get("grade")));
+
+                return ToolResult.success(result, "SEO优化文章生成成功，已保存为草稿");
             } else {
-                // 仅返回生成内容，不保存
-                Map<String, Object> result = Map.of(
-                        "title", title,
-                        "content", generatedContent,
-                        "summary", summary,
-                        "coverImage", coverImage,
-                        "wordCount", generatedContent.length(),
-                        "status", "preview",
-                        "message", "文章已生成（预览模式，未保存）"
-                );
+                List<Map<String, Object>> keywordList = seoAnalysis.getKeywords().stream()
+                        .limit(5)
+                        .map(k -> {
+                            Map<String, Object> m = new HashMap<>();
+                            m.put("keyword", k.getKeyword());
+                            m.put("frequency", k.getFrequency());
+                            m.put("score", k.getScore());
+                            return m;
+                        })
+                        .collect(Collectors.toList());
 
-                return ToolResult.success(result, "文章生成成功（预览）");
+                Map<String, Object> result = new HashMap<>();
+                result.put("title", optimizedTitle);
+                result.put("originalTopic", topic);
+                result.put("primaryKeyword", primaryKeyword);
+                result.put("content", generatedContent);
+                result.put("summary", metaDescription);
+                result.put("coverImage", coverImage);
+                result.put("wordCount", generatedContent.length());
+                result.put("seoScore", seoAnalysis.getSeoScore());
+                result.put("keywords", keywordList);
+                result.put("status", "preview");
+                result.put("message", "SEO优化文章已生成（预览模式，未保存）");
+
+                return ToolResult.success(result, "SEO优化文章生成成功（预览）");
             }
 
         } catch (Exception e) {
-            log.error("文章生成失败", e);
-            return ToolResult.error("文章生成失败: " + e.getMessage());
+            log.error("SEO文章生成失败", e);
+            return ToolResult.error("SEO文章生成失败: " + e.getMessage());
         }
-    }
-
-    /**
-     * 构建文章生成提示词
-     */
-    private String buildGenerationPrompt(String topic, Integer wordCount, String style) {
-        String styleDesc = switch (style.toLowerCase()) {
-            case "technical", "tech" -> "技术专业风格，使用专业术语，结构清晰";
-            case "tutorial", "guide" -> "教程风格，步骤详细，易于理解";
-            case "review" -> "评测风格，客观分析，优缺点并重";
-            case "news" -> "新闻风格，简洁明了，事实为主";
-            default -> "专业风格，结构清晰";
-        };
-
-        return String.format("""
-            请撰写一篇关于"%s"的博客文章。
-
-            要求：
-            1. 字数：约%d字
-            2. 风格：%s
-            3. 使用Markdown格式
-            4. 包含标题、正文内容
-            5. 内容要有深度，有实用价值
-
-            请直接输出文章内容，不需要额外的说明。
-            """, topic, wordCount, styleDesc);
-    }
-
-    /**
-     * 根据主题和风格生成标题
-     */
-    private String generateTitle(String topic, String style) {
-        String prefix = switch (style.toLowerCase()) {
-            case "technical", "tech" -> "技术解析：";
-            case "tutorial", "guide" -> "实战指南：";
-            case "review" -> "深度评测：";
-            case "news" -> "行业动态：";
-            default -> "";
-        };
-        return prefix + topic;
-    }
-
-    /**
-     * 生成文章摘要
-     */
-    private String generateSummary(String content, int maxLength) {
-        if (content == null || content.isEmpty()) {
-            return "";
-        }
-        // 去除Markdown标记
-        String plainText = content.replaceAll("[#*_`\\[\\]()\\]", "").replaceAll("\\s+", " ").trim();
-        if (plainText.length() <= maxLength) {
-            return plainText;
-        }
-        return plainText.substring(0, maxLength) + "...";
     }
 
     @Override
     public long getTimeout() {
-        return 120000; // 120秒超时（生成文章可能需要较长时间）
+        return 120000;
     }
 }

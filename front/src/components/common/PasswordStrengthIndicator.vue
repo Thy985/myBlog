@@ -47,10 +47,10 @@ const strength = computed(() => {
 
 const strengthText = computed(() => {
   switch (strength.value) {
-    case 'weak': return '弱'
-    case 'medium': return '中'
-    case 'strong': return '强'
-    case 'very-strong': return '非常强'
+    case 'weak': return '弱 — 建议增加长度或混合大小写'
+    case 'medium': return '中 — 可以更复杂'
+    case 'strong': return '强 — 安全性良好'
+    case 'very-strong': return '非常强 — 密码强度优秀'
     default: return ''
   }
 })
@@ -63,7 +63,7 @@ const strengthText = computed(() => {
 }
 
 .password-strength-label {
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 6px;
 }
 
@@ -76,29 +76,29 @@ const strengthText = computed(() => {
 .password-strength-bar {
   flex: 1;
   height: 4px;
-  background: #eaeaea;
+  background: var(--border-color);
   border-radius: 2px;
-  transition: all 0.3s ease;
+  transition: background var(--transition-fast);
 }
 
 .password-strength-bar.weak {
-  background: #f56c6c;
+  background: var(--color-error);
 }
 
 .password-strength-bar.medium {
-  background: #e6a23c;
+  background: var(--color-warning);
 }
 
 .password-strength-bar.strong {
-  background: #67c23a;
+  background: var(--color-success);
 }
 
 .password-strength-bar.very-strong {
-  background: #409eff;
+  background: var(--color-accent);
 }
 
 .password-strength-text {
-  color: #666;
+  color: var(--text-muted);
   font-size: 11px;
 }
 </style>

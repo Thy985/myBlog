@@ -79,7 +79,7 @@ onUnmounted(() => {
 
 <style scoped>
 .el-aside {
-    transition: all 0.3s;
+    transition: width 0.3s ease;
 }
 
 .el-header {

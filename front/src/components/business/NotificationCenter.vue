@@ -56,15 +56,11 @@
                             :class="{ 'unread': !item.is_read }"
                             @click="handleItemClick(item)"
                         >
-                            <div class="item-icon">
-                                <el-icon v-if="item.type === 'COMMENT'" color="#409EFF">
-                                    <ChatDotRound />
-                                </el-icon>
-                                <el-icon v-else-if="item.type === 'LIKE'" color="#F56C6C">
-                                    <Star />
-                                </el-icon>
-                                <el-icon v-else color="#E6A23C">
-                                    <Bell />
+                            <div class="item-icon" :class="getIconClass(item.type)">
+                                <el-icon>
+                                    <ChatDotRound v-if="item.type === 'COMMENT'" />
+                                    <Star v-else-if="item.type === 'LIKE'" />
+                                    <Bell v-else />
                                 </el-icon>
                             </div>
 
@@ -179,8 +175,8 @@ const handleItemClick = async (item) => {
     // 跳转到目标页面
     if (item.target_type === 'ARTICLE' && item.target_id) {
         router.push({
-            path: '/article/detail',
-            query: { articleId: item.target_id }
+            name: 'article',
+            params: { id: String(item.target_id) }
         })
         visible.value = false
     }
@@ -255,6 +251,13 @@ const formatTime = (time) => {
     return fromNow(time)
 }
 
+// 获取图标类名
+const getIconClass = (type) => {
+    if (type === 'COMMENT') {return 'icon-primary'}
+    if (type === 'LIKE') {return 'icon-danger'}
+    return 'icon-warning'
+}
+
 // 开始轮询
 const startPolling = () => {
     // 每30秒检查一次未读数量
@@ -294,13 +297,13 @@ onUnmounted(() => {
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .notification-header .title {
     font-size: 16px;
     font-weight: 600;
-    color: #303133;
+    color: var(--text-primary);
 }
 
 .notification-header .actions {
@@ -320,7 +323,7 @@ onUnmounted(() => {
     align-items: center;
     justify-content: center;
     padding: 40px 20px;
-    color: #909399;
+    color: var(--text-muted);
 }
 
 .loading {
@@ -333,19 +336,19 @@ onUnmounted(() => {
     padding: 12px 16px;
     cursor: pointer;
     transition: background-color 0.2s;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .notification-item:hover {
-    background-color: #f5f7fa;
+    background-color: var(--bg-tertiary);
 }
 
 .notification-item.unread {
-    background-color: #ecf5ff;
+    background-color: var(--color-primary-subtle);
 }
 
 .notification-item.unread:hover {
-    background-color: #d9ecff;
+    background-color: var(--bg-tertiary);
 }
 
 .item-icon {
@@ -356,7 +359,19 @@ onUnmounted(() => {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background-color: #f5f7fa;
+    background-color: var(--bg-tertiary);
+}
+
+.item-icon.icon-primary :deep(.el-icon) {
+    color: var(--color-primary);
+}
+
+.item-icon.icon-danger :deep(.el-icon) {
+    color: var(--color-error);
+}
+
+.item-icon.icon-warning :deep(.el-icon) {
+    color: var(--color-warning);
 }
 
 .item-content {
@@ -367,13 +382,13 @@ onUnmounted(() => {
 .item-title {
     font-size: 14px;
     font-weight: 500;
-    color: #303133;
+    color: var(--text-primary);
     margin-bottom: 4px;
 }
 
 .item-text {
     font-size: 13px;
-    color: #606266;
+    color: var(--text-secondary);
     margin-bottom: 4px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -382,7 +397,7 @@ onUnmounted(() => {
 
 .item-time {
     font-size: 12px;
-    color: #909399;
+    color: var(--text-muted);
 }
 
 .item-actions {
@@ -393,7 +408,7 @@ onUnmounted(() => {
 
 .notification-footer {
     padding: 12px 16px;
-    border-top: 1px solid #f0f0f0;
+    border-top: 1px solid var(--border-color);
     text-align: center;
 }
 </style>

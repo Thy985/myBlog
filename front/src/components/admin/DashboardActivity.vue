@@ -118,7 +118,7 @@ const viewComment = (content) => {
 <style scoped>
 .activity-card {
   border-radius: 12px;
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   background-color: var(--background-light);
 }
 
@@ -139,7 +139,7 @@ const viewComment = (content) => {
   font-size: 14px;
   font-weight: 500;
   color: var(--text-primary);
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .article-title:hover {

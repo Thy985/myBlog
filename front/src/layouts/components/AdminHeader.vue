@@ -293,7 +293,7 @@ const handleCommand = (e) => {
             showMessage('个人资料功能开发中', 'info')
             break
         case 'settings':
-            router.push('/admin/blog-setting')
+            router.push('/admin/settings/site')
             break
         case 'updatePassword':
             dialogShow.value = true
@@ -334,7 +334,7 @@ function logout() {
     height: 64px;
     cursor: pointer;
     color: var(--text-secondary, #374151);
-    transition: all var(--transition-fast, 150ms ease);
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .icon-btn:hover {
@@ -346,7 +346,7 @@ function logout() {
     height: 64px;
     cursor: pointer;
     color: var(--text-secondary, #374151) !important;
-    transition: all var(--transition-fast, 150ms ease);
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .header .dropdown:hover {
@@ -355,7 +355,7 @@ function logout() {
 
 .search-input {
     width: 200px;
-    transition: all var(--transition-normal, 250ms ease);
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     border-radius: var(--radius-full, 9999px);
     height: 36px;
 }
@@ -421,7 +421,7 @@ function logout() {
 }
 
 .notification-item {
-    transition: all var(--transition-fast, 150ms ease);
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .notification-item:hover {

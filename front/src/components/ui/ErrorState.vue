@@ -108,7 +108,7 @@ const iconMap = {
 const errorMessages = {
   generic: {
     title: '加载失败',
-    description: '抱歉，发生了未知错误，请稍后重试'
+    description: '发生了未知错误，请稍后重试'
   },
   network: {
     title: '网络连接失败',
@@ -120,11 +120,11 @@ const errorMessages = {
   },
   'not-found': {
     title: '内容不存在',
-    description: '抱歉，您访问的内容不存在或已被删除'
+    description: '您访问的内容不存在或已被删除'
   },
   permission: {
     title: '无权访问',
-    description: '抱歉，您没有权限访问此内容'
+    description: '您没有权限访问此内容'
   }
 }
 
@@ -190,23 +190,23 @@ const handleBackHome = () => {
 }
 
 .error-icon-generic {
-  background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+  background: var(--color-warning-subtle);
 }
 
 .error-icon-network {
-  background: linear-gradient(135deg, #dbeafe 0%, #60a5fa 100%);
+  background: var(--color-accent-subtle);
 }
 
 .error-icon-server {
-  background: linear-gradient(135deg, #fee2e2 0%, #f87171 100%);
+  background: var(--color-error-subtle);
 }
 
 .error-icon-not-found {
-  background: linear-gradient(135deg, #f3e8ff 0%, #a78bfa 100%);
+  background: var(--color-primary-subtle);
 }
 
 .error-icon-permission {
-  background: linear-gradient(135deg, #fef3c7 0%, #f59e0b 100%);
+  background: var(--color-warning-subtle);
 }
 
 .error-state-icon {
@@ -219,23 +219,23 @@ const handleBackHome = () => {
 }
 
 .error-icon-generic .error-state-icon {
-  color: #d97706;
+  color: var(--color-warning);
 }
 
 .error-icon-network .error-state-icon {
-  color: #2563eb;
+  color: var(--color-accent);
 }
 
 .error-icon-server .error-state-icon {
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .error-icon-not-found .error-state-icon {
-  color: #7c3aed;
+  color: var(--color-primary);
 }
 
 .error-icon-permission .error-state-icon {
-  color: #d97706;
+  color: var(--color-warning);
 }
 
 .error-state-title {
@@ -278,7 +278,7 @@ const handleBackHome = () => {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   border: none;
   outline: none;
 }
@@ -288,13 +288,12 @@ const handleBackHome = () => {
 }
 
 .error-state-btn-primary {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  background: var(--color-primary);
   color: white;
 }
 
 .error-state-btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--primary-light);
+  background: var(--color-primary-hover);
 }
 
 .error-state-btn-secondary {

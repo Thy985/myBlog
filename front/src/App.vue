@@ -3,7 +3,7 @@
     <ErrorBoundary>
       <router-view v-slot="{ Component, route }">
         <transition name="fade" mode="out-in">
-          <Suspense :timeout="0" @pending="onPending" @resolve="onResolve">
+          <Suspense :timeout="3000" @pending="onPending" @resolve="onResolve">
             <template #default>
               <component :is="Component" :key="route.path" />
             </template>
@@ -71,6 +71,7 @@ body {
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity var(--transition-normal) ease, transform var(--transition-normal) ease;
+  will-change: opacity, transform;
 }
 
 .fade-enter-from,

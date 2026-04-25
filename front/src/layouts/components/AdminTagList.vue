@@ -118,7 +118,7 @@ const removeTab = (t) => {
     right: 0;
     height: 44px;
     z-index: 100;
-    transition: all 0.3s;
+    transition: left 0.3s ease, background-color 0.3s ease;
     background-color: #fff;
     border-bottom: 1px solid #d8dce5;
     box-shadow: 0 1px 3px #00000010, 0 0 3px #00000010;
