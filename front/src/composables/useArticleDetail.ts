@@ -8,7 +8,7 @@ import { ref, reactive, computed, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import logger from '@/utils/logger'
-import { getArticle as getArticleDetailApi, updateReadNum as updateReadNumApi, getArticleReadStats, getRelatedArticles } from '@/api/modules/article'
+import { getArticle as getArticleDetailApi, updateReadNum as updateReadNumApi, getArticleReadStats, getRelatedArticles } from '@/api/frontend/article'
 import { getCategories } from '@/api/frontend/category'
 import { getTags } from '@/api/frontend/tag'
 import { request, API_STATUS } from '@/composables/api'
@@ -17,15 +17,12 @@ export function useArticleDetail() {
   const route = useRoute()
   const router = useRouter()
 
-  // 竞态控制: 用于取消进行中的异步操作
   let currentAbortController = null
   let isUnmounted = false
 
-  // TOC items
   const tocItems = ref([])
   const activeTocIndex = ref(0)
 
-  // Article state
   const loading = ref(true)
   const error = ref(false)
   const errorMessage = ref('')
@@ -34,7 +31,7 @@ export function useArticleDetail() {
     content: '',
     updatedAt: '',
     readCount: 0,
-    categoryId: null,
+    categoryId: null as number | null,
     categoryName: '',
     description: '',
     titleImage: '',
@@ -45,37 +42,32 @@ export function useArticleDetail() {
     isCollected: false,
     isTop: false,
     status: '',
-    publishTime: null,
+    publishTime: null as string | null,
     createdAt: '',
-    author: null,
-    preArticleId: null,
+    author: null as any,
+    preArticleId: null as number | null,
     preArticleTitle: '',
     preArticleThumbnail: '',
-    nextArticleId: null,
+    nextArticleId: null as number | null,
     nextArticleTitle: '',
     nextArticleThumbnail: '',
-    tags: []
+    tags: [] as any[]
   })
 
-  // Related articles state
   const loadingRelated = ref(false)
-  const relatedArticles = ref([])
-  const readStats = ref({})
+  const relatedArticles = ref([] as any[])
+  const readStats = ref({} as any)
   const updatingReadNum = ref(false)
 
-  // Categories and tags
-  const categories = ref([])
-  const tags = ref([])
+  const categories = ref([] as any[])
+  const tags = ref([] as any[])
 
-  // Storage for processed content with IDs
   let processedContentWithIds = ''
 
-  // Get processed content with heading IDs for TOC
   const processedContent = computed(() => {
     return processedContentWithIds || article.content
   })
 
-  // Generate TOC from content and add IDs to headings
   function generateToc() {
     if (isUnmounted) {return}
 
@@ -83,7 +75,7 @@ export function useArticleDetail() {
     const content = article.content
     let headingIndex = 0
 
-    processedContentWithIds = content.replace(/<(h[2-4])([^>]*)>(.*?)<\/\1>/g, (match, tag, attrs, text) => {
+    processedContentWithIds = content.replace(/<(h[2-4])([^>]*)>(.*?)<\/\1>/g, (match: string, tag: string, attrs: string, text: string) => {
       const id = `heading-${headingIndex}`
       tocItems.value.push({
         id,
@@ -97,16 +89,13 @@ export function useArticleDetail() {
     activeTocIndex.value = 0
   }
 
-  // 安全的状态更新（检查组件是否已卸载）
-  function safeUpdate(callback) {
+  function safeUpdate(callback: () => void) {
     if (!isUnmounted) {
       callback()
     }
   }
 
-  // Load article detail (带竞态保护)
   async function loadArticleDetail() {
-    // ✅ 支持 RESTful params 和 query 两种模式
     const articleId = route.params.id || route.query.articleId
     if (!articleId) {
       safeUpdate(() => {
@@ -118,7 +107,6 @@ export function useArticleDetail() {
       return
     }
 
-    // 取消之前的请求
     if (currentAbortController) {
       currentAbortController.abort()
     }
@@ -132,15 +120,14 @@ export function useArticleDetail() {
     })
 
     try {
-      const res = await getArticleDetailApi(articleId)
+      const res = await getArticleDetailApi(Number(articleId))
 
-      // 检查是否被取消或组件已卸载
       if (signal.aborted || isUnmounted) {return}
 
       if (res && res.data) {
         const d = res.data
         safeUpdate(() => {
-          article.title = d.title
+          article.title = d.title || ''
           let content = d.content || ''
           content = content.replace(/<h1[^>]*>.*?<\/h1>/gi, '')
           article.content = content
@@ -185,7 +172,7 @@ export function useArticleDetail() {
       } else {
         throw new Error('Failed to get article detail: invalid response format')
       }
-    } catch (err) {
+    } catch (err: any) {
       if (err.name === 'AbortError' || isUnmounted) {return}
 
       logger.error('Failed to get article detail:', err)
@@ -201,28 +188,24 @@ export function useArticleDetail() {
 
       if (!isUnmounted) {
         generateToc()
-        fetchRelatedArticles(articleId)
+        fetchRelatedArticles(Number(articleId))
       }
     }
   }
 
-  // Navigate to article detail (使用 RESTful URL)
-  function goArticleDetail(articleId) {
+  function goArticleDetail(articleId: number | string) {
     if (!articleId) {
       ElMessage.warning('Article ID does not exist')
       return
     }
     try {
-      // ✅ 使用 RESTful 风格路由: /article/123
       router.push({ name: 'article', params: { id: String(articleId) } })
-    } catch (err) {
+    } catch (err: any) {
       logger.error('Failed to navigate to article detail:', err)
-      // 回退到 query 模式（兼容旧路径）
       router.push({ path: '/article/detail', query: { articleId: String(articleId) } })
     }
   }
 
-  // Fetch categories
   async function fetchCategories() {
     if (isUnmounted) {return}
     try {
@@ -230,14 +213,13 @@ export function useArticleDetail() {
       if (!isUnmounted && res && res.data) {
         categories.value = res.data
       }
-    } catch (err) {
+    } catch (err: any) {
       if (!isUnmounted) {
         logger.error('Failed to fetch categories:', err)
       }
     }
   }
 
-  // Fetch tags
   async function fetchTags() {
     if (isUnmounted) {return}
     try {
@@ -245,36 +227,33 @@ export function useArticleDetail() {
       if (!isUnmounted && res && res.data) {
         tags.value = res.data
       }
-    } catch (err) {
+    } catch (err: any) {
       if (!isUnmounted) {
         logger.error('Failed to fetch tags:', err)
       }
     }
   }
 
-  // Navigate to category article list
-  function goCategoryArticleListPage(id, name) {
+  function goCategoryArticleListPage(id: number, name: string) {
     router.push({ name: 'category-articles', params: { id: String(id), name: encodeURIComponent(name || '') } })
   }
 
-  // Navigate to tag article list
-  function goTagArticleListPage(id, name) {
+  function goTagArticleListPage(id: number, name: string) {
     router.push({ name: 'tag-articles', params: { id: String(id), name: encodeURIComponent(name || '') } })
   }
 
-  // Update article read count
-  async function updateReadNum(articleId) {
+  async function updateReadNum(articleId: number | string) {
     if (!articleId || isUnmounted) {return}
 
     updatingReadNum.value = true
     try {
-      await request(() => updateReadNumApi(articleId), null, {
+      await request(() => updateReadNumApi(Number(articleId)), null, {
         showError: false
       })
       safeUpdate(() => {
         article.readCount = (article.readCount || 0) + 1
       })
-    } catch (err) {
+    } catch (err: any) {
       logger.error('Failed to update read count:', err)
     } finally {
       if (!isUnmounted) {
@@ -283,26 +262,24 @@ export function useArticleDetail() {
     }
   }
 
-  // Get article read statistics
-  async function getReadStats(articleId) {
+  async function getReadStats(articleId: number | string) {
     if (!articleId || isUnmounted) {return}
 
     try {
-      const res = await request(() => getArticleReadStats(articleId), null, {
+      const res = await request(() => getArticleReadStats(Number(articleId)), null, {
         showError: true
       })
       if (!isUnmounted && res && res.data) {
         readStats.value = res.data
       }
-    } catch (err) {
+    } catch (err: any) {
       if (!isUnmounted) {
         logger.error('Failed to get read stats:', err)
       }
     }
   }
 
-  // Get related articles
-  async function fetchRelatedArticles(articleId) {
+  async function fetchRelatedArticles(articleId: number) {
     if (!articleId || isUnmounted) {return}
 
     loadingRelated.value = true
@@ -315,7 +292,7 @@ export function useArticleDetail() {
           relatedArticles.value = []
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       if (!isUnmounted) {
         logger.error('Failed to get related articles:', err)
         relatedArticles.value = []
@@ -327,26 +304,22 @@ export function useArticleDetail() {
     }
   }
 
-  // Load all data - 优化版：全并行 + 非阻塞次要数据
   async function loadAllData() {
     const articleId = route.params.id || route.query.articleId
     if (!articleId) {return}
 
-    // 核心数据并行加载（首屏关键）
     const [articleResult] = await Promise.allSettled([
       loadArticleDetail(),
       fetchCategories(),
       fetchTags()
     ])
 
-    // 次要数据不阻塞渲染，fire-and-forget
     if (!isUnmounted) {
       updateReadNum(articleId)
       getReadStats(articleId)
     }
   }
 
-  // 清理函数：组件卸载时调用
   onUnmounted(() => {
     isUnmounted = true
     if (currentAbortController) {
@@ -356,7 +329,6 @@ export function useArticleDetail() {
   })
 
   return {
-    // State
     article,
     loading,
     error,
@@ -370,7 +342,6 @@ export function useArticleDetail() {
     processedContent,
     commentListRef: ref(null),
 
-    // Methods
     loadArticleDetail,
     goArticleDetail,
     fetchCategories,
@@ -382,7 +353,6 @@ export function useArticleDetail() {
     fetchRelatedArticles,
     loadAllData,
 
-    // Lifecycle
     dispose: () => {
       isUnmounted = true
       if (currentAbortController) {

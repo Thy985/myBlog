@@ -1,19 +1,23 @@
-/**
- * 滚动同步 Composable
- * 封装目录滚动和页面滚动同步逻辑
- */
 import { ref, onMounted, onUnmounted } from 'vue'
 
-export function useScrollSync(tocItems, options = {}) {
+interface TocItem {
+  id: string
+  title: string
+  level?: number
+}
+
+interface UseScrollSyncOptions {
+  offsetTop?: number
+  onActiveIndexChange?: (index: number) => void
+}
+
+export function useScrollSync(tocItems: { value: TocItem[] }, options: UseScrollSyncOptions = {}) {
   const { offsetTop = 100, onActiveIndexChange } = options
 
   const activeTocIndex = ref(0)
-  let scrollHandler = null
+  let scrollHandler: (() => void) | null = null
 
-  /**
-   * 滚动到指定章节
-   */
-  function scrollToSection(id, index) {
+  function scrollToSection(id: string, index: number): void {
     const element = document.getElementById(id)
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' })
@@ -24,10 +28,7 @@ export function useScrollSync(tocItems, options = {}) {
     }
   }
 
-  /**
-   * 处理页面滚动，更新活跃目录项
-   */
-  function handleScroll() {
+  function handleScroll(): void {
     const scrollPosition = window.scrollY + offsetTop
 
     for (let i = tocItems.value.length - 1; i >= 0; i--) {
@@ -44,10 +45,7 @@ export function useScrollSync(tocItems, options = {}) {
     }
   }
 
-  /**
-   * 启动滚动监听
-   */
-  function startScrollListener() {
+  function startScrollListener(): void {
     if (scrollHandler) {
       window.removeEventListener('scroll', scrollHandler)
     }
@@ -55,10 +53,7 @@ export function useScrollSync(tocItems, options = {}) {
     window.addEventListener('scroll', scrollHandler, { passive: true })
   }
 
-  /**
-   * 停止滚动监听
-   */
-  function stopScrollListener() {
+  function stopScrollListener(): void {
     if (scrollHandler) {
       window.removeEventListener('scroll', scrollHandler)
       scrollHandler = null

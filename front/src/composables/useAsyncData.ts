@@ -1,36 +1,36 @@
-/**
- * useAsyncData - 通用异步数据获取 Composable
- *
- * ✅ 特性:
- * - 自动 loading/error 状态管理
- * - 组件卸载时自动取消请求
- * - 防重复请求
- * - 支持缓存
- * - 类型安全
- */
 import { ref, onUnmounted } from 'vue'
 import logger from '@/utils/logger'
 
-export function useAsyncData(apiFn, options = {}) {
+export interface UseAsyncDataOptions<T> {
+  immediate?: boolean
+  defaultValue?: T
+  cacheKey?: string | null
+  cacheTTL?: number
+  showError?: boolean
+  onError?: ((err: Error) => void) | null
+}
+
+export function useAsyncData<T>(
+  apiFn: (...args: any[]) => Promise<T>,
+  options: UseAsyncDataOptions<T> = {}
+) {
   const {
-    immediate: _immediate = false,
-    defaultValue = null,
-    cacheKey = null,
+    defaultValue = null as T,
+    cacheKey = null as string | null,
     cacheTTL = 5 * 60 * 1000,
     showError = true,
     onError = null
   } = options
 
-  const data = ref(defaultValue)
+  const data = ref<T>(defaultValue)
   const loading = ref(false)
-  const error = ref(null)
+  const error = ref<Error | null>(null)
   let isUnmounted = false
-  let currentAbortController = null
+  let currentAbortController: AbortController | null = null
 
-  // 简单内存缓存
-  const cache = new Map()
+  const cache = new Map<string, { data: T; timestamp: number }>()
 
-  function getFromCache(key) {
+  function getFromCache(key: string | null): T | null {
     if (!cacheKey || !key) {return null}
     const cached = cache.get(key)
     if (!cached) {return null}
@@ -41,15 +41,14 @@ export function useAsyncData(apiFn, options = {}) {
     return cached.data
   }
 
-  function setToCache(key, value) {
+  function setToCache(key: string | null, value: T): void {
     if (!cacheKey || !key) {return}
     cache.set(key, { data: value, timestamp: Date.now() })
   }
 
-  async function execute(...args) {
+  async function execute(...args: any[]) {
     if (isUnmounted) {return { data: data.value, loading: false, error: null }}
 
-    // 检查缓存
     const key = cacheKey ? `${cacheKey}:${JSON.stringify(args)}` : null
     const cached = getFromCache(key)
     if (cached !== null) {
@@ -57,7 +56,6 @@ export function useAsyncData(apiFn, options = {}) {
       return { data: cached, loading: false, error: null }
     }
 
-    // 取消之前的请求
     if (currentAbortController) {
       currentAbortController.abort()
     }
@@ -75,13 +73,12 @@ export function useAsyncData(apiFn, options = {}) {
 
       data.value = result
 
-      // 写入缓存
       if (key) {
         setToCache(key, result)
       }
 
       return { data: result, loading: false, error: null }
-    } catch (err) {
+    } catch (err: any) {
       if (err.name === 'AbortError' || isUnmounted) {
         return { data: data.value, loading: false, error: null }
       }
@@ -101,13 +98,13 @@ export function useAsyncData(apiFn, options = {}) {
     }
   }
 
-  function reset() {
+  function reset(): void {
     data.value = defaultValue
     error.value = null
     loading.value = false
   }
 
-  function clearCache() {
+  function clearCache(): void {
     cache.clear()
   }
 
@@ -129,15 +126,19 @@ export function useAsyncData(apiFn, options = {}) {
   }
 }
 
-/**
- * usePaginationData - 分页数据获取 Composable
- * 基于 useAsyncData 的分页封装
- */
-export function usePaginationData(apiFn, options = {}) {
-  const {
-    defaultPageSize = 10,
-    ...asyncOptions
-  } = options
+interface PageResult {
+  records?: T[]
+  total?: number
+  pages?: number
+  current?: number
+  size?: number
+}
+
+export function usePaginationData<T>(
+  apiFn: (params: { current: number; size: number }) => Promise<{ data: PageResult<T> }>,
+  options: { defaultPageSize?: number } & UseAsyncDataOptions<PageResult<T>> = {}
+) {
+  const { defaultPageSize = 10, ...asyncOptions } = options
 
   const asyncData = useAsyncData(apiFn, asyncOptions)
   const currentPage = ref(1)
@@ -171,7 +172,7 @@ export function usePaginationData(apiFn, options = {}) {
     }
   }
 
-  function changeSize(newSize) {
+  function changeSize(newSize: number) {
     fetchData(1, newSize)
   }
 

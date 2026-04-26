@@ -1,40 +1,41 @@
-/**
- * CRUD表格Composable
- * 封装管理后台列表页的通用CRUD逻辑
- */
 import { ref, reactive } from 'vue'
+import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { API_STATUS } from '@/composables/api'
 import logger from '@/utils/logger'
 
-export function useCrudTable(options = {}) {
-  const {
-    api // CRUD API对象 { getList, add, update, delete }
-  } = options
+export interface CrudApi {
+  getList?: (params: any) => Promise<any>
+  add?: (data: any) => Promise<any>
+  update?: (data: any) => Promise<any>
+  delete?: (id: number) => Promise<any>
+}
 
-  // 表格状态
-  const tableData = ref([])
+export interface UseCrudTableOptions {
+  api: CrudApi
+}
+
+export function useCrudTable(options: UseCrudTableOptions) {
+  const { api } = options
+
+  const tableData = ref<any[]>([])
   const tableLoading = ref(false)
   const total = ref(0)
   const current = ref(1)
   const size = ref(10)
 
-  // 搜索状态
   const searchKeyword = ref('')
   const pickDate = ref('')
-  const startDate = reactive({ value: null })
-  const endDate = reactive({ value: null })
+  const startDate = reactive({ value: Date | null })
+  const endDate = reactive({ value: Date | null })
 
-  // 表单状态
-  const form = reactive({})
-  const formRef = ref(null)
+  const form = reactive<Record<string, any>>({})
+  const formRef = ref<FormInstance | null>(null)
   const submitLoading = ref(false)
 
-  // 对话框状态
   const dialogVisible = ref(false)
   const dialogTitle = ref('')
 
-  // 日期快捷选项
   const shortcuts = [
     {
       text: '最近一周',
@@ -65,17 +66,15 @@ export function useCrudTable(options = {}) {
     }
   ]
 
-  // 重置搜索
-  function reset() {
+  function reset(): void {
     pickDate.value = ''
     startDate.value = null
     endDate.value = null
     searchKeyword.value = ''
   }
 
-  // 日期选择变化
-  function datepickerChange(e) {
-    if (e) {
+  function datepickerChange(e: Date[] | null): void {
+    if (e && e.length === 2) {
       startDate.value = e[0]
       endDate.value = e[1]
     } else {
@@ -84,11 +83,9 @@ export function useCrudTable(options = {}) {
     }
   }
 
-  // 请求ID，用于防止异步竞态
   let currentRequestId = 0
 
-  // 获取列表数据
-  async function fetchData() {
+  async function fetchData(): Promise<void> {
     if (!api?.getList) {return}
 
     tableLoading.value = true
@@ -102,7 +99,6 @@ export function useCrudTable(options = {}) {
         keyword: searchKeyword.value
       })
 
-      // 如果这是旧的请求，忽略结果
       if (requestId !== currentRequestId) {return}
 
       if (res && res.code === API_STATUS.SUCCESS) {
@@ -111,7 +107,7 @@ export function useCrudTable(options = {}) {
         current.value = res.data?.current || 1
         size.value = res.data?.size || 10
       }
-    } catch (err) {
+    } catch (err: any) {
       if (requestId !== currentRequestId) {return}
       logger.error('获取数据失败:', err)
       ElMessage.error('获取数据失败，请稍后重试')
@@ -122,13 +118,12 @@ export function useCrudTable(options = {}) {
     }
   }
 
-  // 提交表单（新增或更新）
-  async function submitForm(submitApi, successMessage) {
+  async function submitForm(submitApi: (data: any) => Promise<any>, successMessage: string): Promise<boolean> {
     if (!formRef.value) {return false}
 
     try {
       await formRef.value.validate()
-    } catch (err) {
+    } catch {
       return false
     }
 
@@ -144,7 +139,7 @@ export function useCrudTable(options = {}) {
         ElMessage.warning(res?.message || '操作失败')
         return false
       }
-    } catch (err) {
+    } catch (err: any) {
       logger.error('提交失败:', err)
       ElMessage.error('操作失败，请稍后重试')
       return false
@@ -153,8 +148,7 @@ export function useCrudTable(options = {}) {
     }
   }
 
-  // 删除操作
-  async function deleteItem(deleteApi, id, name, message) {
+  async function deleteItem(deleteApi: (id: number) => Promise<any>, id: number, _name?: string, message?: string): Promise<boolean> {
     const res = await deleteApi(id)
     if (res && res.code === API_STATUS.SUCCESS) {
       ElMessage.success(message || '删除成功')
@@ -166,8 +160,7 @@ export function useCrudTable(options = {}) {
     }
   }
 
-  // 打开新增对话框
-  function openAddDialog(title = '新增') {
+  function openAddDialog(title = '新增'): void {
     dialogTitle.value = title
     Object.keys(form).forEach(key => delete form[key])
     if (formRef.value) {
@@ -176,8 +169,7 @@ export function useCrudTable(options = {}) {
     dialogVisible.value = true
   }
 
-  // 打开编辑对话框
-  function openEditDialog(title, row, formData) {
+  function openEditDialog(title: string, row: any, formData?: Record<string, any>): void {
     dialogTitle.value = title
     Object.assign(form, formData || row)
     if (formRef.value) {
@@ -186,19 +178,16 @@ export function useCrudTable(options = {}) {
     dialogVisible.value = true
   }
 
-  // 分页大小变化
-  function handleSizeChange(val) {
+  function handleSizeChange(val: number): void {
     size.value = val
     fetchData()
   }
 
-  // 分页页码变化
-  function handleCurrentChange() {
+  function handleCurrentChange(): void {
     fetchData()
   }
 
   return {
-    // 状态
     tableData,
     tableLoading,
     total,
@@ -214,7 +203,6 @@ export function useCrudTable(options = {}) {
     dialogVisible,
     dialogTitle,
     shortcuts,
-    // 方法
     reset,
     datepickerChange,
     fetchData,
