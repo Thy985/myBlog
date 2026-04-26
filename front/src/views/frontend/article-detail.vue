@@ -164,6 +164,7 @@ import { ElMessage } from 'element-plus'
 import { useArticleDetail } from '@/composables/useArticleDetail'
 import { publishComment } from '@/api/frontend/comment'
 import { likeArticle, unlikeArticle, collectArticle, uncollectArticle } from '@/api/frontend/article'
+import { isAuthenticated } from '@/composables/auth'
 
 import Header from '@/layouts/components/Header.vue'
 import Footer from '@/layouts/components/Footer.vue'
@@ -312,6 +313,11 @@ async function handleCommentSubmit(content) {
 
 // Toggle like
 async function toggleLike() {
+  if (!isAuthenticated()) {
+    ElMessage.warning('Please login first')
+    router.push('/login')
+    return
+  }
   if (actionLoading.value) {return}
   const articleId = route.params.id
   if (!articleId) {return}
@@ -336,6 +342,11 @@ async function toggleLike() {
 
 // Toggle collect
 async function toggleCollect() {
+  if (!isAuthenticated()) {
+    ElMessage.warning('Please login first')
+    router.push('/login')
+    return
+  }
   if (actionLoading.value) {return}
   const articleId = route.params.id
   if (!articleId) {return}
