@@ -155,7 +155,7 @@ const route = useRoute()
 const DEVELOPER_ID = 1
 
 // Filter state
-const selectedCategoryId = ref<number | null>(null)
+const selectedCategoryId = ref(null)
 const sortBy = ref('createdTime')
 
 // Author filter: show developer's articles if not logged in, user's articles if logged in
