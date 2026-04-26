@@ -86,6 +86,31 @@
                 @rendered="handleContentRendered"
               />
             </div>
+
+            <!-- 点赞收藏 -->
+            <div class="flex items-center justify-center gap-6 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                :class="['flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300', isLiked ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600']"
+                :disabled="actionLoading"
+                @click="toggleLike"
+              >
+                <svg class="w-5 h-5" :fill="isLiked ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <span class="font-medium">{{ likeCount > 0 ? likeCount : '点赞' }}</span>
+              </button>
+
+              <button
+                :class="['flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300', isCollected ? 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' : 'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 hover:text-yellow-600']"
+                :disabled="actionLoading"
+                @click="toggleCollect"
+              >
+                <svg class="w-5 h-5" :fill="isCollected ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                <span class="font-medium">{{ collectCount > 0 ? collectCount : '收藏' }}</span>
+              </button>
+            </div>
           </div>
 
           <!-- 上下篇 -->
@@ -133,11 +158,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineAsyncComponent, onUnmounted } from 'vue'
+import { ref, watch, onMounted, defineAsyncComponent, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useArticleDetail } from '@/composables/useArticleDetail'
 import { publishComment } from '@/api/frontend/comment'
+import { likeArticle, unlikeArticle, collectArticle, uncollectArticle } from '@/api/frontend/article'
 
 import Header from '@/layouts/components/Header.vue'
 import Footer from '@/layouts/components/Footer.vue'
@@ -179,6 +205,19 @@ const commentListRef = ref(null)
 const articleContentRef = ref(null)
 const showMobileToc = ref(false)
 const showBackToTop = ref(false)
+const isLiked = ref(false)
+const isCollected = ref(false)
+const likeCount = ref(0)
+const collectCount = ref(0)
+const actionLoading = ref(false)
+
+// Sync like/collect counts from article data
+watch(article, (newArticle) => {
+  if (newArticle) {
+    likeCount.value = newArticle.likeCount || 0
+    collectCount.value = newArticle.collectCount || 0
+  }
+}, { immediate: true })
 
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -268,6 +307,54 @@ async function handleCommentSubmit(content) {
     }
   } catch (err) {
     ElMessage.error('Failed to submit comment, please try again later')
+  }
+}
+
+// Toggle like
+async function toggleLike() {
+  if (actionLoading.value) {return}
+  const articleId = route.params.id
+  if (!articleId) {return}
+
+  actionLoading.value = true
+  try {
+    if (isLiked.value) {
+      await unlikeArticle(Number(articleId))
+      isLiked.value = false
+      likeCount.value--
+    } else {
+      await likeArticle(Number(articleId))
+      isLiked.value = true
+      likeCount.value++
+    }
+  } catch (err) {
+    ElMessage.error('Operation failed, please try again later')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+// Toggle collect
+async function toggleCollect() {
+  if (actionLoading.value) {return}
+  const articleId = route.params.id
+  if (!articleId) {return}
+
+  actionLoading.value = true
+  try {
+    if (isCollected.value) {
+      await uncollectArticle(Number(articleId))
+      isCollected.value = false
+      collectCount.value--
+    } else {
+      await collectArticle(Number(articleId))
+      isCollected.value = true
+      collectCount.value++
+    }
+  } catch (err) {
+    ElMessage.error('Operation failed, please try again later')
+  } finally {
+    actionLoading.value = false
   }
 }
 
