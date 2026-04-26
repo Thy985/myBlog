@@ -15,6 +15,7 @@ const AdminUsers = () => import('@/views/admin/users.vue')
 const AdminMedia = () => import('@/views/admin/media.vue')
 const AdminPageViews = () => import('@/views/admin/analytics/page-views.vue')
 const Index = () => import('@/views/frontend/index.vue')
+const Discover = () => import('@/views/frontend/discover.vue')
 const ArticleDetail = () => import('@/views/frontend/article-detail.vue')
 const CategoryList = () => import('@/views/frontend/category-list.vue')
 const TagList = () => import('@/views/frontend/tag-list.vue')
@@ -197,6 +198,13 @@ const routes = [
     component: Index,
     meta: {
       title: 'XingChen博客'
+    }
+  },
+  {
+    path: '/discover',
+    component: Discover,
+    meta: {
+      title: '发现社区'
     }
   },
   {

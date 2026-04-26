@@ -178,7 +178,7 @@
 <script setup>
 import { defineAsyncComponent, ref, watch, onMounted, computed } from 'vue'
 
-import { useMainStore } from '@/stores'
+import { useMainStore, useAuthStore } from '@/stores'
 import { useRouter, useRoute } from 'vue-router'
 import Header from '@/layouts/components/Header.vue'
 import Footer from '@/layouts/components/Footer.vue'
@@ -203,16 +203,29 @@ import { useAsyncData, usePaginationData } from '@/composables/useAsyncData'
 import logger from '@/utils/logger'
 
 const store = useMainStore()
+const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+
+// Developer ID (hardcoded as 1)
+const DEVELOPER_ID = 1
 
 // Filter state
 const selectedCategoryId = ref<number | null>(null)
 const sortBy = ref('createdTime')
 
+// Author filter: show developer's articles if not logged in, user's articles if logged in
+const authorId = computed(() => {
+    if (authStore.user?.id) {
+        return authStore.user.id
+    }
+    return DEVELOPER_ID
+})
+
 const filterParams = computed(() => ({
   ...(selectedCategoryId.value && { categoryId: selectedCategoryId.value }),
-  ...(sortBy.value !== 'createdTime' && { sortBy: sortBy.value })
+  ...(sortBy.value !== 'createdTime' && { sortBy: sortBy.value }),
+  authorId: authorId.value
 }))
 
 // Clear all filters

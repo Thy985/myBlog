@@ -149,6 +149,7 @@ const scrollProgress = ref(0)
 
 const navItems = [
     { name: '首页', path: '/' },
+    { name: '发现', path: '/discover' },
     { name: '分类', path: '/category' },
     { name: '标签', path: '/tag' },
     { name: '归档', path: '/archive' },

@@ -9,6 +9,7 @@ export interface IndexArticlesParams {
   size?: number
   categoryId?: number
   tagId?: number
+  authorId?: number
   sortBy?: 'createdTime' | 'readNum' | 'likeNum'
   sortOrder?: 'asc' | 'desc'
 }
@@ -27,6 +28,7 @@ export function getIndexArticles(params: IndexArticlesParams): Promise<ApiRespon
       size: params.size || 10,
       ...(params.categoryId && { categoryId: params.categoryId }),
       ...(params.tagId && { tagId: params.tagId }),
+      ...(params.authorId && { authorId: params.authorId }),
       ...(params.sortBy && { sortBy: params.sortBy }),
       ...(params.sortOrder && { sortOrder: params.sortOrder })
     }

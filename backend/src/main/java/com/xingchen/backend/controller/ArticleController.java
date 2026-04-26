@@ -64,8 +64,9 @@ public class ArticleController {
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) Integer size,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Long tagId) {
-        return Result.success(articleService.getArticleList(page, size, keyword, categoryId, tagId));
+            @RequestParam(required = false) Long tagId,
+            @RequestParam(required = false) Long authorId) {
+        return Result.success(articleService.getArticleList(page, size, keyword, categoryId, tagId, authorId));
     }
 
     @GetMapping("/user/{userId}")
