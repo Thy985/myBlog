@@ -108,61 +108,6 @@
                             <UserInfoCard></UserInfoCard>
 
                             <HotArticles :articles="hotArticles" :limit="5" />
-
-                            <div class="bg-card border border-border-color rounded-xl p-5">
-                                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-                                    <svg class="w-5 h-5 text-primary" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 21 18">
-                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.9" d="M2.539 17h12.476l4-9H5m-2.461 9a1 1 0 0 1-.914-1.406L5 8m-2.461 9H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.443a1 1 0 0 1 .8.4l2.7 3.6H16a1 1 0 0 1 1 1v2H5" />
-                                    </svg>
-                                    文章分类
-                                </h3>
-                                <div class="space-y-2">
-                                    <a
-                                        v-for="item in categories"
-                                        :key="item.id"
-                                        class="flex items-center justify-between block w-full px-4 py-3 rounded-lg cursor-pointer text-secondary hover:text-primary hover:bg-primary/10 transition-all duration-300"
-                                        @click="goCategoryArticleListPage(item.id, item.name)"
-                                    >
-                                        <span class="font-medium">{{ item.name }}</span>
-                                        <span class="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">{{ item.articleCount || 0 }}</span>
-                                    </a>
-                                    <EmptyState
-                                        v-if="categories.length === 0"
-                                        icon="folder"
-                                        title="暂无分类"
-                                        :show-action="false"
-                                        :show-tip="false"
-                                        :compact="true"
-                                    />
-                                </div>
-                            </div>
-
-                            <div class="bg-card border border-border-color rounded-xl p-5">
-                                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-                                    <svg class="w-5 h-5 text-primary" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3l-4 4z" />
-                                    </svg>
-                                    热门标签
-                                </h3>
-                                <div class="flex flex-wrap gap-2">
-                                    <span
-                                        v-for="item in tags"
-                                        :key="item.id"
-                                        class="inline-block text-sm px-3 py-1.5 rounded-lg cursor-pointer bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all duration-300"
-                                        @click="goTagArticleListPage(item.id, item.name)"
-                                    >
-                                        {{ item.name }}
-                                    </span>
-                                    <EmptyState
-                                        v-if="tags.length === 0"
-                                        icon="star"
-                                        title="暂无标签"
-                                        :show-action="false"
-                                        :show-tip="false"
-                                        :compact="true"
-                                    />
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -196,7 +141,6 @@ const SkeletonLoader = defineAsyncComponent(() => import('@/components/ui/Skelet
 
 import { getIndexArticles } from '@/api/frontend/index'
 import { getCategories } from '@/api/frontend/category'
-import { getTags } from '@/api/frontend/tag'
 import { getHotArticles, getRecommendedArticles } from '@/api/frontend/article'
 import { request, requestWithCache } from '@/composables/api'
 import { useAsyncData, usePaginationData } from '@/composables/useAsyncData'
@@ -309,7 +253,6 @@ const hotArticlesData = useAsyncData(
 const hotArticles = computed(() => hotArticlesData.data.value || [])
 
 const categories = ref([])
-const tags = ref([])
 
 async function getCategoriesData() {
     try {
@@ -319,17 +262,6 @@ async function getCategoriesData() {
         }
     } catch (err) {
         logger.error('Fetch categories failed:', err.message)
-    }
-}
-
-async function getTagsData() {
-    try {
-        const res = await requestWithCache(getTags, 'tags', {}, { showError: false })
-        if (res?.data) {
-            tags.value = res.data
-        }
-    } catch (err) {
-        logger.error('Fetch tags failed:', err.message)
     }
 }
 
@@ -350,8 +282,7 @@ async function initData() {
       featuredData.execute(),
       articlePagination.fetchData(1),
       hotArticlesData.execute(),
-      getCategoriesData(),
-      getTagsData()
+      getCategoriesData()
     ])
 
     const failedResults = results.filter(r => r.status === 'rejected')
