@@ -1,10 +1,5 @@
-/**
- * UI状态管理
- * 管理侧边栏宽度、深色模式等UI相关状态
- */
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-
 import logger from '@/utils/logger'
 
 const STORAGE_KEYS = {
@@ -13,8 +8,10 @@ const STORAGE_KEYS = {
   THEME_MODE: 'themeMode'
 }
 
+type ThemeMode = 'light' | 'dark' | 'system'
+
 export const useUIStore = defineStore('ui', () => {
-  const getStoredValue = (key, defaultValue) => {
+  const getStoredValue = (key: string, defaultValue: string): string => {
     try {
       const stored = localStorage.getItem(key)
       return stored !== null ? stored : defaultValue
@@ -23,52 +20,52 @@ export const useUIStore = defineStore('ui', () => {
     }
   }
 
-  const menuWidth = ref(getStoredValue(STORAGE_KEYS.MENU_WIDTH, '250px'))
-  const isDarkMode = ref(getStoredValue(STORAGE_KEYS.DARK_MODE, 'false') === 'true')
-  const themeMode = ref(getStoredValue(STORAGE_KEYS.THEME_MODE, 'light'))
+  const menuWidth = ref<string>(getStoredValue(STORAGE_KEYS.MENU_WIDTH, '250px'))
+  const isDarkMode = ref<boolean>(getStoredValue(STORAGE_KEYS.DARK_MODE, 'false') === 'true')
+  const themeMode = ref<ThemeMode>(getStoredValue(STORAGE_KEYS.THEME_MODE, 'light') as ThemeMode)
 
-  let mediaQuery = null
-  let systemThemeListener = null
+  let mediaQuery: MediaQueryList | null = null
+  let systemThemeListener: ((e: MediaQueryListEvent) => void) | null = null
 
-  watch(menuWidth, (newValue) => {
+  watch(menuWidth, (newValue: string) => {
     try {
       localStorage.setItem(STORAGE_KEYS.MENU_WIDTH, newValue)
-    } catch (e) {
+    } catch (e: any) {
       logger.error('Failed to save menu width:', e)
     }
   })
 
-  watch(isDarkMode, (newValue) => {
+  watch(isDarkMode, (newValue: boolean) => {
     try {
       localStorage.setItem(STORAGE_KEYS.DARK_MODE, String(newValue))
-    } catch (e) {
+    } catch (e: any) {
       logger.error('Failed to save dark mode:', e)
     }
   })
 
-  watch(themeMode, (newValue) => {
+  watch(themeMode, (newValue: ThemeMode) => {
     try {
       localStorage.setItem(STORAGE_KEYS.THEME_MODE, newValue)
-    } catch (e) {
+    } catch (e: any) {
       logger.error('Failed to save theme mode:', e)
     }
   })
 
-  function handleMenuWidth() {
+  function handleMenuWidth(): void {
     menuWidth.value = menuWidth.value === '250px' ? '64px' : '250px'
   }
 
-  function setMenuWidth(width) {
+  function setMenuWidth(width: string): void {
     menuWidth.value = width
   }
 
-  function broadcastThemeChange(theme) {
+  function broadcastThemeChange(theme: string): void {
     window.dispatchEvent(new CustomEvent('themeChange', {
       detail: { theme, isDark: theme === 'dark' }
     }))
   }
 
-  function applyDarkMode() {
+  function applyDarkMode(): void {
     if (isDarkMode.value) {
       document.documentElement.classList.add('dark')
       document.documentElement.classList.remove('light')
@@ -80,17 +77,17 @@ export const useUIStore = defineStore('ui', () => {
     }
   }
 
-  function toggleDarkMode() {
+  function toggleDarkMode(): void {
     isDarkMode.value = !isDarkMode.value
     applyDarkMode()
   }
 
-  function setDarkMode(value) {
+  function setDarkMode(value: boolean): void {
     isDarkMode.value = value
     applyDarkMode()
   }
 
-  function syncSystemTheme() {
+  function syncSystemTheme(): void {
     if (!mediaQuery) {return}
     const isSystemDark = mediaQuery.matches
     if (themeMode.value === 'system') {
@@ -99,7 +96,7 @@ export const useUIStore = defineStore('ui', () => {
     }
   }
 
-  function initDarkMode() {
+  function initDarkMode(): void {
     if (mediaQuery) {
       mediaQuery.removeEventListener('change', syncSystemTheme)
     }
@@ -113,7 +110,7 @@ export const useUIStore = defineStore('ui', () => {
     applyDarkMode()
   }
 
-  function setThemeMode(mode) {
+  function setThemeMode(mode: ThemeMode): void {
     themeMode.value = mode
     if (mode === 'system') {
       syncSystemTheme()

@@ -1,65 +1,54 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-/**
- * Agent UI Store - UI 层状态管理
- *
- * 职责：
- * 1. 管理 UI 状态（抽屉开关、未读计数等）
- * 2. 管理用户交互状态（选中、展开等）
- * 3. 管理配置选项
- */
 export const useAgentUIStore = defineStore('agentUI', () => {
-  // ============ State ============
   const isDrawerOpen = ref(false)
   const unreadCount = ref(0)
-  const expandedPanels = ref(new Set())
-  const selectedMessageId = ref(null)
+  const expandedPanels = ref(new Set<string>())
+  const selectedMessageId = ref<string | null>(null)
   const inputText = ref('')
 
-  // ============ Getters ============
   const hasUnread = computed(() => unreadCount.value > 0)
 
-  const isPanelExpanded = (panelId) => expandedPanels.value.has(panelId)
+  function isPanelExpanded(panelId: string): boolean {
+    return expandedPanels.value.has(panelId)
+  }
 
-  // ============ Drawer Operations ============
-  function openDrawer() {
+  function openDrawer(): void {
     isDrawerOpen.value = true
     unreadCount.value = 0
   }
 
-  function closeDrawer() {
+  function closeDrawer(): void {
     isDrawerOpen.value = false
   }
 
-  function toggleDrawer() {
+  function toggleDrawer(): void {
     isDrawerOpen.value = !isDrawerOpen.value
     if (isDrawerOpen.value) {
       unreadCount.value = 0
     }
   }
 
-  // ============ Unread Management ============
-  function incrementUnread() {
+  function incrementUnread(): void {
     if (!isDrawerOpen.value) {
       unreadCount.value++
     }
   }
 
-  function clearUnread() {
+  function clearUnread(): void {
     unreadCount.value = 0
   }
 
-  // ============ Panel Management ============
-  function expandPanel(panelId) {
+  function expandPanel(panelId: string): void {
     expandedPanels.value.add(panelId)
   }
 
-  function collapsePanel(panelId) {
+  function collapsePanel(panelId: string): void {
     expandedPanels.value.delete(panelId)
   }
 
-  function togglePanel(panelId) {
+  function togglePanel(panelId: string): void {
     if (expandedPanels.value.has(panelId)) {
       expandedPanels.value.delete(panelId)
     } else {
@@ -67,40 +56,34 @@ export const useAgentUIStore = defineStore('agentUI', () => {
     }
   }
 
-  function clearExpandedPanels() {
+  function clearExpandedPanels(): void {
     expandedPanels.value.clear()
   }
 
-  // ============ Message Selection ============
-  function selectMessage(messageId) {
+  function selectMessage(messageId: string): void {
     selectedMessageId.value = messageId
   }
 
-  function clearSelection() {
+  function clearSelection(): void {
     selectedMessageId.value = null
   }
 
-  // ============ Input Management ============
-  function setInputText(text) {
+  function setInputText(text: string): void {
     inputText.value = text
   }
 
-  function clearInput() {
+  function clearInput(): void {
     inputText.value = ''
   }
 
-  // ============ Return ============
   return {
-    // State
     isDrawerOpen,
     unreadCount,
     expandedPanels,
     selectedMessageId,
     inputText,
-    // Getters
     hasUnread,
     isPanelExpanded,
-    // Methods
     openDrawer,
     closeDrawer,
     toggleDrawer,
