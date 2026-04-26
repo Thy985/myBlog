@@ -19,10 +19,53 @@
             <div class="container mx-auto max-w-screen-xl px-4 py-16">
                 <div class="flex flex-col lg:flex-row gap-10">
                     <div class="flex-1 min-w-0">
+                        <!-- Filter Bar -->
+                        <div class="filter-bar mb-6 flex flex-wrap items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <!-- Sort Dropdown -->
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">排序:</span>
+                                <el-select v-model="sortBy" size="default" style="width: 120px">
+                                    <el-option label="最新文章" value="createdTime" />
+                                    <el-option label="最多浏览" value="readNum" />
+                                    <el-option label="最多点赞" value="likeNum" />
+                                </el-select>
+                            </div>
+
+                            <!-- Category Filter Chips -->
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">分类:</span>
+                                <button
+                                    class="filter-chip"
+                                    :class="{ 'active': selectedCategoryId === null }"
+                                    @click="selectedCategoryId = null"
+                                >
+                                    全部
+                                </button>
+                                <button
+                                    v-for="cat in categories"
+                                    :key="cat.id"
+                                    class="filter-chip"
+                                    :class="{ 'active': selectedCategoryId === cat.id }"
+                                    @click="selectedCategoryId = cat.id"
+                                >
+                                    {{ cat.name }}
+                                </button>
+                            </div>
+
+                            <!-- Clear Filters -->
+                            <button
+                                v-if="selectedCategoryId || sortBy !== 'createdTime'"
+                                class="text-sm text-primary hover:underline ml-auto"
+                                @click="clearFilters"
+                            >
+                                清除筛选
+                            </button>
+                        </div>
+
                         <div class="section-header-inline mb-8">
                             <h2 class="text-2xl font-bold flex items-center gap-3">
                                 <span class="w-1 h-8 bg-primary rounded-full"></span>
-                                最新文章
+                                {{ selectedCategoryId ? (categories.find(c => c.id === selectedCategoryId)?.name || '文章列表') : '发现文章' }}
                             </h2>
                             <div class="h-1 w-24 bg-primary rounded-full mt-2"></div>
                         </div>
@@ -54,8 +97,8 @@
                                 :total="total"
                                 :size="size"
                                 :pages="pages"
-                                @page-change="(page) => articlePagination.fetchData(page)"
-                                @size-change="(newSize) => articlePagination.changeSize(newSize)"
+                                @page-change="(page) => articlePagination.fetchData(page, articlePagination.pageSize.value, filterParams.value)"
+                                @size-change="(newSize) => articlePagination.fetchData(1, newSize, filterParams.value)"
                             />
                         </div>
                     </div>
@@ -133,10 +176,10 @@
 </template>
 
 <script setup>
-import { defineAsyncComponent, ref, onMounted, computed } from 'vue'
+import { defineAsyncComponent, ref, watch, onMounted, computed } from 'vue'
 
 import { useMainStore } from '@/stores'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import Header from '@/layouts/components/Header.vue'
 import Footer from '@/layouts/components/Footer.vue'
 import HeroSection from '@/components/frontend/HeroSection.vue'
@@ -161,6 +204,33 @@ import logger from '@/utils/logger'
 
 const store = useMainStore()
 const router = useRouter()
+const route = useRoute()
+
+// Filter state
+const selectedCategoryId = ref<number | null>(null)
+const sortBy = ref('createdTime')
+
+const filterParams = computed(() => ({
+  ...(selectedCategoryId.value && { categoryId: selectedCategoryId.value }),
+  ...(sortBy.value !== 'createdTime' && { sortBy: sortBy.value })
+}))
+
+// Clear all filters
+function clearFilters() {
+    selectedCategoryId.value = null
+    sortBy.value = 'createdTime'
+}
+
+// Watch filter changes and update URL + refetch
+watch([selectedCategoryId, sortBy], () => {
+    router.replace({
+        query: {
+            ...(selectedCategoryId.value && { categoryId: String(selectedCategoryId.value) }),
+            ...(sortBy.value !== 'createdTime' && { sortBy: sortBy.value })
+        }
+    })
+    articlePagination.fetchData(1, articlePagination.pageSize.value, filterParams.value)
+})
 
 const goArticleDetail = (articleId) => {
     if (!articleId) {
@@ -177,7 +247,7 @@ const goArticleDetail = (articleId) => {
 
 const articlePagination = usePaginationData(
     async (params) => {
-        const res = await getIndexArticles(params.current, params.size)
+        const res = await getIndexArticles({ current: params.current, size: params.size, ...filterParams.value })
         return res.data || { list: [], total: 0, pages: 0 }
     },
     {
@@ -311,6 +381,17 @@ const updateMetaTags = (title, description, url) => {
 }
 
 onMounted(() => {
+    // Initialize filters from URL query params
+    const query = route.query
+    if (query.categoryId) {
+        selectedCategoryId.value = Number(query.categoryId)
+    }
+    if (query.sortBy) {
+        if (query.sortBy === 'createdTime' || query.sortBy === 'readNum' || query.sortBy === 'likeNum') {
+            sortBy.value = query.sortBy
+        }
+    }
+
     initData()
 
     const blogName = store.setting?.blogName || 'XingChen Blog'
@@ -336,5 +417,26 @@ const goTagArticleListPage = (id, name) => {
 <style scoped>
 .index-page {
     background: var(--bg-primary);
+}
+
+.filter-chip {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    border: none;
+}
+
+.filter-chip:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.filter-chip.active {
+    background: var(--primary);
+    color: white;
 }
 </style>

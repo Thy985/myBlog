@@ -146,11 +146,11 @@ export function usePaginationData<T>(
   const total = ref(0)
   const pages = ref(0)
 
-  async function fetchData(page = 1, size = defaultPageSize) {
+  async function fetchData(page = 1, size = defaultPageSize, extraParams: Record<string, any> = {}) {
     currentPage.value = page
     pageSize.value = size
 
-    const result = await asyncData.execute({ current: page, size })
+    const result = await asyncData.execute({ current: page, size, ...extraParams })
 
     if (result.data) {
       total.value = result.data.total || 0

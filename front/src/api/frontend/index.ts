@@ -7,6 +7,10 @@ export interface IndexArticlesParams {
   current?: number
   page?: number
   size?: number
+  categoryId?: number
+  tagId?: number
+  sortBy?: 'createdTime' | 'readNum' | 'likeNum'
+  sortOrder?: 'asc' | 'desc'
 }
 
 export interface SearchParams {
@@ -20,7 +24,11 @@ export function getIndexArticles(params: IndexArticlesParams): Promise<ApiRespon
   return request.get('/article/list', {
     params: {
       page: params.current || params.page || 1,
-      size: params.size || 10
+      size: params.size || 10,
+      ...(params.categoryId && { categoryId: params.categoryId }),
+      ...(params.tagId && { tagId: params.tagId }),
+      ...(params.sortBy && { sortBy: params.sortBy }),
+      ...(params.sortOrder && { sortOrder: params.sortOrder })
     }
   }).then(res => {
     if (res?.data) {
