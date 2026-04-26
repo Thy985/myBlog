@@ -154,7 +154,7 @@ const SkeletonLoader = defineAsyncComponent(() => import('@/components/ui/Skelet
 import { getIndexArticles } from '@/api/frontend/index'
 import { getCategories } from '@/api/frontend/category'
 import { getTags } from '@/api/frontend/tag'
-import { getHotArticles, getRecommendedArticles } from '@/api/modules/article'
+import { getHotArticles, getRecommendedArticles } from '@/api/frontend/article'
 import { request, requestWithCache } from '@/composables/api'
 import { useAsyncData, usePaginationData } from '@/composables/useAsyncData'
 import logger from '@/utils/logger'

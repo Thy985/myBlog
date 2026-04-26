@@ -293,9 +293,9 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useMainStore } from '@/stores'
-import { getUserArticles } from '@/api/modules/article'
+import { getUserArticles } from '@/api/frontend/article'
 import { getCommentList } from '@/api/frontend/comment'
-import { getUserCollects } from '@/api/modules/article'
+import { getUserCollects } from '@/api/frontend/article'
 import logger from '@/utils/logger'
 import { API_STATUS } from '@/composables/api'
 

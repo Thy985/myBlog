@@ -19,7 +19,7 @@ public class RegexIntentClassifier implements IntentClassifierInterface {
         // 创建文章
         new IntentPattern(
             Intent.IntentType.CREATE_ARTICLE,
-            Pattern.compile(".*(写|生成|创作|draft).*(文章|article|blog|博客).*"),
+            Pattern.compile(".*(写|生成|创作|draft|发一个|发表|发).*(文章|article|blog|博客|博文|帖子).*"),
             0.9,
             List.of("article_generator")
         ),
@@ -40,7 +40,7 @@ public class RegexIntentClassifier implements IntentClassifierInterface {
         // 发布文章
         new IntentPattern(
             Intent.IntentType.PUBLISH_ARTICLE,
-            Pattern.compile(".*(发布|publish|上线).*(文章|article).*"),
+            Pattern.compile(".*(发布|publish|上线).*(文章|article|博客|博文|帖子).*"),
             0.9,
             List.of("article_publish")
         ),

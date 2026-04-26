@@ -197,7 +197,7 @@ class="avatar-uploader border-2 border-dashed border-gray-300 rounded-lg p-4 tex
 <script setup>
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ref, reactive, onUnmounted } from 'vue'
-import { createArticle, getArticles, deleteArticle, getArticle, updateArticle } from '@/api/modules/article'
+import { createArticle, getArticles, deleteArticle, getArticle, updateArticle } from '@/api/frontend/article'
 import { uploadFile } from '@/api/admin/file'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'

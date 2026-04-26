@@ -65,7 +65,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import { getHotArticles } from '@/api/modules/article'
+import { getHotArticles } from '@/api/frontend/article'
 import { API_STATUS } from '@/composables/api'
 import logger from '@/utils/logger'
 
