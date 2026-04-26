@@ -17,8 +17,8 @@ import java.util.List;
 @Slf4j
 public class HybridIntentClassifier implements IntentClassifierInterface {
 
-    private final RegexIntentClassifier regexClassifier;
-    private final EmbeddingIntentClassifier embeddingClassifier;
+    private final RegexIntentClassifier regexClassifier;//正则分类器
+    private final EmbeddingIntentClassifier embeddingClassifier;//嵌入分类器
 
     // 分类器链，按优先级排序
     private final List<IntentClassifierInterface> classifiers;

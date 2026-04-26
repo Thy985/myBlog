@@ -12,14 +12,17 @@ import java.util.*;
 /**
  * 基于Embedding的意图分类器
  * 使用向量相似度匹配，比正则更灵活
+ * 支持通过 PgVectorIntentRepository 进行持久化存储和加速检索
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class EmbeddingIntentClassifier implements IntentClassifierInterface {
-    
+
     private final EmbeddingModel embeddingModel;
-    
+
+    private final Optional<PgVectorIntentRepository> pgVectorRepository;
+
     // 意图示例和对应的Embedding
     private final Map<Intent.IntentType, List<float[]>> intentEmbeddings = new HashMap<>();
     
@@ -147,7 +150,7 @@ public class EmbeddingIntentClassifier implements IntentClassifierInterface {
     @PostConstruct
     public void init() {
         log.info("初始化Embedding意图分类器...");
-        
+
         for (var entry : INTENT_EXAMPLES.entrySet()) {
             List<float[]> embeddings = new ArrayList<>();
             for (String example : entry.getValue()) {
@@ -160,8 +163,26 @@ public class EmbeddingIntentClassifier implements IntentClassifierInterface {
             }
             intentEmbeddings.put(entry.getKey(), embeddings);
         }
-        
-        log.info("Embedding意图分类器初始化完成");
+
+        // 如果配置了PgVectorIntentRepository且表为空，则持久化意图向量
+        if (pgVectorRepository.isPresent()) {
+            try {
+                var repo = pgVectorRepository.get();
+                if (repo.isEmpty()) {
+                    log.info("PgVector存储为空，开始持久化意图向量...");
+                    for (var entry : INTENT_EXAMPLES.entrySet()) {
+                        repo.batchInsert(entry.getKey().name(), entry.getValue(), intentEmbeddings.get(entry.getKey()));
+                    }
+                    log.info("意图向量持久化完成");
+                } else {
+                    log.info(" PgVector已存在 {} 条意图向量，跳过初始化", repo.count());
+                }
+            } catch (Exception e) {
+                log.warn("持久化意图向量失败，将使用内存模式: {}", e.getMessage());
+            }
+        }
+
+        log.info("Embedding意图分类器初始化完成，共加载 {} 种意图类型", intentEmbeddings.size());
     }
     
     @Override
@@ -174,45 +195,94 @@ public class EmbeddingIntentClassifier implements IntentClassifierInterface {
             // 计算输入消息的Embedding
             float[] messageEmbedding = embeddingModel.embed(message).content().vector();
 
-            // 计算与每个意图的相似度
-            Intent.IntentType bestMatch = null;
-            double bestScore = 0.0;
-
-            for (var entry : intentEmbeddings.entrySet()) {
-                double maxSimilarity = 0.0;
-                for (float[] intentEmbedding : entry.getValue()) {
-                    double similarity = cosineSimilarity(messageEmbedding, intentEmbedding);
-                    maxSimilarity = Math.max(maxSimilarity, similarity);
-                }
-
-                if (maxSimilarity > bestScore) {
-                    bestScore = maxSimilarity;
-                    bestMatch = entry.getKey();
-                }
+            // 优先使用 PgVectorIntentRepository（如果可用）进行加速检索
+            if (pgVectorRepository.isPresent()) {
+                return classifyWithPgVector(messageEmbedding, message);
             }
 
-            // 阈值判断
-            if (bestMatch != null && bestScore >= 0.75) {
-                log.debug("Embedding匹配意图: type={}, score={}", bestMatch, bestScore);
-                boolean requiresTool = isToolRequired(bestMatch);
-                List<String> tools = requiresTool ? INTENT_TOOLS.getOrDefault(bestMatch, List.of()) : List.of();
-                return Intent.builder()
-                        .type(bestMatch)
-                        .confidence(bestScore)
-                        .originalMessage(message)
-                        .requiresMemory(bestMatch != Intent.IntentType.CHAT)
-                        .requiresTool(requiresTool)
-                        .possibleTools(tools)
-                        .build();
-            }
-
-            // 低于阈值，返回UNKNOWN
-            return Intent.unknown(message, bestScore);
+            // 回退到内存计算
+            return classifyWithMemory(messageEmbedding, message);
 
         } catch (Exception e) {
             log.error("Embedding分类失败", e);
             return Intent.unknown(message, 0.0);
         }
+    }
+
+    /**
+     * 使用 PgVector 数据库进行分类
+     */
+    private Intent classifyWithPgVector(float[] messageEmbedding, String message) {
+        try {
+            var repo = pgVectorRepository.get();
+            var similarities = repo.findMaxSimilarityByIntentType(messageEmbedding);
+
+            if (!similarities.isEmpty()) {
+                var bestEntry = similarities.entrySet().stream()
+                        .max(Map.Entry.comparingByValue())
+                        .orElse(null);
+
+                if (bestEntry != null && bestEntry.getValue() >= 0.75) {
+                    Intent.IntentType type = Intent.IntentType.valueOf(bestEntry.getKey());
+                    log.debug("PgVector匹配意图: type={}, score={}", type, bestEntry.getValue());
+                    boolean requiresTool = isToolRequired(type);
+                    List<String> tools = requiresTool ? INTENT_TOOLS.getOrDefault(type, List.of()) : List.of();
+                    return Intent.builder()
+                            .type(type)
+                            .confidence(bestEntry.getValue())
+                            .originalMessage(message)
+                            .requiresMemory(type != Intent.IntentType.CHAT)
+                            .requiresTool(requiresTool)
+                            .possibleTools(tools)
+                            .build();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("PgVector查询失败，回退到内存计算: {}", e.getMessage());
+        }
+
+        // 回退到内存
+        return classifyWithMemory(messageEmbedding, message);
+    }
+
+    /**
+     * 使用内存进行分类
+     */
+    private Intent classifyWithMemory(float[] messageEmbedding, String message) {
+        // 计算与每个意图的相似度
+        Intent.IntentType bestMatch = null;
+        double bestScore = 0.0;
+
+        for (var entry : intentEmbeddings.entrySet()) {
+            double maxSimilarity = 0.0;
+            for (float[] intentEmbedding : entry.getValue()) {
+                double similarity = cosineSimilarity(messageEmbedding, intentEmbedding);
+                maxSimilarity = Math.max(maxSimilarity, similarity);
+            }
+
+            if (maxSimilarity > bestScore) {
+                bestScore = maxSimilarity;
+                bestMatch = entry.getKey();
+            }
+        }
+
+        // 阈值判断
+        if (bestMatch != null && bestScore >= 0.75) {
+            log.debug("内存匹配意图: type={}, score={}", bestMatch, bestScore);
+            boolean requiresTool = isToolRequired(bestMatch);
+            List<String> tools = requiresTool ? INTENT_TOOLS.getOrDefault(bestMatch, List.of()) : List.of();
+            return Intent.builder()
+                    .type(bestMatch)
+                    .confidence(bestScore)
+                    .originalMessage(message)
+                    .requiresMemory(bestMatch != Intent.IntentType.CHAT)
+                    .requiresTool(requiresTool)
+                    .possibleTools(tools)
+                    .build();
+        }
+
+        // 低于阈值，返回UNKNOWN
+        return Intent.unknown(message, bestScore);
     }
 
     /**
@@ -263,9 +333,12 @@ public class EmbeddingIntentClassifier implements IntentClassifierInterface {
         INTENT_TOOLS.put(Intent.IntentType.KNOWLEDGE_QUERY, List.of("hybrid-search"));
     }
 
+    /**
+     * 判断意图是否需要工具
+     */
     private boolean isToolRequired(Intent.IntentType type) {
         return switch (type) {
-            case UNKNOWN, CHAT -> false;
+            case UNKNOWN, CHAT -> false;// 不需要工具
             case CREATE_ARTICLE, EDIT_ARTICLE, PUBLISH_ARTICLE,
                  DELETE_ARTICLE, LIST_ARTICLES, SEARCH_ARTICLES,
                  CREATE_CATEGORY, EDIT_CATEGORY, DELETE_CATEGORY, LIST_CATEGORIES,

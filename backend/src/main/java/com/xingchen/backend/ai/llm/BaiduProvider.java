@@ -1,5 +1,6 @@
 package com.xingchen.backend.ai.llm;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xingchen.backend.ai.model.AIRequest;
 import com.xingchen.backend.ai.model.AIResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,7 +29,7 @@ import java.util.function.Consumer;
  * 百度文心一言 Provider
  * 使用百度千帆大模型API
  * 
- * 文档: https://cloud.baidu.com/doc/WENXINWORKSHOP/index.html
+ * 参考文档: https://cloud.baidu.com/doc/WENXINWORKSHOP/index.html
  */
 @Component
 @ConditionalOnProperty(prefix = "baidu.wenxin", name = "api-key")
@@ -43,6 +49,7 @@ public class BaiduProvider implements LLMProvider {
     private int timeoutSeconds;
     
     private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private String accessToken;
     private long tokenExpireTime;
     
@@ -55,7 +62,9 @@ public class BaiduProvider implements LLMProvider {
     public String getModelName() {
         return defaultModel;
     }
-    
+    /**
+     * 消息
+     */
     @Override
     public AIResponse chat(AIRequest request) {
         long startTime = System.currentTimeMillis();
@@ -71,7 +80,7 @@ public class BaiduProvider implements LLMProvider {
             body.put("messages", buildMessages(request));
             
             HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setContentType(MediaType.APPLICATION_JSON);// 设置请求头
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
             
             ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
@@ -98,27 +107,85 @@ public class BaiduProvider implements LLMProvider {
             return AIResponse.error("百度文心调用失败: " + e.getMessage());
         }
     }
-    
+    /**
+     * 流式消息
+     */
     @Override
     public void streamChat(AIRequest request, Consumer<AIResponse> onChunk) {
-        // 百度文心支持流式输出，但实现较复杂
-        // 简化实现：先普通调用
-        AIResponse response = chat(request);
+        long startTime = System.currentTimeMillis();
+        StringBuilder fullContent = new StringBuilder();
         
-        if (response.isSuccess()) {
-            String content = response.getContent();
-            // 模拟流式
-            for (int i = 0; i < content.length(); i += 10) {
-                int end = Math.min(i + 10, content.length());
-                String chunk = content.substring(i, end);
-                onChunk.accept(AIResponse.chunk(chunk));
+        try {
+            String token = getAccessToken();
+            String model = request.getPreferredModel() != null ? request.getPreferredModel() : defaultModel;
+            String url = "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/" 
+                    + model + "?access_token=" + token;
+            
+            Map<String, Object> body = new HashMap<>();
+            body.put("messages", buildMessages(request));
+            body.put("stream", true);
+            
+            HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();// 创建连接
+            conn.setRequestMethod("POST");
+            conn.setDoOutput(true);//允许输出（POST)
+            conn.setConnectTimeout(timeoutSeconds * 1000);
+            conn.setReadTimeout(timeoutSeconds * 1000);
+            conn.setRequestProperty("Content-Type", "application/json");
+            
+            String jsonBody = objectMapper.writeValueAsString(body);// 构建请求体
+            conn.getOutputStream().write(jsonBody.getBytes(StandardCharsets.UTF_8));
+            
+            InputStream inputStream = conn.getInputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+
+            try {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.startsWith("data: ")) {
+                        String data = line.substring(6);
+
+                        if ("[DONE]".equals(data)) {
+                            break;
+                        }
+
+                        try {
+                            Map<String, Object> chunkData = objectMapper.readValue(data, Map.class);
+                            String result = (String) chunkData.get("result");
+
+                            if (result != null && !result.isEmpty()) {
+                                fullContent.append(result);
+                                onChunk.accept(AIResponse.chunk(result));
+                            }
+
+                            boolean isEnd = Boolean.TRUE.equals(chunkData.get("is_end"));
+                            if (isEnd) {
+                                break;
+                            }
+                        } catch (Exception e) {
+                            log.warn("解析流式数据块失败: {}", data, e);
+                        }
+                    }
+                }
+            } finally {
+                reader.close();
+                inputStream.close();
+                conn.disconnect();
             }
+            
+            long elapsed = System.currentTimeMillis() - startTime;
+            log.debug("百度文心流式调用完成: model={}, elapsed={}ms", model, elapsed);
+            
             onChunk.accept(AIResponse.builder()
                     .type(AIResponse.ResponseType.STREAM_END)
-                    .content(content)
+                    .content(fullContent.toString())
+                    .model(model)
+                    .executionTime(elapsed)
                     .build());
-        } else {
-            onChunk.accept(response);
+            
+        } catch (Exception e) {
+            long elapsed = System.currentTimeMillis() - startTime;
+            log.error("百度文心流式调用失败: elapsed={}ms", elapsed, e);
+            onChunk.accept(AIResponse.error("流式输出失败: " + e.getMessage()));
         }
     }
     

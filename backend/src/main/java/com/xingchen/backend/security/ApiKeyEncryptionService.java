@@ -25,7 +25,7 @@ public class ApiKeyEncryptionService {
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 128;
 
-    @Value("${encryption.master-key:default-master-key-change-in-production}")
+    @Value("${encryption.master-key}")
     private String masterKey;
 
     private SecretKeySpec getSecretKey() {

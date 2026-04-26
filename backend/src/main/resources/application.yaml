@@ -115,6 +115,8 @@ ai:
       working-ttl-minutes: 30         # 工作记忆TTL
       short-term-ttl-days: 7          # 短期记忆TTL
     intent:
+      high-confidence-threshold: 0.95
+      min-confidence-threshold: 0.7
       regex-threshold: 0.8            # 正则匹配阈值
       embedding-threshold: 0.75       # Embedding匹配阈值
     llm:
@@ -181,7 +183,7 @@ openrouter:
 
 # 加密配置
 encryption:
-  master-key: ${ENCRYPTION_MASTER_KEY:myblog-secret-key-2024-encryption-fixed}
+  master-key: ${ENCRYPTION_MASTER_KEY}
 
 # Resilience4j 熔断配置
 resilience4j:
@@ -294,14 +296,14 @@ agent:
 # 百度千帆 AI 配置
 baidu-qianfan:
   api:
-    key: ${BAIDU_API_KEY:bce-v3/ALTAKSP-W8fnSI7P0cqEcBxE6SYuM/94fd0c1e5615d09b244576df2d68dfd0739ed5f2}
+    key: ${BAIDU_API_KEY}
     base-url: ${BAIDU_BASE_URL:https://qianfan.baidubce.com/v2/coding}
     model: ${BAIDU_MODEL:qianfan-code-latest}
 
 # Tavily 联网搜索配置
 tavily:
   api:
-    key: ${TAVILY_API_KEY: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}
+    key: ${TAVILY_API_KEY}
 
 # LangChain4j 配置
 langchain4j:

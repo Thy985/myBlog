@@ -10,6 +10,7 @@ import javax.sql.DataSource;
 import java.sql.Array;
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -24,7 +25,7 @@ public class PgVectorIntentRepository {
     private final JdbcTemplate jdbcTemplate;
 
     @Value("${ai.intent.embedding-dimensions:512}")
-    private int embeddingDimensions;
+    private int embeddingDimensions;// 向量维度
 
     /**
      * 使用 PostgreSQL 数据源构造
@@ -54,7 +55,7 @@ public class PgVectorIntentRepository {
                 )
                 """.replace("?", String.valueOf(embeddingDimensions)));
             
-            // 创建向量索引
+            // 创建向量索引，用ivfflat 索引(倒排文件索引），并用余弦相似度计算相似度
             jdbcTemplate.execute("""
                 CREATE INDEX IF NOT EXISTS idx_intent_embedding 
                 ON intent_embeddings 
@@ -89,6 +90,7 @@ public class PgVectorIntentRepository {
      * @param intentType 意图类型
      * @param examples   示例文本列表
      * @param embeddings 对应的向量嵌入列表
+     *  考虑数据完整性、类型兼容、系统性能
      */
     public void batchInsert(String intentType, List<String> examples, List<float[]> embeddings) {
         if (examples == null || embeddings == null || examples.size() != embeddings.size()) {
@@ -102,11 +104,11 @@ public class PgVectorIntentRepository {
             batchArgs.add(new Object[]{
                 intentType,
                 examples.get(i),
-                createVector(embeddings.get(i))
+                createVector(embeddings.get(i))//将java数组转换为pgvector向量
             });
         }
         
-        jdbcTemplate.batchUpdate(sql, batchArgs);
+        jdbcTemplate.batchUpdate(sql, batchArgs);//批量插入
         log.info("批量插入意图向量: type={}, count={}", intentType, examples.size());
     }
 
@@ -128,9 +130,9 @@ public class PgVectorIntentRepository {
             """;
         
         return jdbcTemplate.queryForList(sql, 
-            createVector(queryEmbedding),
-            createVector(queryEmbedding),
-            topK);
+            createVector(queryEmbedding),//用于SELECT中的计算
+            createVector(queryEmbedding),//用于ORDER BY中的计算
+            topK); //返回前K个结果
     }
 
     /**
@@ -149,10 +151,10 @@ public class PgVectorIntentRepository {
         
         List<Map<String, Object>> results = jdbcTemplate.queryForList(sql, createVector(queryEmbedding));
         
-        Map<String, Double> similarityMap = new java.util.HashMap<>();
+        Map<String, Double> similarityMap = new HashMap<>();
         for (Map<String, Object> row : results) {
-            String intentType = (String) row.get("intent_type");
-            Double similarity = ((Number) row.get("max_similarity")).doubleValue();
+            String intentType = (String) row.get("intent_type");//获取意图类型
+            Double similarity = ((Number) row.get("max_similarity")).doubleValue();//获取相似度得分
             similarityMap.put(intentType, similarity);
         }
         
@@ -180,12 +182,12 @@ public class PgVectorIntentRepository {
      */
     private Array createVector(float[] vector) {
         try (Connection conn = jdbcTemplate.getDataSource().getConnection()) {
-            // 将 float[] 转换为 Float[]
+            // 将 float[] 转换为 Float[],JDBC 不支持 float[]
             Float[] boxedArray = new Float[vector.length];
             for (int i = 0; i < vector.length; i++) {
-                boxedArray[i] = vector[i];
+                boxedArray[i] = vector[i];//将 float 转换为 Float
             }
-            return conn.createArrayOf("FLOAT", boxedArray);
+            return conn.createArrayOf("FLOAT", boxedArray);//创建向量数组
         } catch (Exception e) {
             throw new RuntimeException("创建向量数组失败", e);
         }
