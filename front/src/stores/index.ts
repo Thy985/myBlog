@@ -1,26 +1,10 @@
-/**
- * 状态管理入口
- *
- * 已拆分为三个独立store:
- * - useAuthStore: 认证状态（用户信息、登录/登出）
- * - useSettingsStore: 设置状态（博客配置）
- * - useUIStore: UI状态（侧边栏、深色模式）
- *
- * 为保持向后兼容，useMainStore 仍可使用，但建议逐步迁移到独立store
- */
-
 import { useAuthStore } from './auth'
 import { useSettingsStore } from './settings'
 import { useUIStore } from './ui'
-
-export { useAuthStore, useSettingsStore, useUIStore }
-
-/**
- * 向后兼容的 main store
- * 使用 Pinia storeToRefs 确保响应式，同时直接委托给各个 store
- */
 import { defineStore } from 'pinia'
 import { computed } from 'vue'
+
+export { useAuthStore, useSettingsStore, useUIStore }
 
 export const useMainStore = defineStore('main', () => {
   const authStore = useAuthStore()

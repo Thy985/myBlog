@@ -1,12 +1,6 @@
-/**
- * 表单验证规则 composable
- * 提供可复用的验证规则
- */
+import type { FormItemRule } from 'element-plus'
 
-/**
- * 验证消息映射 - 用户友好的消息
- */
-const validationMessages = {
+const validationMessages: Record<string, string> = {
   required: '此项为必填项',
   username: '用户名长度应在3-20个字符之间，只能包含字母、数字和下划线',
   email: '请输入有效的邮箱地址',
@@ -23,13 +17,7 @@ const validationMessages = {
   max: '数值过大'
 }
 
-/**
- * 获取验证消息
- * @param {string} key - 消息键
- * @param {object} params - 替换参数
- * @returns {string}
- */
-function getMessage(key, params = {}) {
+function getMessage(key: string, params: Record<string, string> = {}): string {
   let message = validationMessages[key] || '输入格式不正确'
   Object.keys(params).forEach(param => {
     message = message.replace(`{${param}`, params[param])
@@ -37,24 +25,17 @@ function getMessage(key, params = {}) {
   return message
 }
 
-/**
- * 验证规则工厂函数
- */
+type ValidatorCallback = (error?: Error) => void
+
 export function useValidationRules() {
-  /**
-   * 必填验证
-   */
-  const required = (message = getMessage('required')) => ({
+  const required = (message = getMessage('required')): FormItemRule => ({
     required: true,
     message,
     trigger: ['blur', 'change']
   })
 
-  /**
-   * 用户名验证（3-20个字符，字母、数字、下划线）
-   */
-  const username = () => ({
-    validator: (rule, value, callback) => {
+  const username = (): FormItemRule => ({
+    validator: (_rule: any, value: string, callback: ValidatorCallback) => {
       if (!value) {
         callback(new Error(getMessage('required')))
       } else {
@@ -69,11 +50,8 @@ export function useValidationRules() {
     trigger: ['blur', 'change']
   })
 
-  /**
-   * 邮箱验证
-   */
-  const email = () => ({
-    validator: (rule, value, callback) => {
+  const email = (): FormItemRule => ({
+    validator: (_rule: any, value: string, callback: ValidatorCallback) => {
       if (!value) {
         callback()
       } else {
@@ -88,11 +66,8 @@ export function useValidationRules() {
     trigger: ['blur', 'change']
   })
 
-  /**
-   * 手机号验证
-   */
-  const phone = () => ({
-    validator: (rule, value, callback) => {
+  const phone = (): FormItemRule => ({
+    validator: (_rule: any, value: string, callback: ValidatorCallback) => {
       if (!value) {
         callback()
       } else {
@@ -107,11 +82,8 @@ export function useValidationRules() {
     trigger: ['blur', 'change']
   })
 
-  /**
-   * 密码验证（至少6位）
-   */
-  const password = () => ({
-    validator: (rule, value, callback) => {
+  const password = (): FormItemRule => ({
+    validator: (_rule: any, value: string, callback: ValidatorCallback) => {
       if (!value) {
         callback()
       } else if (value.length < 6) {
@@ -123,11 +95,8 @@ export function useValidationRules() {
     trigger: ['blur', 'change']
   })
 
-  /**
-   * 强密码验证（字母+数字）
-   */
-  const strongPassword = () => ({
-    validator: (rule, value, callback) => {
+  const strongPassword = (): FormItemRule => ({
+    validator: (_rule: any, value: string, callback: ValidatorCallback) => {
       if (!value) {
         callback()
       } else if (value.length < 6) {
@@ -145,11 +114,8 @@ export function useValidationRules() {
     trigger: ['blur', 'change']
   })
 
-  /**
-   * 账号验证（支持用户名/邮箱/手机号）
-   */
-  const account = () => ({
-    validator: (rule, value, callback) => {
+  const account = (): FormItemRule => ({
+    validator: (_rule: any, value: string, callback: ValidatorCallback) => {
       if (!value) {
         callback(new Error(getMessage('required')))
       } else if (value.includes('@')) {
@@ -178,11 +144,8 @@ export function useValidationRules() {
     trigger: ['blur', 'change']
   })
 
-  /**
-   * 验证码验证
-   */
-  const captcha = () => ({
-    validator: (rule, value, callback) => {
+  const captcha = (): FormItemRule => ({
+    validator: (_rule: any, value: string, callback: ValidatorCallback) => {
       if (!value) {
         callback()
       } else if (value.length < 4 || value.length > 6) {
@@ -194,29 +157,20 @@ export function useValidationRules() {
     trigger: ['blur', 'change']
   })
 
-  /**
-   * 最小长度验证
-   */
-  const minLength = (min, message) => ({
+  const minLength = (min: number, message?: string): FormItemRule => ({
     min,
     message: message || getMessage('minLength'),
     trigger: ['blur', 'change']
   })
 
-  /**
-   * 最大长度验证
-   */
-  const maxLength = (max, message) => ({
+  const maxLength = (max: number, message?: string): FormItemRule => ({
     max,
     message: message || getMessage('maxLength'),
     trigger: ['blur', 'change']
   })
 
-  /**
-   * URL验证
-   */
-  const url = () => ({
-    validator: (rule, value, callback) => {
+  const url = (): FormItemRule => ({
+    validator: (_rule: any, value: string, callback: ValidatorCallback) => {
       if (!value) {
         callback()
       } else {

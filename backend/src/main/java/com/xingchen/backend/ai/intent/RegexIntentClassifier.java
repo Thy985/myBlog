@@ -58,6 +58,27 @@ public class RegexIntentClassifier implements IntentClassifierInterface {
             0.85,
             List.of("category_manager")
         ),
+        // 编辑分类
+        new IntentPattern(
+            Intent.IntentType.EDIT_CATEGORY,
+            Pattern.compile(".*(编辑|修改|更新|edit).*(分类|category).*"),
+            0.85,
+            List.of("category_manager")
+        ),
+        // 创建标签
+        new IntentPattern(
+            Intent.IntentType.CREATE_TAG,
+            Pattern.compile(".*(创建|新建|新增|add).*(标签|tag).*"),
+            0.85,
+            List.of("tag_manager")
+        ),
+        // 编辑标签
+        new IntentPattern(
+            Intent.IntentType.EDIT_TAG,
+            Pattern.compile(".*(编辑|修改|更新|edit).*(标签|tag).*"),
+            0.85,
+            List.of("tag_manager")
+        ),
         // 列出我的标签
         new IntentPattern(
             Intent.IntentType.LIST_TAGS,
@@ -145,7 +166,7 @@ public class RegexIntentClassifier implements IntentClassifierInterface {
         // 优化文章
         new IntentPattern(
             Intent.IntentType.OPTIMIZE_ARTICLE,
-            Pattern.compile(".*(优化|改进|improve|优化).*(文章|内容|质量).*"),
+            Pattern.compile(".*(优化|改进|improve).*(文章|内容|质量).*"),
             0.8,
             List.of("article_update")
         ),
@@ -181,9 +202,9 @@ public class RegexIntentClassifier implements IntentClassifierInterface {
                         .type(pattern.type)
                         .confidence(pattern.confidence)
                         .originalMessage(message)
-                        .requiresMemory(pattern.type != Intent.IntentType.CHAT)
-                        .requiresTool(!pattern.possibleTools.isEmpty())
-                        .possibleTools(pattern.possibleTools)
+                        .requiresMemory(pattern.type != Intent.IntentType.CHAT)// 非聊天意图需要内存
+                        .requiresTool(!pattern.possibleTools.isEmpty())// 需要工具
+                        .possibleTools(pattern.possibleTools)/// 工具
                         .build();
             }
         }

@@ -1,8 +1,3 @@
-/**
- * API请求工具函数
- * 封装通用的API请求逻辑，处理错误和边界情况
- */
-
 import { ElMessage, ElLoading } from 'element-plus'
 import { showPageLoading, hidePageLoading } from '@/utils/loading'
 import logger from '@/utils/logger'
@@ -20,7 +15,7 @@ export const API_STATUS = {
   SERVER_ERROR: 500,
   BAD_GATEWAY: 502,
   SERVICE_UNAVAILABLE: 503
-}
+} as const
 
 export const API_MESSAGE = {
   SUCCESS: '操作成功',
@@ -35,19 +30,29 @@ export const API_MESSAGE = {
   SERVICE_UNAVAILABLE: '服务暂时不可用，请稍后重试',
   NETWORK_ERROR: '网络连接失败，请检查网络设置',
   DEFAULT_ERROR: '操作失败，请稍后重试'
+} as const
+
+export interface RequestOptions {
+  showError?: boolean
+  showSuccess?: boolean
+  successMessage?: string
+  showLoading?: boolean
+  loadingMessage?: string
+  showPageLoading?: boolean
+  enableRetry?: boolean
 }
 
 const MAX_RETRIES = 2
 const RETRY_DELAY = 1000
 
-function delay(ms) {
+function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-async function retryRequest(apiFunc, params, retries = 0) {
+async function retryRequest<T>(apiFunc: () => Promise<T>, params: unknown, retries = 0): Promise<T> {
   try {
-    return await apiFunc(params)
-  } catch (err) {
+    return await apiFunc()
+  } catch (err: any) {
     if (retries < MAX_RETRIES && isRetryableError(err)) {
       logger.warn(`请求失败，${RETRY_DELAY * (retries + 1)}ms 后重试...`)
       await delay(RETRY_DELAY * (retries + 1))
@@ -57,7 +62,7 @@ async function retryRequest(apiFunc, params, retries = 0) {
   }
 }
 
-function isRetryableError(err) {
+function isRetryableError(err: any): boolean {
   if (!err.response) {
     return true
   }
@@ -67,7 +72,7 @@ function isRetryableError(err) {
          status === API_STATUS.SERVICE_UNAVAILABLE
 }
 
-export async function request(apiFunc, params, options = {}) {
+export async function request<T>(apiFunc: () => Promise<T>, params?: unknown, options: RequestOptions = {}): Promise<T> {
   const {
     showError = true,
     showSuccess = false,
@@ -78,7 +83,7 @@ export async function request(apiFunc, params, options = {}) {
     enableRetry = false
   } = options
 
-  let loadingInstance = null
+  let loadingInstance: ReturnType<typeof ElLoading.service> | null = null
 
   try {
     if (shouldShowPageLoading) {
@@ -91,12 +96,12 @@ export async function request(apiFunc, params, options = {}) {
       })
     }
 
-    const apiCall = params === undefined ? apiFunc : () => apiFunc(params)
+    const apiCall = () => apiFunc()
     const res = enableRetry
       ? await retryRequest(apiCall, params)
       : await apiCall()
 
-    if (res && res.code === API_STATUS.SUCCESS) {
+    if (res && (res as any).code === API_STATUS.SUCCESS) {
       if (showSuccess) {
         ElMessage.success(successMessage)
       }
@@ -104,11 +109,11 @@ export async function request(apiFunc, params, options = {}) {
     } else {
       logger.error('API请求失败：响应格式错误', res)
       if (showError) {
-        ElMessage.warning(res?.message || API_MESSAGE.DEFAULT_ERROR)
+        ElMessage.warning((res as any)?.message || API_MESSAGE.DEFAULT_ERROR)
       }
-      throw new Error(res?.message || API_MESSAGE.DEFAULT_ERROR)
+      throw new Error((res as any)?.message || API_MESSAGE.DEFAULT_ERROR)
     }
-  } catch (err) {
+  } catch (err: any) {
     logger.error('API请求出错:', err)
     if (showError) {
       ElMessage.error(err.message || API_MESSAGE.NETWORK_ERROR)
@@ -123,16 +128,25 @@ export async function request(apiFunc, params, options = {}) {
   }
 }
 
-function safeJsonParse(str) {
+function safeJsonParse(str: string): Record<string, unknown> | null {
   try {
     return JSON.parse(str)
-  } catch (e) {
+  } catch (e: any) {
     logger.error('JSON解析失败:', e.message)
     return null
   }
 }
 
-export async function requestWithCache(apiFunc, cacheKey, params = {}, options = {}) {
+interface CacheOptions extends RequestOptions {
+  cacheDuration?: number
+}
+
+export async function requestWithCache<T>(
+  apiFunc: () => Promise<T>,
+  cacheKey: string,
+  params: unknown = {},
+  options: CacheOptions = {}
+): Promise<T> {
   const { cacheDuration = 5 * 60 * 1000 } = options
   const prefixedKey = `${CACHE_PREFIX}${cacheKey}`
   const cacheTimeKey = `${prefixedKey}_time`
@@ -147,7 +161,7 @@ export async function requestWithCache(apiFunc, cacheKey, params = {}, options =
         logger.debug(`Cache hit for key: ${cacheKey}`)
         const parsed = safeJsonParse(cachedData)
         if (parsed) {
-          return parsed
+          return parsed as T
         }
       } else {
         logger.debug(`Cache expired for key: ${cacheKey}`)
@@ -158,37 +172,37 @@ export async function requestWithCache(apiFunc, cacheKey, params = {}, options =
 
     const res = await request(apiFunc, params, options)
 
-    if (res && res.data) {
+    if (res && (res as any).data) {
       try {
         localStorage.setItem(prefixedKey, JSON.stringify(res))
         localStorage.setItem(cacheTimeKey, Date.now().toString())
-      } catch (e) {
+      } catch (e: any) {
         logger.warn('缓存写入失败，可能超出存储限制:', e.message)
       }
     }
 
     return res
-  } catch (err) {
+  } catch (err: any) {
     logger.error('带缓存的API请求出错:', err)
     const cachedData = localStorage.getItem(prefixedKey)
     if (cachedData) {
       logger.warn(`Returning expired cache for key: ${cacheKey} due to request failure`)
       const parsed = safeJsonParse(cachedData)
       if (parsed) {
-        return parsed
+        return parsed as T
       }
     }
     throw err
   }
 }
 
-export function clearCache(cacheKey) {
+export function clearCache(cacheKey: string): void {
   const prefixedKey = `${CACHE_PREFIX}${cacheKey}`
   localStorage.removeItem(prefixedKey)
   localStorage.removeItem(`${prefixedKey}_time`)
 }
 
-export function clearAllCache() {
+export function clearAllCache(): void {
   const appKeys = [
     'blog_cache_theme',
     'blog_cache_searchHistory',
@@ -198,7 +212,7 @@ export function clearAllCache() {
     'blog_cache_current_draft'
   ]
 
-  const keysToRemove = []
+  const keysToRemove: string[] = []
 
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i)

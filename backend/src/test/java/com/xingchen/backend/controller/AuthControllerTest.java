@@ -26,9 +26,11 @@ class AuthControllerTest {
 
     @Test
     void login_withValidCredentials_shouldReturnToken() throws Exception {
+        String password = System.getenv("TEST_ADMIN_PASSWORD") != null
+            ? System.getenv("TEST_ADMIN_PASSWORD") : "TEST_ADMIN_PASSWORD_NOT_SET";
         String loginJson = """
-            {"username":"admin","password":"147258369Thy@"}
-            """;
+            {"username":"admin","password":"%s"}
+            """.formatted(password);
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -69,9 +71,11 @@ class AuthControllerTest {
     @Test
     void logout_withValidToken_shouldSucceed() throws Exception {
         // First login
+        String password = System.getenv("TEST_ADMIN_PASSWORD") != null
+            ? System.getenv("TEST_ADMIN_PASSWORD") : "TEST_ADMIN_PASSWORD_NOT_SET";
         String loginJson = """
-            {"username":"admin","password":"147258369Thy@"}
-            """;
+            {"username":"admin","password":"%s"}
+            """.formatted(password);
 
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

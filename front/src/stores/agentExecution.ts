@@ -6,23 +6,27 @@ import {
   ActionSubType,
   ObservationSubType
 } from '@/types/agent'
+import type { AgentEvent } from '@/types/agent'
 import logger from '@/utils/logger'
 
-/**
- * Agent Execution Store - 执行层状态管理
- *
- * 职责：
- * 1. 管理执行会话（ExecutionSession）
- * 2. 处理 AgentEvent 事件流
- * 3. 维护执行状态机
- */
+export interface ExecutionSession {
+  id: string
+  userMessage: string
+  messageId: string
+  startTime: number
+  endTime?: number
+  status: 'running' | 'completed' | 'failed' | 'cancelled'
+  summary?: string
+  events: AgentEvent[]
+  currentStep: number
+  totalSteps: number
+}
+
 export const useAgentExecutionStore = defineStore('agentExecution', () => {
-  // ============ State ============
-  const currentExecution = ref(null)
-  const executionHistory = ref([])
+  const currentExecution = ref<ExecutionSession | null>(null)
+  const executionHistory = ref<ExecutionSession[]>([])
   const isExecuting = ref(false)
 
-  // ============ Getters ============
   const hasActiveExecution = computed(() => currentExecution.value !== null)
 
   const currentThoughts = computed(() => {
@@ -59,7 +63,6 @@ export const useAgentExecutionStore = defineStore('agentExecution', () => {
     return currentActions.value
       .filter(e => e.subType === ActionSubType.TOOL_CALL)
       .map(action => {
-        // 查找对应的结果
         const result = currentObservations.value.find(
           o => o.subType === ObservationSubType.TOOL_RESULT &&
                         o.payload?.data?.toolName === action.payload.name
@@ -86,9 +89,8 @@ export const useAgentExecutionStore = defineStore('agentExecution', () => {
     }
   })
 
-  // ============ Execution Management ============
-  function startExecution(userMessage, messageId) {
-    const execution = {
+  function startExecution(userMessage: string, messageId: string): string {
+    const execution: ExecutionSession = {
       id: generateId(),
       userMessage,
       messageId,
@@ -105,17 +107,15 @@ export const useAgentExecutionStore = defineStore('agentExecution', () => {
     return execution.id
   }
 
-  function endExecution(status = 'completed', summary = '') {
+  function endExecution(status: 'completed' | 'failed' | 'cancelled' = 'completed', summary = ''): void {
     if (!currentExecution.value) {return}
 
     currentExecution.value.status = status
     currentExecution.value.endTime = Date.now()
     currentExecution.value.summary = summary
 
-    // 保存到历史
     executionHistory.value.unshift({ ...currentExecution.value })
 
-    // 限制历史记录数量
     if (executionHistory.value.length > 50) {
       executionHistory.value = executionHistory.value.slice(0, 50)
     }
@@ -124,25 +124,22 @@ export const useAgentExecutionStore = defineStore('agentExecution', () => {
     isExecuting.value = false
   }
 
-  function cancelExecution() {
+  function cancelExecution(): void {
     endExecution('cancelled', '用户取消')
   }
 
-  function failExecution(error) {
+  function failExecution(error: string): void {
     endExecution('failed', error)
   }
 
-  // ============ Event Handling ============
-  function handleEvent(event) {
+  function handleEvent(event: AgentEvent): void {
     if (!currentExecution.value) {
       logger.warn('[AgentExecution] No active execution to handle event')
       return
     }
 
-    // 添加事件到当前执行
     currentExecution.value.events.push(event)
 
-    // 更新执行状态
     switch (event.type) {
       case AgentEventType.THOUGHT:
         handleThoughtEvent(event)
@@ -162,51 +159,47 @@ export const useAgentExecutionStore = defineStore('agentExecution', () => {
     }
   }
 
-  function handleThoughtEvent(event) {
+  function handleThoughtEvent(event: AgentEvent): void {
     if (event.subType === ThoughtSubType.PLAN && event.payload.data?.steps) {
       currentExecution.value.totalSteps = event.payload.data.steps.length
     }
   }
 
-  function handleActionEvent(event) {
+  function handleActionEvent(event: AgentEvent): void {
     if (event.payload.status === 'completed') {
       currentExecution.value.currentStep++
     }
   }
 
-  function handleObservationEvent() {
+  function handleObservationEvent(): void {
     // 观察事件不需要特殊处理
   }
 
-  function handleDoneEvent(event) {
+  function handleDoneEvent(event: AgentEvent): void {
     endExecution('completed', event.payload.summary)
   }
 
-  function handleErrorEvent(event) {
+  function handleErrorEvent(event: AgentEvent): void {
     if (!event.payload.recoverable) {
       failExecution(event.payload.message)
     }
   }
 
-  // ============ History Management ============
-  function clearHistory() {
+  function clearHistory(): void {
     executionHistory.value = []
   }
 
-  function getExecutionById(id) {
+  function getExecutionById(id: string): ExecutionSession | undefined {
     if (currentExecution.value?.id === id) {
       return currentExecution.value
     }
     return executionHistory.value.find(e => e.id === id)
   }
 
-  // ============ Return ============
   return {
-    // State
     currentExecution,
     executionHistory,
     isExecuting,
-    // Getters
     hasActiveExecution,
     currentThoughts,
     currentActions,
@@ -216,7 +209,6 @@ export const useAgentExecutionStore = defineStore('agentExecution', () => {
     ragSources,
     toolCalls,
     executionProgress,
-    // Methods
     startExecution,
     endExecution,
     cancelExecution,
@@ -227,6 +219,6 @@ export const useAgentExecutionStore = defineStore('agentExecution', () => {
   }
 })
 
-function generateId() {
+function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
 }

@@ -21,8 +21,9 @@ public class LoginTest {
         try {
             LoginDTO dto = new LoginDTO();
             dto.setUsername("admin");
-            dto.setPassword("147258369Thy@");
-            
+            dto.setPassword(System.getenv("TEST_ADMIN_PASSWORD") != null
+                ? System.getenv("TEST_ADMIN_PASSWORD") : "TEST_ADMIN_PASSWORD_NOT_SET");
+
             Map<String, Object> result = userService.login(dto, "127.0.0.1", "Test Device");
             System.out.println("Login successful:");
             System.out.println("Token: " + result.get("token"));

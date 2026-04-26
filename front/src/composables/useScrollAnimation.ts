@@ -1,15 +1,19 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 
-export function useScrollAnimation(options = {}) {
+export function useScrollAnimation(options: {
+  threshold?: number
+  rootMargin?: string
+  once?: boolean
+} = {}) {
   const {
     threshold = 0.1,
     rootMargin = '0px 0px -50px 0px',
     once = true
   } = options
 
-  const elementRef = ref(null)
+  const elementRef = ref<HTMLElement | null>(null)
   const isVisible = ref(false)
-  let observer = null
+  let observer: IntersectionObserver | null = null
 
   onMounted(() => {
     if (!elementRef.value) {return}
@@ -45,8 +49,8 @@ export function useScrollAnimation(options = {}) {
   }
 }
 
-export function useStaggerAnimation(itemCount, baseDelay = 100) {
-  const getDelay = (index) => `${index * baseDelay}ms`
+export function useStaggerAnimation(itemCount: number, baseDelay = 100) {
+  const getDelay = (index: number): string => `${index * baseDelay}ms`
 
   return { getDelay }
 }

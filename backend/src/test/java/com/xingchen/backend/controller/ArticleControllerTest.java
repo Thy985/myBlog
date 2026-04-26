@@ -36,9 +36,11 @@ class ArticleControllerTest {
             return adminToken;
         }
         // Login to get token
+        String password = System.getenv("TEST_ADMIN_PASSWORD") != null
+            ? System.getenv("TEST_ADMIN_PASSWORD") : "TEST_ADMIN_PASSWORD_NOT_SET";
         String loginJson = """
-            {"username":"admin","password":"147258369Thy@"}
-            """;
+            {"username":"admin","password":"%s"}
+            """.formatted(password);
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(loginJson))

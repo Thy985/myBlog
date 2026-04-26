@@ -1,20 +1,20 @@
-/**
- * 设置状态管理
- * 管理博客设置信息
- */
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getBlogSettingDetail } from '@/api/frontend/blogsetting'
+import { getBlogSettingDetail } from '@/api/admin/blogsetting'
 import logger from '@/utils/logger'
 import { API_STATUS } from '@/composables/api'
 
 const CACHE_DURATION = 5 * 60 * 1000
 
+export interface BlogSetting {
+  [key: string]: any
+}
+
 export const useSettingsStore = defineStore('settings', () => {
-  const setting = ref({})
+  const setting = ref<BlogSetting>({})
   let lastFetchTime = 0
 
-  function hasValidCache() {
+  function hasValidCache(): boolean {
     if (Object.keys(setting.value).length === 0) {
       const cachedSetting = localStorage.getItem('blogSetting')
       if (cachedSetting) {
@@ -30,7 +30,7 @@ export const useSettingsStore = defineStore('settings', () => {
     return (Date.now() - lastFetchTime) < CACHE_DURATION
   }
 
-  async function getBlogSetting(forceRefresh = false) {
+  async function getBlogSetting(forceRefresh = false): Promise<BlogSetting> {
     if (!forceRefresh && hasValidCache()) {
       return setting.value
     }
@@ -47,13 +47,13 @@ export const useSettingsStore = defineStore('settings', () => {
         logger.error('获取博客设置信息失败：响应格式错误')
         throw new Error('获取博客设置信息失败：响应格式错误')
       }
-    } catch (err) {
+    } catch (err: any) {
       logger.error('获取博客设置信息失败:', err.message)
       throw err
     }
   }
 
-  function clearSettingCache() {
+  function clearSettingCache(): void {
     setting.value = {}
     localStorage.removeItem('blogSetting')
     localStorage.removeItem('blogSettingTime')
