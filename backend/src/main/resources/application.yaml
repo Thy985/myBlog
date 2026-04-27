@@ -38,6 +38,7 @@ mybatis-flex:
   mapper-locations: classpath*:/mapper/**/*.xml
   mapper-package: com.xingchen.backend.mapper
   configuration:
+    db-type: mysql
     map-underscore-to-camel-case: true
     cache-enabled: true
     lazy-loading-enabled: false
@@ -183,7 +184,7 @@ openrouter:
 
 # 加密配置
 encryption:
-  master-key: ${ENCRYPTION_MASTER_KEY}
+  master-key: ${ENCRYPTION_MASTER_KEY:default-dev-key-change-in-production}
 
 # Resilience4j 熔断配置
 resilience4j:

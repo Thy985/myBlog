@@ -43,6 +43,17 @@ spring:
         allow: 127.0.0.1
         reset-enable: false
 
+  # PostgreSQL 向量数据库配置
+  postgresql:
+    url: jdbc:postgresql://localhost:5432/myblog
+    username: admin
+    password: admin123
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
   # Redis配置（开发环境）
   data:
     redis:
@@ -130,19 +141,6 @@ qdrant:
 #   username: admin
 #   password: OpenSearch@2024!
 #   index: myblog_search
-
-# PostgreSQL 向量数据库配置
-spring:
-  datasource:
-    postgresql:
-      url: jdbc:postgresql://localhost:5432/myblog
-      username: admin
-      password: admin123
-      driver-class-name: org.postgresql.Driver
-      hikari:
-        maximum-pool-size: 20
-        minimum-idle: 5
-        connection-timeout: 30000
 
 # AI 模型配置
 ai:

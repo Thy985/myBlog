@@ -52,23 +52,30 @@
                 <div class="footer-column">
                     <h4 class="column-title">内容分类</h4>
                     <ul class="footer-links">
-                        <li><a href="#" class="footer-link">前端开发</a></li>
-                        <li><a href="#" class="footer-link">后端架构</a></li>
-                        <li><a href="#" class="footer-link">AI 与机器学习</a></li>
-                        <li><a href="#" class="footer-link">DevOps 实践</a></li>
-                        <li><a href="#" class="footer-link">数据库设计</a></li>
+                        <li v-for="cat in categories" :key="cat.id">
+                            <router-link :to="`/category/${cat.id}`" class="footer-link">
+                                {{ cat.name }}
+                                <span v-if="cat.articleCount" class="text-xs text-gray-400">({{ cat.articleCount }})</span>
+                            </router-link>
+                        </li>
+                        <li v-if="categories.length === 0">
+                            <span class="footer-link text-gray-400">暂无分类</span>
+                        </li>
                     </ul>
                 </div>
 
                 <div class="footer-column">
                     <h4 class="column-title">热门标签</h4>
                     <div class="tags-cloud">
-                        <a href="#" class="tag">Vue.js</a>
-                        <a href="#" class="tag">React</a>
-                        <a href="#" class="tag">Node.js</a>
-                        <a href="#" class="tag">Python</a>
-                        <a href="#" class="tag">Docker</a>
-                        <a href="#" class="tag">Kubernetes</a>
+                        <router-link
+                            v-for="tag in tags"
+                            :key="tag.id"
+                            :to="`/tag/${tag.id}`"
+                            class="tag"
+                        >
+                            {{ tag.name || tag.tag_name }}
+                        </router-link>
+                        <span v-if="tags.length === 0" class="text-gray-400 text-sm">暂无标签</span>
                     </div>
                 </div>
             </div>
@@ -109,6 +116,17 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useMainStore } from '@/stores'
+
+const props = defineProps({
+    categories: {
+        type: Array,
+        default: () => []
+    },
+    tags: {
+        type: Array,
+        default: () => []
+    }
+})
 
 const store = useMainStore()
 

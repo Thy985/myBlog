@@ -1,6 +1,8 @@
 <template>
     <div
         class="article-card"
+        role="article"
+        :aria-label="article.title"
         data-testid="article-card"
         @mouseenter="handleMouseEnter"
         @mouseleave="handleMouseLeave"
@@ -10,7 +12,7 @@
                 <a class="cursor-pointer block overflow-hidden" @click="goArticleDetail(article.id)">
                     <div class="image-container">
                         <div
-                            v-if="!article.titleImage"
+                            v-if="!displayImage"
                             class="card-placeholder"
                         >
                             <img
@@ -26,10 +28,10 @@
                         <img
                             v-else
                             ref="imageRef"
-                            :data-src="article.titleImage"
+                            :data-src="displayImage"
                             class="card-image"
                             :alt="article.title"
-                            :src="article.titleImage"
+                            :src="displayImage"
                             width="800"
                             height="450"
                             loading="lazy"
@@ -37,7 +39,7 @@
                             @load="imageLoaded = true"
                             @error="handleImageError"
                         />
-                        <div v-if="!imageLoaded && article.titleImage" class="image-skeleton">
+                        <div v-if="!imageLoaded && displayImage" class="image-skeleton">
                             <div class="skeleton-shimmer"></div>
                         </div>
                     </div>
@@ -123,10 +125,29 @@ const isHovered = ref(false)
 
 const fallbackImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450%3E%3Crect fill="%231e293b" width="800" height="450"/%3E%3C/svg%3E'
 
+// 获取完整的图片URL，处理相对路径
+const getImageUrl = (imagePath) => {
+    if (!imagePath) {return null}
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+        return imagePath
+    }
+    if (imagePath.startsWith('/')) {
+        // 相对路径需要拼接后端地址
+        return `http://localhost:8080${imagePath}`
+    }
+    return `http://localhost:8080/${imagePath}`
+}
+
 const getPlaceholderImage = () => {
     if (!props.article.id) {return fallbackImage}
     return `https://picsum.photos/seed/${props.article.id}/800/450`
 }
+
+// 主图URL优先使用titleImage，否则用thumbnail，都没有则用placeholder
+const displayImage = computed(() => {
+    const url = props.article.titleImage || props.article.thumbnail
+    return url ? getImageUrl(url) : null
+})
 
 const _getTitleInitial = () => {
     const title = props.article.title || ''
@@ -139,8 +160,10 @@ const authorInitial = computed(() => {
 })
 
 const handleImageError = (e) => {
-    if (e.target.src !== fallbackImage) {
-        e.target.src = fallbackImage
+    // 图片加载失败时使用占位图
+    const placeholder = getPlaceholderImage()
+    if (e.target.src !== placeholder) {
+        e.target.src = placeholder
     }
     imageLoaded.value = true
 }

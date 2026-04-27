@@ -90,11 +90,12 @@ const handleSubscribe = async () => {
     }
 
     isSubmitting.value = true
+    const subscriberEmail = email.value
 
     try {
         await new Promise(resolve => setTimeout(resolve, 1000))
 
-        emit('subscribe', email.value)
+        emit('subscribe', subscriberEmail)
 
         showSuccess.value = true
         email.value = ''

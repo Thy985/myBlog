@@ -166,7 +166,7 @@ const router = useRouter()
 const route = useRoute()
 
 // Filter state
-const selectedCategoryId = ref<number | null>(null)
+const selectedCategoryId = ref(null)
 const sortBy = ref('createdTime')
 
 const filterParams = computed(() => ({

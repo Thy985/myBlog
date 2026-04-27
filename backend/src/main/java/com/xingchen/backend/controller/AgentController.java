@@ -2,6 +2,10 @@ package com.xingchen.backend.controller;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.stp.StpUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.xingchen.backend.ab.ABTestService;
 import com.xingchen.backend.ai.gateway.AIGateway;
 import com.xingchen.backend.ai.model.AIRequest;
@@ -31,6 +35,8 @@ public class AgentController {
     private final ABTestService abTestService;
     private final ArticleService articleService;
     private final WebSearchService webSearchService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * 开始新会话

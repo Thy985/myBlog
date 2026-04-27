@@ -1,10 +1,8 @@
 <template>
-    <section ref="sectionRef" class="featured-section">
+    <section ref="sectionRef" class="featured-section" aria-label="精选文章区域">
         <div class="container">
             <div class="section-header">
-                <span class="section-tag">精选内容</span>
                 <h2 class="section-title">热门文章</h2>
-                <p class="section-desc">阅读量最高、最受欢迎的技术文章</p>
             </div>
 
             <div v-if="loading" class="articles-grid">
@@ -29,13 +27,14 @@
                     class="article-card"
                     :style="{ animationDelay: `${index * 0.1}s` }"
                     :class="{ 'animate-in': isVisible }"
+                    :aria-label="`文章: ${article.title}`"
                     @click="$emit('articleClick', article.id)"
                 >
                     <div class="card-image-wrapper">
                         <div class="image-container">
                             <img
-                                v-if="article.titleImage"
-                                :src="article.titleImage"
+                                v-if="getArticleImage(article)"
+                                :src="getArticleImage(article)"
                                 :alt="article.title"
                                 class="card-image"
                                 loading="lazy"
@@ -148,6 +147,24 @@ const getInitial = (name) => {
     return (name || '匿').charAt(0).toUpperCase()
 }
 
+// 获取完整的图片URL，处理相对路径
+const getImageUrl = (imagePath) => {
+    if (!imagePath) {return null}
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+        return imagePath
+    }
+    if (imagePath.startsWith('/')) {
+        return `http://localhost:8080${imagePath}`
+    }
+    return `http://localhost:8080/${imagePath}`
+}
+
+// 获取文章图片URL
+const getArticleImage = (article) => {
+    const url = article.titleImage || article.thumbnail
+    return url ? getImageUrl(url) : null
+}
+
 const calculateReadTime = (content) => {
     if (!content) {return 3}
     const words = content.length
@@ -165,32 +182,11 @@ const calculateReadTime = (content) => {
     margin-bottom: 48px;
 }
 
-.section-tag {
-    display: inline-block;
-    padding: 6px 12px;
-    background: var(--color-primary-subtle);
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--color-primary);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 16px;
-}
-
 .section-title {
     font-size: 36px;
     font-weight: 700;
     margin-bottom: 12px;
-    background: var(--gradient-1);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.section-desc {
-    font-size: 16px;
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
 .articles-grid {

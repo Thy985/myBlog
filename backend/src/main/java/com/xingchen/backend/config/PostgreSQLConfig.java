@@ -1,12 +1,11 @@
 package com.xingchen.backend.config;
 
+import com.alibaba.druid.pool.DruidDataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
@@ -20,25 +19,24 @@ import javax.sql.DataSource;
 public class PostgreSQLConfig {
 
     /**
-     * PostgreSQL 数据源属性
-     */
-    @Bean
-    @ConfigurationProperties("spring.datasource.postgresql")
-    public DataSourceProperties postgresqlDataSourceProperties() {
-        return new DataSourceProperties();
-    }
-
-    /**
      * PostgreSQL 数据源
-     * 使用 HikariCP 连接池（Spring Boot 默认）
+     * 使用 Druid 连接池
      */
     @Bean(name = "postgresqlDataSource")
-    public DataSource postgresqlDataSource(
-            @Qualifier("postgresqlDataSourceProperties") DataSourceProperties properties) {
-        log.info("初始化 PostgreSQL 数据源: {}", properties.getUrl());
-        DataSource dataSource = properties.initializeDataSourceBuilder()
-                .build();
-        log.info("PostgreSQL 数据源初始化完成");
+    public DataSource postgresqlDataSource() {
+        DruidDataSource dataSource = new DruidDataSource();
+        dataSource.setDriverClassName("org.postgresql.Driver");
+        dataSource.setUrl("jdbc:postgresql://localhost:5432/myblog");
+        dataSource.setUsername("admin");
+        dataSource.setPassword("admin123");
+        dataSource.setInitialSize(5);
+        dataSource.setMaxActive(20);
+        dataSource.setMinIdle(5);
+        dataSource.setMaxWait(30000);
+        dataSource.setPoolPreparedStatements(true);
+        dataSource.setMaxPoolPreparedStatementPerConnectionSize(100);
+
+        log.info("初始化 PostgreSQL 数据源: {}", dataSource.getUrl());
         return dataSource;
     }
 

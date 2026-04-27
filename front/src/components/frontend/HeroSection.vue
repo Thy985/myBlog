@@ -1,5 +1,5 @@
 <template>
-    <section ref="heroRef" class="hero-section">
+    <section ref="heroRef" class="hero-section" aria-label="首页横幅">
         <div class="hero-bg">
             <div class="hero-grid"></div>
             <div class="hero-orb hero-orb-1"></div>
@@ -139,7 +139,7 @@ onUnmounted(() => {
     right: 0;
     bottom: 0;
     z-index: 0;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(236, 72, 153, 0.05) 50%, rgba(245, 158, 11, 0.03) 100%);
+    background: var(--bg-primary);
 }
 
 .hero-grid {
@@ -149,8 +149,8 @@ onUnmounted(() => {
     right: 0;
     bottom: 0;
     background-image:
-        linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+        linear-gradient(rgba(99, 102, 241, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99, 102, 241, 0.02) 1px, transparent 1px);
     background-size: 60px 60px;
     mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 20%, transparent 80%);
     -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 20%, transparent 80%);
@@ -159,33 +159,33 @@ onUnmounted(() => {
 .hero-orb {
     position: absolute;
     border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.4;
+    filter: blur(40px);
+    opacity: 0.2;
     animation: float 20s ease-in-out infinite;
 }
 
 .hero-orb-1 {
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(99, 102, 241, 0.3) 0%, transparent 70%);
-    top: -100px;
-    right: -100px;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, transparent 70%);
+    top: -50px;
+    right: -50px;
 }
 
 .hero-orb-2 {
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(236, 72, 153, 0.2) 0%, transparent 70%);
-    bottom: -50px;
-    left: -100px;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, transparent 70%);
+    bottom: -30px;
+    left: -50px;
     animation-delay: -10s;
 }
 
 @keyframes float {
     0%, 100% { transform: translate(0, 0) scale(1); }
-    25% { transform: translate(20px, -20px) scale(1.05); }
-    50% { transform: translate(-10px, 10px) scale(0.95); }
-    75% { transform: translate(15px, 15px) scale(1.02); }
+    25% { transform: translate(10px, -10px) scale(1.03); }
+    50% { transform: translate(-5px, 5px) scale(0.98); }
+    75% { transform: translate(8px, 8px) scale(1.01); }
 }
 
 .hero-content {
@@ -270,10 +270,7 @@ onUnmounted(() => {
 }
 
 .gradient-text {
-    background: var(--gradient-1);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-primary);
 }
 
 .hero-description {
@@ -333,10 +330,7 @@ onUnmounted(() => {
     display: block;
     font-size: 32px;
     font-weight: 700;
-    background: var(--gradient-1);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-primary);
 }
 
 .stat-label {
@@ -453,6 +447,10 @@ onUnmounted(() => {
     }
 
     .scroll-indicator {
+        bottom: 20px;
+    }
+
+    .scroll-indicator span {
         display: none;
     }
 

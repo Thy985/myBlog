@@ -116,7 +116,7 @@
             <NewsletterSection @subscribe="handleSubscribe" />
         </main>
 
-        <Footer></Footer>
+        <Footer :categories="categories" :tags="tags"></Footer>
     </div>
 </template>
 
@@ -142,6 +142,7 @@ const SkeletonLoader = defineAsyncComponent(() => import('@/components/ui/Skelet
 import { getIndexArticles } from '@/api/frontend/index'
 import { getCategories } from '@/api/frontend/category'
 import { getHotArticles, getRecommendedArticles } from '@/api/frontend/article'
+import { getTags } from '@/api/frontend/tag'
 import { request, requestWithCache } from '@/composables/api'
 import { useAsyncData, usePaginationData } from '@/composables/useAsyncData'
 import logger from '@/utils/logger'
@@ -253,6 +254,7 @@ const hotArticlesData = useAsyncData(
 const hotArticles = computed(() => hotArticlesData.data.value || [])
 
 const categories = ref([])
+const tags = ref([])
 
 async function getCategoriesData() {
     try {
@@ -262,6 +264,17 @@ async function getCategoriesData() {
         }
     } catch (err) {
         logger.error('Fetch categories failed:', err.message)
+    }
+}
+
+async function getTagsData() {
+    try {
+        const res = await request(getTags, {}, { showError: false })
+        if (res?.data) {
+            tags.value = res.data
+        }
+    } catch (err) {
+        logger.error('Fetch tags failed:', err.message)
     }
 }
 
@@ -282,7 +295,8 @@ async function initData() {
       featuredData.execute(),
       articlePagination.fetchData(1),
       hotArticlesData.execute(),
-      getCategoriesData()
+      getCategoriesData(),
+      getTagsData()
     ])
 
     const failedResults = results.filter(r => r.status === 'rejected')
