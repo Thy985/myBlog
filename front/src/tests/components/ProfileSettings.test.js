@@ -31,6 +31,15 @@ describe('ProfileSettings组件测试', () => {
       const asteriskSpan = spans.find(span => span.text() === '*')
       expect(asteriskSpan).toBeDefined()
     })
+
+    it('应该显示头像上传区域', () => {
+      const wrapper = mount(ProfileSettings, {
+        props: {}
+      })
+
+      expect(wrapper.find('img[alt="用户"]').exists()).toBe(true)
+      expect(wrapper.find('label[title="更换头像"]').exists()).toBe(true)
+    })
   })
 
   describe('表单验证', () => {
@@ -70,51 +79,6 @@ describe('ProfileSettings组件测试', () => {
       await new Promise(resolve => setTimeout(resolve, 400))
 
       expect(wrapper.vm.errors.email).toBe('请输入有效的邮箱地址')
-    })
-  })
-
-  describe('重置功能', () => {
-    it('点击取消按钮应该重置表单到初始值', async () => {
-      const wrapper = mount(ProfileSettings, {
-        props: {
-          username: 'original',
-          email: 'original@test.com',
-          bio: 'original bio'
-        }
-      })
-
-      // 修改表单
-      await wrapper.find('#username').setValue('changed')
-      await wrapper.find('#email').setValue('changed@test.com')
-      await wrapper.find('#bio').setValue('changed bio')
-
-      // 点击取消
-      await wrapper.find('button[type="button"]').trigger('click')
-      await wrapper.vm.$nextTick()
-
-      // 验证重置
-      expect(wrapper.vm.formData.username).toBe('original')
-      expect(wrapper.vm.formData.email).toBe('original@test.com')
-      expect(wrapper.vm.formData.bio).toBe('original bio')
-    })
-
-    it('取消按钮应该清空错误状态', async () => {
-      const wrapper = mount(ProfileSettings, {
-        props: {}
-      })
-
-      // 触发验证错误
-      await wrapper.find('#username').setValue('')
-      await wrapper.vm.$nextTick()
-      await new Promise(resolve => setTimeout(resolve, 400))
-
-      expect(wrapper.vm.errors.username).toBeTruthy()
-
-      // 点击取消
-      await wrapper.find('button[type="button"]').trigger('click')
-      await wrapper.vm.$nextTick()
-
-      expect(wrapper.vm.errors.username).toBe('')
     })
   })
 

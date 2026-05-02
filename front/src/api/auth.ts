@@ -11,6 +11,9 @@ import type { UserProfile } from '@/types/user'
 export interface LoginData {
   username: string
   password: string
+  captcha?: string
+  captchaId?: string
+  mfaCode?: string
 }
 
 export interface CaptchaResponse {

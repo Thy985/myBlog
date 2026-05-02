@@ -33,15 +33,17 @@
 | Maven | 3.8+ | 后端构建 |
 | Node.js | 18+ | 前端构建 |
 | MySQL | 8.0+ | 主数据库 |
+| PostgreSQL | 15+ | 向量数据库 (pgvector) |
 | Redis | 6.0+ | 缓存/会话 |
 | MinIO | 最新版 | 对象存储 |
+| Qdrant | 1.7+ | 向量检索引擎 |
 
 ### 可选组件
 
 | 软件 | 用途 |
 |------|------|
-| Kafka | 异步消息/事件驱动 |
-| Milvus/Weaviate | 向量检索/RAG |
+| RabbitMQ | 异步消息/事件驱动 |
+| Tavily API | 智能体联网搜索 |
 | Nginx | 反向代理/静态资源 |
 
 ---
@@ -125,11 +127,12 @@ docker-compose up -d
 ### 各服务启动顺序
 
 ```
-1. MySQL      → 等待就绪（约10秒）
-2. Redis     → 等待就绪（约5秒）
-3. MinIO     → 等待就绪（约10秒）
-4. Backend   → 依赖 MySQL/Redis/MinIO
-5. Frontend  → 依赖 Backend API
+1. MySQL        → 等待就绪（约10秒）
+2. PostgreSQL   → 等待就绪（约10秒）- 向量数据
+3. Redis       → 等待就绪（约5秒）
+4. MinIO/Qdrant → 等待就绪（约10秒）
+5. Backend      → 依赖 MySQL/PostgreSQL/Redis
+6. Frontend     → 依赖 Backend API
 ```
 
 ### 手动 Docker 部署
@@ -336,12 +339,16 @@ tail -f /var/log/nginx/error.log
 | HTTP | /actuator/metrics/http | 请求量、延迟 |
 | 数据库 | Druid 内置 | 连接池状态 |
 | Redis | Redis Monitor | 缓存命中率 |
+| AI Agent | /actuator/metrics | Token使用、熔断状态 |
 
 ### 备份策略
 
 ```bash
-# 每日凌晨 3 点备份数据库
+# 每日凌晨 3 点备份 MySQL 数据库
 0 3 * * * docker exec mysql mysqldump -u root -psecret myblog > /backup/myblog_$(date +\%Y\%m\%d).sql
+
+# 每日凌晨 3 点备份 PostgreSQL 数据（向量数据）
+0 3 * * * docker exec postgres pg_dump -U admin myblog > /backup/myblog_vector_$(date +\%Y\%m\%d).sql
 
 # 保留最近 30 天备份
 find /backup -name "myblog_*.sql" -mtime +30 -delete

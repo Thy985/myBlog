@@ -6,6 +6,9 @@ spring:
     name: backend
   profiles:
     active: dev
+  main:
+    allow-bean-definition-overriding: true
+    allow-circular-references: true
 
   servlet:
     multipart:
@@ -15,9 +18,16 @@ spring:
     encoding:
       enabled: true
       charset: UTF-8
-      force: true
-      force-request: true
-      force-response: true
+
+sa-token:
+  cookie-name: X-Auth-Token
+  is-read-cookie: true
+  is-read-header: true
+  is-read-body: false
+  token-style: uuid
+  same-site: lax
+  is-concurrent: true
+  is-share: false
 
   task:
     scheduling:
@@ -129,6 +139,24 @@ ai:
         - openai/gpt-4-turbo
         - anthropic/claude-3-sonnet
         - openai/gpt-3.5-turbo
+
+  # ReAct 推理模式配置
+  react:
+    enabled: true                     # 是否启用 ReAct 模式
+    max-iterations: 10               # 最大迭代次数
+    max-tokens: 4096                 # 最大生成 token 数
+    temperature: 0.7                  # 生成温度
+    use-memory: true                  # 是否使用记忆
+    use-rag: true                    # 是否使用 RAG
+    use-function-calling: true       # 是否优先使用 Function Calling
+    stream-enabled: true              # 是否启用流式输出
+    enable-self-reflection: true     # 是否启用自我反思
+    reflection-threshold: 3          # 反思触发阈值
+    enable-error-recovery: true       # 是否启用错误恢复
+    max-retry-attempts: 3             # 最大重试次数
+    step-timeout-ms: 60000           # 步骤超时时间
+    log-execution-trace: true         # 是否记录执行轨迹
+    enable-thought-visualization: true  # 是否启用思考可视化
 
 # 模型缓存配置（Caffeine）
 model:

@@ -12,6 +12,9 @@ import java.util.List;
 @Mapper
 public interface FileRecordMapper extends BaseMapper<FileRecord> {
 
+    @Select("SELECT * FROM t_file WHERE is_deleted = 0 ORDER BY create_time DESC")
+    List<FileRecord> selectAll();
+
     @Select("SELECT * FROM t_file WHERE user_id = #{userId} AND is_deleted = 0 ORDER BY create_time DESC")
     List<FileRecord> selectByUserId(@Param("userId") Long userId);
 

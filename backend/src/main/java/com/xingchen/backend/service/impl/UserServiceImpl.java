@@ -12,6 +12,7 @@ import com.xingchen.backend.dto.UserUpdateDTO;
 import com.xingchen.backend.entity.LoginHistory;
 import com.xingchen.backend.entity.User;
 import com.xingchen.backend.mapper.*;
+import com.xingchen.backend.service.MfaService;
 import com.xingchen.backend.service.UserService;
 import com.xingchen.backend.service.VerificationCodeService;
 import com.xingchen.backend.vo.UserVO;
@@ -37,6 +38,7 @@ public class UserServiceImpl implements UserService {
     private final ArticleMapper articleMapper;
     private final CommentMapper commentMapper;
     private final ArticleLikeMapper articleLikeMapper;
+    private final MfaService mfaService;
 
     @Override
     @Transactional
@@ -61,6 +63,18 @@ public class UserServiceImpl implements UserService {
 
         if (user.getStatus() != 1) {
             throw new BusinessException(ErrorCode.USER_DISABLED);
+        }
+
+        // MFA 验证逻辑
+        if (mfaService.isMfaEnabled(user.getId())) {
+            if (dto.getMfaCode() == null || dto.getMfaCode().isBlank()) {
+                throw new BusinessException(ErrorCode.MFA_CODE_REQUIRED);
+            }
+            try {
+                mfaService.verifyCode(user.getId(), dto.getMfaCode());
+            } catch (BusinessException e) {
+                throw new BusinessException(ErrorCode.MFA_CODE_INVALID);
+            }
         }
 
         StpUtil.login(user.getId());

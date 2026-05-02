@@ -100,7 +100,7 @@ t="1687255143784" class="icon" viewBox="0 0 1576 1024" version="1.1"
     <Footer></Footer>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import Header from '@/layouts/components/Header.vue'
 import Footer from '@/layouts/components/Footer.vue'
 const UserInfoCard = defineAsyncComponent(() => import('@/components/common/UserInfoCard.vue'))
@@ -108,7 +108,7 @@ const ArticleCard = defineAsyncComponent(() => import('@/components/common/Artic
 const Pagination = defineAsyncComponent(() => import('@/components/ui/Pagination.vue'))
 import { defineAsyncComponent } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { getTagArticles, getTags } from '@/api/frontend/tag'
 import { getCategories } from '@/api/frontend/category'
 import logger from '@/utils/logger'
@@ -117,11 +117,24 @@ import { API_STATUS } from '@/composables/api'
 const router = useRouter()
 const route = useRoute()
 
+let currentAbortController = null
+let isUnmounted = false
+
 // ✅ 支持 RESTful params 和 query 双模式
 const tagId = computed(() => route.params.id || route.query.id)
 const tagName = ref(route.params.name || route.query.name)
 const loading = ref(false)
 const error = ref('')
+
+function safeUpdate(callback: () => void) {
+    if (!isUnmounted) {
+        callback()
+    }
+}
+
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 // 导航方法 - 使用 RESTful URL
 const goArticleDetail = (articleId) => {
@@ -150,31 +163,43 @@ const size = ref(10)
 const pages = ref(0)
 
 // 获取分页数据
-function getArticles(currentNo) {
+async function getArticles(currentNo) {
+    if (isUnmounted) {return}
+
+    if (currentAbortController) {
+        currentAbortController.abort()
+    }
+    currentAbortController = new AbortController()
+
     loading.value = true
     error.value = ''
 
-    // ✅ 使用 computed tagId
-    getTagArticles({ current: currentNo, size: size.value, tagId: tagId.value })
-        .then((res) => {
-            if (res.code === API_STATUS.SUCCESS) {
-                const data = res.data || {}
+    try {
+        const res = await getTagArticles({ current: currentNo, size: size.value, tagId: tagId.value })
+
+        if (isUnmounted) {return}
+
+        if (res.code === API_STATUS.SUCCESS) {
+            const data = res.data || {}
+            safeUpdate(() => {
                 articles.value = data.list || []
                 current.value = data.page || 1
                 total.value = data.total || 0
                 size.value = data.size || 10
                 pages.value = data.pages || 0
-            } else {
-                error.value = res.message || '获取文章列表失败'
-            }
-        })
-        .catch((err) => {
-            error.value = '网络错误，请稍后重试'
-            logger.error('获取文章列表失败:', err)
-        })
-        .finally(() => {
+            })
+        } else {
+            error.value = res.message || '获取文章列表失败'
+        }
+    } catch (err) {
+        if (err.name === 'AbortError' || isUnmounted) {return}
+        error.value = '网络错误，请稍后重试'
+        logger.error('获取文章列表失败:', err)
+    } finally {
+        if (!isUnmounted) {
             loading.value = false
-        })
+        }
+    }
 }
 
 // 获取分类
@@ -201,6 +226,19 @@ const getHotTags = () => {
     })
 }
 
+// 初始化数据
+onMounted(() => {
+    loadAllData()
+})
+
+onUnmounted(() => {
+    isUnmounted = true
+    if (currentAbortController) {
+        currentAbortController.abort()
+        currentAbortController = null
+    }
+})
+
 // 监听路由参数变化 - 支持 params 和 query
 watch([() => route.params.id, () => route.query.id], ([newParamsId, newQueryId], [oldParamsId, oldQueryId]) => {
     const newId = newParamsId || newQueryId
@@ -208,16 +246,18 @@ watch([() => route.params.id, () => route.query.id], ([newParamsId, newQueryId],
     if (newId !== oldId) {
         tagName.value = route.params.name || route.query.name
         current.value = 1
-        getArticles(1)
+        loadAllData()
+        scrollToTop()
     }
-}, { immediate: false })
-
-// 初始化数据
-onMounted(() => {
-    getArticles(current.value)
-    getCategoryList()
-    getHotTags()
 })
+
+async function loadAllData() {
+    await Promise.allSettled([
+        getArticles(current.value),
+        getCategoryList(),
+        getHotTags()
+    ])
+}
 
 </script>
 

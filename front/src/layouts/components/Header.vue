@@ -6,7 +6,7 @@
             <div class="header-content">
                 <a href="/" class="logo-wrapper" aria-label="返回首页">
                     <img
-                        :src="store.setting.avatar || defaultLogo"
+                        :src="logoUrl"
                         class="logo-image"
                         :alt="store.setting.blogName"
                         loading="lazy"
@@ -68,12 +68,12 @@
                     </button>
 
                     <template v-if="!isLogin">
-                        <button class="btn btn-primary" @click="$router.push('/login')">
+                        <button class="btn btn-primary" @click="goToLogin">
                             登录
                         </button>
                     </template>
                     <template v-else>
-                        <button v-if="canPublish" class="btn btn-primary" @click="$router.push('/user/articles/create')">
+                        <button v-if="canPublish" class="btn btn-primary" @click="goToCreateArticle">
                             <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor">
                                 <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
                             </svg>
@@ -140,6 +140,34 @@ const route = useRoute()
 
 const defaultLogo = new URL('@/assets/头像.jpg', import.meta.url).href
 
+// 计算 Logo URL（优先使用用户头像，其次使用博客设置头像）
+const logoUrl = computed(() => {
+  // 优先使用用户头像
+  const userAvatar = store.user?.avatar
+  if (userAvatar) {
+    if (userAvatar.startsWith('http://') || userAvatar.startsWith('https://')) {
+      return userAvatar
+    }
+    if (userAvatar.startsWith('/')) {
+      const baseApi = import.meta.env.VITE_APP_BASE_API.replace(/\/$/, '')
+      return `${baseApi}${userAvatar}`
+    }
+    return `${import.meta.env.VITE_APP_BASE_API}/${userAvatar}`
+  }
+
+  // 其次使用博客设置头像
+  const settingAvatar = store.setting?.avatar
+  if (!settingAvatar) { return defaultLogo }
+  if (settingAvatar.startsWith('http://') || settingAvatar.startsWith('https://')) {
+    return settingAvatar
+  }
+  if (settingAvatar.startsWith('/')) {
+    const baseApi = import.meta.env.VITE_APP_BASE_API.replace(/\/$/, '')
+    return `${baseApi}${settingAvatar}`
+  }
+  return `${import.meta.env.VITE_APP_BASE_API}/${settingAvatar}`
+})
+
 const searchKeyword = ref('')
 const isUserMenuOpen = ref(false)
 const isLogoutModalOpen = ref(false)
@@ -152,12 +180,11 @@ const navItems = [
     { name: '发现', path: '/discover' },
     { name: '分类', path: '/category' },
     { name: '标签', path: '/tag' },
-    { name: '归档', path: '/archive' },
-    { name: '关于', path: '/about' }
+    { name: '归档', path: '/archive' }
 ]
 
 const isLogin = computed(() => store.isLoggedIn())
-const isAdmin = computed(() => store.user?.role === 'admin')
+const isAdmin = computed(() => store.user?.roles?.includes('ADMIN') || store.user?.roles?.includes('SUPER_ADMIN'))
 const canPublish = computed(() => store.isLoggedIn())
 
 const isActive = (path) => {
@@ -202,6 +229,14 @@ const handleLogout = () => {
     store.logout()
     isLogoutModalOpen.value = false
     showMessage('退出登录成功', 'success')
+}
+
+const goToLogin = () => {
+    router.push('/login')
+}
+
+const goToCreateArticle = () => {
+    router.push('/user/articles/create')
 }
 
 const handleClickOutside = (event) => {

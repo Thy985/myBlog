@@ -125,7 +125,7 @@
                                     v-for="item in categories"
                                     :key="item.id"
                                     class="flex items-center justify-between block w-full px-4 py-3 rounded-lg cursor-pointer text-secondary hover:text-primary hover:bg-primary/10 transition-all duration-300"
-                                    @click="$router.push({ path: '/category/' + item.id + '/' + encodeURIComponent(item.name) })"
+                                    @click="$router.push({ name: 'category-articles', params: { id: String(item.id), name: item.name } })"
                                 >
                                     <span class="font-medium">{{ item.name }}</span>
                                     <span class="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">{{ item.articleCount || 0 }}</span>

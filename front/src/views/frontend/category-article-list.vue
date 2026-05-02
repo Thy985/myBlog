@@ -147,7 +147,7 @@ class="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:ho
     <Footer></Footer>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import Header from '@/layouts/components/Header.vue'
 import Footer from '@/layouts/components/Footer.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -155,7 +155,7 @@ import ArticleCard from '@/components/common/ArticleCard.vue'
 const UserInfoCard = defineAsyncComponent(() => import('@/components/common/UserInfoCard.vue'))
 import { defineAsyncComponent } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { getCategoryArticles, getCategories } from '@/api/frontend/category'
 import { getTags } from '@/api/frontend/tag'
 import logger from '@/utils/logger'
@@ -163,6 +163,9 @@ import { API_STATUS } from '@/composables/api'
 
 const router = useRouter()
 const route = useRoute()
+
+let currentAbortController = null
+let isUnmounted = false
 
 // 响应式数据
 // ✅ 支持 RESTful params 和 query 双模式
@@ -176,8 +179,38 @@ const total = ref(0)
 const size = ref(10)
 const pages = ref(0)
 const loading = ref(false)
+const error = ref(false)
 
-// 计算属性
+function safeUpdate(callback: () => void) {
+    if (!isUnmounted) {
+        callback()
+    }
+}
+
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+async function loadAllData() {
+    const id = categoryId.value
+    if (!id) {
+        safeUpdate(() => {
+            error.value = true
+        })
+        logger.error('分类ID不存在，无法获取文章列表')
+        return
+    }
+
+    safeUpdate(() => {
+        error.value = false
+    })
+
+    await Promise.allSettled([
+        fetchArticles(current.value),
+        fetchTags(),
+        fetchCategories()
+    ])
+}
 const displayPages = computed(() => {
     const pageArray = []
     for (let i = 1; i <= pages.value; i++) {
@@ -212,9 +245,15 @@ const goBack = () => {
 
 // API调用方法
 const fetchArticles = async (currentNo) => {
+    if (isUnmounted) {return}
+
+    if (currentAbortController) {
+        currentAbortController.abort()
+    }
+    currentAbortController = new AbortController()
+
     try {
         loading.value = true
-        // ✅ 使用 computed categoryId
         const id = categoryId.value
 
         const params = {
@@ -225,20 +264,27 @@ const fetchArticles = async (currentNo) => {
 
         const res = await getCategoryArticles(params)
 
-        if (res.code === API_STATUS.OK) {
+        if (isUnmounted) {return}
+
+        if (res.code === API_STATUS.SUCCESS) {
             const data = res.data || {}
-            articles.value = data.list || []
-            current.value = data.page || 1
-            total.value = data.total || 0
-            size.value = data.size || 10
-            pages.value = data.pages || 0
+            safeUpdate(() => {
+                articles.value = data.list || []
+                current.value = data.page || 1
+                total.value = data.total || 0
+                size.value = data.size || 10
+                pages.value = data.pages || 0
+            })
         } else {
             logger.error('获取文章列表失败:', res.message)
         }
     } catch (error) {
+        if (error.name === 'AbortError' || isUnmounted) {return}
         logger.error('获取文章列表失败:', error)
     } finally {
-        loading.value = false
+        if (!isUnmounted) {
+            loading.value = false
+        }
     }
 }
 
@@ -266,20 +312,26 @@ const fetchCategories = async () => {
 
 onMounted(() => {
     logger.debug('加载分类页面数据', { params: route.params, query: route.query })
+    loadAllData()
+})
 
-    // ✅ 支持 params 和 query 双模式
-    const id = categoryId.value
-    if (!id) {
-        logger.error('分类ID不存在，无法获取文章列表')
-        return
+onUnmounted(() => {
+    isUnmounted = true
+    if (currentAbortController) {
+        currentAbortController.abort()
+        currentAbortController = null
     }
+})
 
-    fetchArticles(current.value)
-        .then(() => fetchTags())
-        .then(() => fetchCategories())
-        .catch((error) => {
-            logger.error('数据加载失败:', error)
-        })
+watch([() => route.params.id, () => route.query.id], ([newParamsId, newQueryId], [oldParamsId, oldQueryId]) => {
+    const newId = newParamsId || newQueryId
+    const oldId = oldParamsId || oldQueryId
+    if (newId && newId !== oldId) {
+        categoryName.value = route.params.name || route.query.name || '分类'
+        current.value = 1
+        loadAllData()
+        scrollToTop()
+    }
 })
 </script>
 

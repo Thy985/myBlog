@@ -94,7 +94,7 @@ const strengthText = computed(() => {
 }
 
 .password-strength-bar.very-strong {
-  background: var(--color-accent);
+  background: var(--color-primary);
 }
 
 .password-strength-text {

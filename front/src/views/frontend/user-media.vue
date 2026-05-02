@@ -118,19 +118,19 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import logger from '@/utils/logger'
+import { getUserMediaList, deleteMedia as apiDeleteMedia } from '@/api/frontend/user'
+import { API_STATUS } from '@/composables/api'
 
-// 文件数据
 const files = ref([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(12)
 const searchKeyword = ref('')
 const showUploadDialog = ref(false)
+const loading = ref(false)
 
-// 计算总页数
 const totalPages = ref(0)
 
-// 格式化文件大小
 const formatFileSize = (bytes) => {
     if (bytes === 0) {return '0 B'}
     const k = 1024
@@ -139,96 +139,63 @@ const formatFileSize = (bytes) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-// 加载文件列表
+const fetchFiles = async () => {
+    try {
+        loading.value = true
+        const res = await getUserMediaList({
+            current: currentPage.value,
+            size: pageSize.value,
+            keyword: searchKeyword.value
+        })
+        if (res.code === API_STATUS.SUCCESS && res.data) {
+            files.value = res.data.list || []
+            total.value = res.data.total || 0
+            totalPages.value = Math.ceil(total.value / pageSize.value)
+        }
+    } catch (err) {
+        logger.error('获取文件列表失败:', err.message)
+        ElMessage.error('获取文件列表失败')
+    } finally {
+        loading.value = false
+    }
+}
 
-// 搜索文件
 const searchFiles = () => {
     currentPage.value = 1
     fetchFiles()
 }
 
-// 切换页码
 const changePage = (page) => {
     currentPage.value = page
     fetchFiles()
 }
 
-// 预览文件
 const previewFile = (id) => {
-    // TODO: 实现文件预览的逻辑
     logger.debug('预览文件:', id)
 }
 
-// 复制文件链接
 const copyFileUrl = (id) => {
-    // TODO: 实现复制文件链接的逻辑
-    logger.debug('复制文件链接:', id)
-    // 模拟复制成功
-    ElMessage.success('文件链接已复制到剪贴板')
+    const file = files.value.find(f => f.id === id)
+    if (file) {
+        navigator.clipboard.writeText(file.url).then(() => {
+            ElMessage.success('文件链接已复制到剪贴板')
+        }).catch(() => {
+            ElMessage.error('复制失败')
+        })
+    }
 }
 
-// 删除文件
-const deleteFile = (id) => {
-    // TODO: 实现删除文件的逻辑
-    logger.debug('删除文件:', id)
-    // 模拟删除文件
-    files.value = files.value.filter(item => item.id !== id)
-    total.value = files.value.length
-    totalPages.value = Math.ceil(total.value / pageSize.value)
+const deleteFile = async (id) => {
+    try {
+        await apiDeleteMedia(id)
+        ElMessage.success('删除成功')
+        fetchFiles()
+    } catch (err) {
+        logger.error('删除文件失败:', err.message)
+        ElMessage.error('删除文件失败')
+    }
 }
 
-// 模拟获取文件列表
-const fetchFiles = () => {
-    // 这里应该通过API获取真实数据
-    files.value = [
-        {
-            id: 1,
-            name: 'vue3-logo.png',
-            type: 'image/png',
-            size: 102400,
-            createdAt: '2024-01-15T10:00:00Z'
-        },
-        {
-            id: 2,
-            name: 'spring-boot-docs.pdf',
-            type: 'application/pdf',
-            size: 5242880,
-            createdAt: '2024-01-10T14:30:00Z'
-        },
-        {
-            id: 3,
-            name: 'tailwind-css-cheatsheet.png',
-            type: 'image/png',
-            size: 204800,
-            createdAt: '2024-01-05T09:15:00Z'
-        },
-        {
-            id: 4,
-            name: 'javascript-fundamentals.mp4',
-            type: 'video/mp4',
-            size: 104857600,
-            createdAt: '2024-01-01T00:00:00Z'
-        },
-        {
-            id: 5,
-            name: 'api-design.md',
-            type: 'text/markdown',
-            size: 5120,
-            createdAt: '2023-12-25T12:00:00Z'
-        },
-        {
-            id: 6,
-            name: 'profile-photo.jpg',
-            type: 'image/jpeg',
-            size: 153600,
-            createdAt: '2023-12-20T08:00:00Z'
-        }
-    ]
-    total.value = files.value.length
-    totalPages.value = Math.ceil(total.value / pageSize.value)
-}
-
-// 组件挂载时获取数据
 onMounted(() => {
     fetchFiles()
 })

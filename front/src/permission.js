@@ -1,220 +1,87 @@
 import router from '@/router/index'
-import { getToken, clearTempAuthInfo, setRedirectUrl, getRedirectUrl } from '@/composables/auth'
-import { showMessage, showPageLoading, hidePageLoading, resetPageLoading } from '@/utils'
+import { clearTempAuthInfo, setRedirectUrl, getRedirectUrl } from '@/composables/auth'
+import { showMessage } from '@/utils'
 import logger from '@/utils/logger'
+import { getUserInfo } from '@/api/auth'
+import { useAuthStore } from '@/stores/auth'
 
-const API_TIMEOUT = 5000
-
-const storeState = {
-  authStore: null,
-  settingsStore: null,
-  initPromise: null
+function isLoginPage(path) {
+  return path === '/login'
 }
 
-let userInfoPromise = null
-
-function withTimeout(promise, timeoutMs) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('请求超时')), timeoutMs)
-    )
-  ])
+async function checkAuthStatus() {
+  try {
+    const res = await getUserInfo()
+    const isValid = res?.code === 200 && res?.data?.user != null
+    logger.debug('checkAuthStatus:', { code: res?.code, hasUser: !!res?.data?.user, isValid })
+    return isValid
+  } catch (err) {
+    logger.debug('checkAuthStatus error:', err.message)
+    return false
+  }
 }
 
-async function initStores() {
-  if (storeState.authStore && storeState.settingsStore) {
-    return { authStore: storeState.authStore, settingsStore: storeState.settingsStore }
-  }
+async function handleLoginNavigation(to, from, next) {
+  logger.debug('handleLoginNavigation start', { to: to.path, from: from.path })
 
-  if (storeState.initPromise) {
-    return storeState.initPromise
-  }
+  const authStore = useAuthStore()
+  logger.debug('authStore.isLoggedIn():', authStore.isLoggedIn())
 
-  storeState.initPromise = (async () => {
-    try {
-      const { useAuthStore, useSettingsStore } = await import('@/stores')
-      storeState.authStore = useAuthStore()
-      storeState.settingsStore = useSettingsStore()
-      return { authStore: storeState.authStore, settingsStore: storeState.settingsStore }
-    } catch (err) {
-      logger.error('Store init failed:', err.message)
-      return { authStore: null, settingsStore: null }
+  const isLoggedIn = await checkAuthStatus()
+  logger.debug('checkAuthStatus result:', isLoggedIn)
+
+  if (isLoggedIn) {
+    const redirectUrl = getRedirectUrl()
+    logger.debug('redirectUrl:', redirectUrl)
+    if (redirectUrl && !isLoginPage(redirectUrl)) {
+      logger.debug('Redirecting to redirectUrl:', redirectUrl)
+      next({ path: redirectUrl })
+    } else {
+      logger.debug('Redirecting to /')
+      next({ path: '/' })
     }
-  })()
-
-  return storeState.initPromise
-}
-
-async function fetchUserInfoWithCache(store) {
-  if (!store) {return null}
-
-  if (store.hasValidCache()) {
-    return store.user
-  }
-
-  if (userInfoPromise) {
-    return userInfoPromise
-  }
-
-  userInfoPromise = withTimeout(store.getAdminInfo(), API_TIMEOUT)
-    .finally(() => {
-      userInfoPromise = null
-    })
-
-  return userInfoPromise
-}
-
-function handleAuthNavigation(to, from, next) {
-  const token = getToken()
-  const isAdminRoute = to.path.startsWith('/admin')
-
-  if (navigationGuard) {
-    pendingNavigation = { to, from, next }
     return
   }
-  navigationGuard = true
 
-  if (isAdminRoute) {
-    showPageLoading()
-  }
+  logger.debug('Not logged in, clearing temp auth')
+  clearTempAuthInfo()
+  next()
+}
 
-  ;(async () => {
-    const stores = await initStores()
-    const authStore = stores.authStore
+async function handleAuthNavigation(to, from, next) {
+  const requiresAuth = to.meta.requiresAuth
+  const loginPage = isLoginPage(to.path)
 
-    if (!authStore) {
-      if (isAdminRoute) {
-        showMessage('系统错误，请稍后重试', 'error')
-        navigationGuard = false
-        hidePageLoading()
-        next({ path: '/' })
-        return
-      }
-      navigationGuard = false
-      hidePageLoading()
-      next()
+  logger.debug('handleAuthNavigation:', { to: to.path, requiresAuth, loginPage })
+
+  try {
+    if (loginPage) {
+      await handleLoginNavigation(to, from, next)
       return
     }
 
-    if (to.path === '/login') {
-      clearTempAuthInfo()
-      if (token) {
-        const redirectUrl = getRedirectUrl()
-        if (redirectUrl && redirectUrl !== '/login' && redirectUrl !== '/admin/login') {
-          navigationGuard = false
-          hidePageLoading()
-          next({ path: redirectUrl })
-          return
-        }
-        navigationGuard = false
-        hidePageLoading()
-        next({ path: '/' })
-        return
-      }
-      navigationGuard = false
-      hidePageLoading()
-      next()
-      return
-    }
-
-    if (!isAdminRoute) {
-      if (to.meta.requiresAuth && !token) {
+    if (requiresAuth) {
+      const isLoggedIn = await checkAuthStatus()
+      if (!isLoggedIn) {
+        logger.debug('requiresAuth but not logged in, redirect to login')
         setRedirectUrl(to.fullPath)
         showMessage('请先登录', 'warning')
-        navigationGuard = false
-        hidePageLoading()
         next({ path: '/login' })
         return
       }
-      navigationGuard = false
-      hidePageLoading()
-      next()
-      return
     }
 
-    if (!token && isAdminRoute) {
-      setRedirectUrl(to.fullPath)
-      showMessage('请先登录', 'warning')
-      navigationGuard = false
-      hidePageLoading()
-      next({ path: '/admin/login' })
-      return
-    }
-
-    if (to.path === '/admin/login') {
-      if (token) {
-        const redirectUrl = getRedirectUrl()
-        if (redirectUrl && redirectUrl !== '/login' && redirectUrl !== '/admin/login') {
-          navigationGuard = false
-          hidePageLoading()
-          next({ path: redirectUrl })
-          return
-        }
-        navigationGuard = false
-        hidePageLoading()
-        next({ path: from.path || '/' })
-        return
-      }
-      navigationGuard = false
-      hidePageLoading()
-      next()
-      return
-    }
-
-    if (isAdminRoute && token && authStore) {
-      let user = authStore.user
-
-      if (user && user.role === 'admin') {
-        navigationGuard = false
-        hidePageLoading()
-        next()
-        return
-      }
-
-      if (!user || Object.keys(user).length === 0) {
-        try {
-          user = await fetchUserInfoWithCache(authStore)
-        } catch (error) {
-          logger.error('获取管理员信息失败:', error.message)
-          if (error.message === '请求超时') {
-            showMessage('获取用户信息超时，请检查网络', 'error')
-          } else {
-            showMessage('请重新登录', 'warning')
-          }
-          setRedirectUrl(to.fullPath)
-          navigationGuard = false
-          hidePageLoading()
-          next({ path: '/admin/login' })
-          return
-        }
-      }
-
-      if (user && user.role === 'admin') {
-        navigationGuard = false
-        hidePageLoading()
-        next()
-        return
-      }
-
-      showMessage('权限不足，无法访问后台', 'error')
-      navigationGuard = false
-      hidePageLoading()
-      next({ path: '/' })
-      return
-    }
-
-    navigationGuard = false
-    hidePageLoading()
     next()
-  })()
+  } catch (error) {
+    logger.error('导航处理错误:', error.message)
+    showMessage('页面导航失败，请稍后重试', 'error')
+    next({ path: '/' })
+  }
 }
 
-let navigationGuard = false
-let pendingNavigation = null
-
-router.beforeEach((to, from, next) => {
-  handleAuthNavigation(to, from, next)
+router.beforeEach(async (to, from, next) => {
+  logger.debug('router.beforeEach:', { to: to.path, from: from.path })
+  await handleAuthNavigation(to, from, next)
 })
 
 router.afterEach((to) => {
@@ -223,23 +90,9 @@ router.afterEach((to) => {
     title = '星辰博客'
   }
   document.title = title
-
-  if (pendingNavigation) {
-    const { to, from, next } = pendingNavigation
-    pendingNavigation = null
-    navigationGuard = false
-    resetPageLoading()
-    router.push(to.path).catch(() => {})
-  } else {
-    navigationGuard = false
-  }
 })
 
 router.onError((error) => {
-  hidePageLoading()
-  resetPageLoading()
   logger.error('路由导航错误:', error.message)
   showMessage('页面导航失败，请稍后重试', 'error')
-  navigationGuard = false
-  pendingNavigation = null
 })

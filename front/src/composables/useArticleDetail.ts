@@ -235,11 +235,11 @@ export function useArticleDetail() {
   }
 
   function goCategoryArticleListPage(id: number, name: string) {
-    router.push({ name: 'category-articles', params: { id: String(id), name: encodeURIComponent(name || '') } })
+    router.push({ name: 'category-articles', params: { id: String(id), name: name || '' } })
   }
 
   function goTagArticleListPage(id: number, name: string) {
-    router.push({ name: 'tag-articles', params: { id: String(id), name: encodeURIComponent(name || '') } })
+    router.push({ name: 'tag-articles', params: { id: String(id), name: name || '' } })
   }
 
   async function updateReadNum(articleId: number | string) {

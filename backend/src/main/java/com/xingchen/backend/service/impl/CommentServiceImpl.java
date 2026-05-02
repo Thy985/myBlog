@@ -77,8 +77,19 @@ public class CommentServiceImpl implements CommentService {
         if (parentId != null && parentId > 0) {
             Comment parentComment = commentMapper.selectOneById(parentId);
             if (parentComment != null) {
-                comment.setRootId(parentComment.getRootId() == 0 ? parentId : parentComment.getRootId());
+                // 优先使用前端传递的 rootId，否则自动计算
+                Long rootId = dto.getRootId();
+                if (rootId == null || rootId == 0) {
+                    rootId = parentComment.getRootId() == 0 ? parentId : parentComment.getRootId();
+                }
+                comment.setRootId(rootId);
                 comment.setParentId(parentId);
+                // 设置回复用户ID
+                if (dto.getReplyToId() != null && dto.getReplyToId() > 0) {
+                    comment.setReplyToUserId(dto.getReplyToId());
+                } else {
+                    comment.setReplyToUserId(parentComment.getUserId());
+                }
             } else {
                 comment.setRootId(0L);
                 comment.setParentId(0L);
@@ -256,6 +267,8 @@ public class CommentServiceImpl implements CommentService {
         vo.setStatus(String.valueOf(comment.getStatus()));
         vo.setDevice(comment.getDeviceType());
         vo.setCreatedTime(comment.getCreateTime());
+        vo.setLikeCount(comment.getLikeCount());
+        vo.setReplyCount(comment.getReplyCount());
 
         // 使用预查询的用户数据
         User user = userMap.get(comment.getUserId());

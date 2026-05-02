@@ -3,17 +3,7 @@
     <ErrorBoundary>
       <router-view v-slot="{ Component, route }">
         <transition name="fade" mode="out-in">
-          <Suspense :timeout="3000" @pending="onPending" @resolve="onResolve">
-            <template #default>
-              <component :is="Component" :key="route.path" />
-            </template>
-            <template #fallback>
-              <div class="page-loading">
-                <div class="loading-spinner"></div>
-                <p>加载中...</p>
-              </div>
-            </template>
-          </Suspense>
+          <component :is="Component" :key="route.path" />
         </transition>
       </router-view>
     </ErrorBoundary>
@@ -39,12 +29,6 @@ onErrorCaptured((err, instance, info) => {
   })
   return false
 })
-
-const onPending = () => {
-}
-
-const onResolve = () => {
-}
 </script>
 
 <style>

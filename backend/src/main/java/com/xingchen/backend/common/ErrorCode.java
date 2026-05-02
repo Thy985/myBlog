@@ -30,6 +30,8 @@ public enum ErrorCode {
 
     MFA_ALREADY_ENABLED(7001, "MFA已启用"),
     MFA_NOT_ENABLED(7002, "MFA未启用"),
+    MFA_CODE_REQUIRED(7003, "请输入MFA验证码"),
+    MFA_CODE_INVALID(7004, "MFA验证码错误"),
 
     NOT_FOUND(8001, "资源不存在"),
 

@@ -50,9 +50,9 @@
 
 ### 🏗️ 基础架构
 - **前后端分离** - Spring Boot 3.4 + Vue 3 + Vite
-- **向量检索** - Milvus/Weaviate 支持
+- **向量检索** - PostgreSQL pgvector / Qdrant
 - **熔断保护** - Resilience4j 保障系统稳定
-- **异步消息** - Kafka/RabbitMQ 事件驱动
+- **异步消息** - RabbitMQ 事件驱动
 
 ## 🏗️ 项目结构
 
@@ -94,17 +94,19 @@ Myblog/
 ### 后端
 | 技术 | 版本 | 用途 |
 |------|------|------|
-| Spring Boot | 3.4.1 | Web 框架 |
-| MyBatis-Flex | 1.11.5 | ORM |
-| Sa-Token | 1.38.0 | 认证授权 |
-| Redis | - | 缓存 |
+| Spring Boot | 3.4.x | Web 框架 |
+| MyBatis-Flex | 1.11.x | ORM |
+| MySQL | 8.0 | 主数据库 |
+| PostgreSQL | 15+ | 向量数据库 (pgvector) |
+| Sa-Token | 1.38.x | 认证授权 |
+| Redis | 6.0+ | 缓存 |
 | MinIO | - | 对象存储 |
-| Kafka | - | 消息队列 |
+| RabbitMQ | - | 消息队列 |
 
 ### 前端
 | 技术 | 版本 | 用途 |
 |------|------|------|
-| Vue | 3.3 | 框架 |
+| Vue | 3.3+ | 框架 |
 | Vite | 4.x | 构建工具 |
 | TypeScript | - | 语言 |
 | Element Plus | - | UI 组件 |
@@ -115,16 +117,16 @@ Myblog/
 | 技术 | 用途 |
 |------|------|
 | LangChain4j | Agent 框架 |
-| LangGraph | 工作流编排 |
-| Milvus/Weaviate | 向量数据库 |
+| PostgreSQL pgvector / Qdrant | 向量数据库 |
+| Tavily API | 联网搜索 |
 
 ## 🚀 快速开始
 
 ### 环境要求
 
-- **后端**: JDK 17+, Maven 3.8+, MySQL 8.0+, Redis 6.0+
+- **后端**: JDK 17+, Maven 3.8+, MySQL 8.0+, PostgreSQL 15+, Redis 6.0+
 - **前端**: Node.js 18+, pnpm 8+
-- **可选**: Kafka, Milvus
+- **可选**: Qdrant (向量数据库), RabbitMQ, MinIO
 
 ### 1️⃣ 克隆项目
 
@@ -138,9 +140,9 @@ cd myBlog
 ```bash
 cd backend
 
-# 配置环境变量
-cp src/main/resources/application.yaml.example src/main/resources/application.yaml
-# 编辑 application.yaml 填入数据库、Redis 等配置
+# 配置环境变量 - 复制并编辑
+cp src/main/resources/application-dev.yaml.example src/main/resources/application-dev.yaml
+# 或直接编辑 src/main/resources/application-dev.yaml 填入数据库、Redis 等配置
 
 # 启动
 mvn spring-boot:run

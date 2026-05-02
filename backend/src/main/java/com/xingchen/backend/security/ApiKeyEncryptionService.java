@@ -29,7 +29,9 @@ public class ApiKeyEncryptionService {
     private String masterKey;
 
     private SecretKeySpec getSecretKey() {
-        // 使用 SHA-256 哈希生成 256 位密钥
+        if (masterKey == null || masterKey.isBlank()) {
+            throw new IllegalStateException("encryption.master-key must be configured");
+        }
         byte[] keyBytes = masterKey.getBytes(StandardCharsets.UTF_8);
         byte[] keyHash = new byte[32];
         System.arraycopy(keyBytes, 0, keyHash, 0, Math.min(keyBytes.length, 32));

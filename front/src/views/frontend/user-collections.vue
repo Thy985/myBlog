@@ -85,19 +85,20 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import logger from '@/utils/logger'
+import { getUserCollects, uncollectArticle } from '@/api/frontend/article'
+import { API_STATUS } from '@/composables/api'
 
-// 收藏数据
 const collections = ref([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const searchKeyword = ref('')
+const loading = ref(false)
 
-// 计算总页数
 const totalPages = ref(0)
 
-// 格式化日期
 const formatDate = (dateString) => {
     if (!dateString) {return '未知'}
     const date = new Date(dateString)
@@ -108,65 +109,47 @@ const formatDate = (dateString) => {
     })
 }
 
-// 搜索收藏
+const fetchCollections = async () => {
+    try {
+        loading.value = true
+        const res = await getUserCollects({
+            page: currentPage.value,
+            size: pageSize.value
+        })
+        if (res.code === API_STATUS.SUCCESS && res.data) {
+            collections.value = res.data.list || []
+            total.value = res.data.total || 0
+            totalPages.value = Math.ceil(total.value / pageSize.value)
+        }
+    } catch (err) {
+        logger.error('获取收藏列表失败:', err.message)
+        ElMessage.error('获取收藏列表失败')
+    } finally {
+        loading.value = false
+    }
+}
+
 const searchCollections = () => {
     currentPage.value = 1
     fetchCollections()
 }
 
-// 切换页码
 const changePage = (page) => {
     currentPage.value = page
     fetchCollections()
 }
 
-// 移除收藏
-const removeCollection = (id) => {
-    // TODO: 实现移除收藏的逻辑
-    logger.debug('移除收藏:', id)
-    // 模拟移除收藏
-    collections.value = collections.value.filter(item => item.id !== id)
-    total.value = collections.value.length
-    totalPages.value = Math.ceil(total.value / pageSize.value)
+const removeCollection = async (id) => {
+    try {
+        await uncollectArticle(id)
+        ElMessage.success('取消收藏成功')
+        fetchCollections()
+    } catch (err) {
+        logger.error('取消收藏失败:', err.message)
+        ElMessage.error('取消收藏失败')
+    }
 }
 
-// 模拟获取收藏列表
-const fetchCollections = () => {
-    // 这里应该通过API获取真实数据
-    collections.value = [
-        {
-            id: 1,
-            articleId: 1,
-            articleTitle: 'Vue 3 组合式 API 最佳实践',
-            articleExcerpt: '本文介绍了 Vue 3 组合式 API 的使用方法和最佳实践，帮助开发者更好地理解和应用这一特性。',
-            category: '前端开发',
-            tags: ['Vue', '前端', '组合式 API'],
-            collectedAt: '2024-01-15T10:00:00Z'
-        },
-        {
-            id: 2,
-            articleId: 2,
-            articleTitle: 'Spring Boot 4.0 新特性详解',
-            articleExcerpt: 'Spring Boot 4.0 带来了许多新特性和改进，本文详细介绍了这些变化及其对开发的影响。',
-            category: '后端开发',
-            tags: ['Spring Boot', 'Java', '后端'],
-            collectedAt: '2024-01-10T14:30:00Z'
-        },
-        {
-            id: 3,
-            articleId: 3,
-            articleTitle: 'Tailwind CSS 3.0 入门指南',
-            articleExcerpt: 'Tailwind CSS 3.0 是一个实用优先的 CSS 框架，本文将帮助你快速上手并掌握其核心功能。',
-            category: '前端开发',
-            tags: ['Tailwind CSS', 'CSS', '前端'],
-            collectedAt: '2024-01-05T09:15:00Z'
-        }
-    ]
-    total.value = collections.value.length
-    totalPages.value = Math.ceil(total.value / pageSize.value)
-}
-
-// 组件挂载时获取数据
 onMounted(() => {
     fetchCollections()
 })

@@ -12,6 +12,10 @@ public class CommentCreateDTO {
 
     private Long parentId; // 父评论ID，为空表示顶级评论
 
+    private Long rootId; // 根评论ID，用于前端传递
+
+    private Long replyToId; // 回复用户ID
+
     @NotBlank(message = "评论内容不能为空")
     @Size(max = 1000, message = "评论内容不能超过1000字符")
     private String content;

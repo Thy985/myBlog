@@ -68,6 +68,8 @@ export interface UserProfile {
   gitee?: string
   csdn?: string
   zhihu?: string
+  // 角色信息（登录时从后端单独返回）
+  roles?: string[]
 }
 
 // 用户个人资料更新表单

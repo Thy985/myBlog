@@ -313,6 +313,8 @@ export function transformArticle(article: any): any {
         ? { id: article.authorId }
         : null,
     authorId: article.authorId,
+    authorName: article.authorName || '',
+    authorAvatar: article.authorAvatar || '',
     // 时间
     createdAt: article.createdAt || article.createdTime || article.createTime,
     updatedAt: article.updatedAt || article.updatedTime || article.updateTime,

@@ -94,7 +94,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import logger from '@/utils/logger'
+import { getUserTagList, updateTag, deleteTag as apiDeleteTag } from '@/api/frontend/user'
+import { API_STATUS } from '@/composables/api'
 
 const tags = ref([])
 const total = ref(0)
@@ -102,11 +105,10 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const searchKeyword = ref('')
 const showCreateDialog = ref(false)
+const loading = ref(false)
 
-// 计算总页数
 const totalPages = ref(0)
 
-// 格式化日期
 const formatDate = (dateString) => {
     if (!dateString) {return '未知'}
     const date = new Date(dateString)
@@ -117,72 +119,55 @@ const formatDate = (dateString) => {
     })
 }
 
-// 搜索标签
+const fetchTags = async () => {
+    try {
+        loading.value = true
+        const res = await getUserTagList()
+        if (res.code === API_STATUS.SUCCESS && res.data) {
+            tags.value = res.data || []
+            total.value = tags.value.length
+            totalPages.value = 1
+        }
+    } catch (err) {
+        logger.error('获取标签列表失败:', err.message)
+        ElMessage.error('获取标签列表失败')
+    } finally {
+        loading.value = false
+    }
+}
+
 const searchTags = () => {
     currentPage.value = 1
     fetchTags()
 }
 
-// 切换页码
 const changePage = (page) => {
     currentPage.value = page
     fetchTags()
 }
 
-// 编辑标签
-const editTag = (tag) => {
-    // TODO: 实现编辑标签的逻辑
-    logger.debug('编辑标签:', tag.id)
+const editTag = async (tag) => {
+    try {
+        await updateTag(tag.id, { name: tag.name, description: tag.description })
+        ElMessage.success('更新成功')
+        fetchTags()
+    } catch (err) {
+        logger.error('更新标签失败:', err.message)
+        ElMessage.error('更新标签失败')
+    }
 }
 
-// 删除标签
-const deleteTag = (id) => {
-    // TODO: 实现删除标签的逻辑
-    logger.debug('删除标签:', id)
-    // 模拟删除标签
-    tags.value = tags.value.filter(item => item.id !== id)
-    total.value = tags.value.length
-    totalPages.value = Math.ceil(total.value / pageSize.value)
+const deleteTag = async (id) => {
+    try {
+        await apiDeleteTag(id)
+        ElMessage.success('删除成功')
+        fetchTags()
+    } catch (err) {
+        logger.error('删除标签失败:', err.message)
+        ElMessage.error('删除标签失败')
+    }
 }
 
-// 模拟获取标签列表
-const fetchTags = () => {
-    // 这里应该通过API获取真实数据
-    tags.value = [
-        {
-            id: 1,
-            name: 'Vue',
-            description: 'Vue.js 相关技术',
-            articleCount: 3,
-            createdAt: '2024-01-15T10:00:00Z'
-        },
-        {
-            id: 2,
-            name: 'Spring Boot',
-            description: 'Spring Boot 相关技术',
-            articleCount: 2,
-            createdAt: '2024-01-10T14:30:00Z'
-        },
-        {
-            id: 3,
-            name: 'Tailwind CSS',
-            description: 'Tailwind CSS 相关技术',
-            articleCount: 1,
-            createdAt: '2024-01-05T09:15:00Z'
-        },
-        {
-            id: 4,
-            name: 'JavaScript',
-            description: 'JavaScript 相关技术',
-            articleCount: 4,
-            createdAt: '2024-01-01T00:00:00Z'
-        }
-    ]
-    total.value = tags.value.length
-    totalPages.value = Math.ceil(total.value / pageSize.value)
-}
-
-// 组件挂载时获取数据
 onMounted(() => {
     fetchTags()
 })

@@ -14,8 +14,8 @@ public class CommentVO {
     private Long parentId;
     private Long rootId;
     private String content;
-    private Integer likeNum;
-    private Integer replyNum;
+    private Integer likeCount;
+    private Integer replyCount;
     private String status;
     private String device;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

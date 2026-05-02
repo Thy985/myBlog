@@ -1,19 +1,9 @@
-import { useCookies } from '@vueuse/integrations/useCookies'
 import type { UserProfile } from '@/types/user'
 
-const TOKEN_KEY = 'Authorization'
+const TOKEN_COOKIE_NAME = 'X-Auth-Token'
 const REFRESH_TOKEN_KEY = 'RefreshToken'
 const REMEMBER_ME_KEY = 'RememberMe'
 const CSRF_TOKEN_KEY = 'XSRF-TOKEN'
-
-const cookie = useCookies()
-
-const secureCookieOptions = {
-  secure: import.meta.env.PROD,
-  sameSite: 'lax' as const,
-  path: '/',
-  maxAge: 7 * 24 * 60 * 60
-}
 
 interface MfaTempInfo {
   token: string | null
@@ -29,34 +19,63 @@ const MFA_SESSION_KEYS = {
   USERNAME: 'mfa_username'
 }
 
+function parseCookies(cookieString: string): Record<string, string> {
+  const cookies: Record<string, string> = {}
+  if (!cookieString) return cookies
+
+  cookieString.split(';').forEach(cookie => {
+    const [name, ...valueParts] = cookie.trim().split('=')
+    if (name && valueParts.length > 0) {
+      cookies[name] = decodeURIComponent(valueParts.join('='))
+    }
+  })
+  return cookies
+}
+
+function getCookieToken(): string | null {
+  const cookies = parseCookies(document.cookie)
+  return cookies[TOKEN_COOKIE_NAME] || null
+}
+
 export function getToken(): string | undefined {
-  return cookie.get(TOKEN_KEY)
+  return getCookieToken() || undefined
 }
 
 export function getRefreshToken(): string | undefined {
-  return cookie.get(REFRESH_TOKEN_KEY)
+  const sessionToken = sessionStorage.getItem(REFRESH_TOKEN_KEY)
+  if (sessionToken) return sessionToken
+  return localStorage.getItem(REFRESH_TOKEN_KEY) || undefined
 }
 
-export function setToken(token: string): void {
-  cookie.set(TOKEN_KEY, token, secureCookieOptions)
+export function setToken(token: string, rememberMe: boolean = false): void {
+  console.warn('Token is now stored in HttpOnly Cookie. This function is kept for compatibility but will not persist token locally.')
 }
 
-export function setRefreshToken(refreshToken: string): void {
-  cookie.set(REFRESH_TOKEN_KEY, refreshToken, secureCookieOptions)
+export function setRefreshToken(refreshToken: string, rememberMe: boolean = false): void {
+  if (rememberMe) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY)
+  } else {
+    sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+    localStorage.removeItem(REFRESH_TOKEN_KEY)
+  }
 }
 
 export function removeToken(): void {
-  cookie.remove(TOKEN_KEY, { path: '/' })
+  document.cookie = `${TOKEN_COOKIE_NAME}=; path=/; max-age=0; sameSite=strict`
 }
 
 export function removeRefreshToken(): void {
-  cookie.remove(REFRESH_TOKEN_KEY, { path: '/' })
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
+  sessionStorage.removeItem(REFRESH_TOKEN_KEY)
 }
 
 export function clearAuthInfo(): void {
   removeToken()
   removeRefreshToken()
-  cookie.remove(REMEMBER_ME_KEY, { path: '/' })
+  localStorage.removeItem(REMEMBER_ME_KEY)
+  sessionStorage.removeItem(TOKEN_COOKIE_NAME)
+  sessionStorage.removeItem(REFRESH_TOKEN_KEY)
   removeCsrfToken()
 }
 
@@ -96,16 +115,20 @@ export function setRedirectUrl(url: string): void {
 }
 
 export function getRememberMe(): boolean {
-  return cookie.get(REMEMBER_ME_KEY) === 'true'
+  return localStorage.getItem(REMEMBER_ME_KEY) === 'true'
 }
 
 export function setRememberMe(remember: boolean): void {
-  cookie.set(REMEMBER_ME_KEY, remember ? 'true' : 'false', secureCookieOptions)
+  if (remember) {
+    localStorage.setItem(REMEMBER_ME_KEY, 'true')
+  } else {
+    localStorage.removeItem(REMEMBER_ME_KEY)
+  }
 }
 
 export function saveAuthInfo(token: string, refreshToken: string, rememberMe: boolean): void {
-  cookie.set(TOKEN_KEY, token, secureCookieOptions)
-  cookie.set(REFRESH_TOKEN_KEY, refreshToken, secureCookieOptions)
+  setToken(token, rememberMe)
+  setRefreshToken(refreshToken, rememberMe)
   setRememberMe(rememberMe)
 }
 
@@ -114,13 +137,13 @@ export function isAuthenticated(): boolean {
 }
 
 export function getCsrfToken(): string | undefined {
-  return cookie.get(CSRF_TOKEN_KEY)
+  return localStorage.getItem(CSRF_TOKEN_KEY) || undefined
 }
 
 export function setCsrfToken(token: string): void {
-  cookie.set(CSRF_TOKEN_KEY, token, secureCookieOptions)
+  localStorage.setItem(CSRF_TOKEN_KEY, token)
 }
 
 export function removeCsrfToken(): void {
-  cookie.remove(CSRF_TOKEN_KEY, { path: '/' })
+  localStorage.removeItem(CSRF_TOKEN_KEY)
 }

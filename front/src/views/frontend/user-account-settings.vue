@@ -62,7 +62,11 @@
                 <div>
                     <h2 class="text-lg font-medium text-text-primary mb-4">登录历史</h2>
                     <div class="space-y-4">
-                        <div v-if="loginHistory.length === 0" class="py-8 text-center text-text-secondary">
+                        <div v-if="isLoadingHistory" class="py-8 text-center text-text-secondary">
+                            <div class="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin mx-auto"></div>
+                            <p class="mt-2">加载中...</p>
+                        </div>
+                        <div v-else-if="loginHistory.length === 0" class="py-8 text-center text-text-secondary">
                             暂无登录历史
                         </div>
                         <div v-for="item in loginHistory" :key="item.id" class="border border-border-color rounded-lg p-4 hover:bg-primary-subtle transition-all duration-300">
@@ -94,6 +98,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import logger from '@/utils/logger'
+import { getLoginHistory, changePassword as changePasswordApi } from '@/api/frontend/user'
 
 // 组件
 
@@ -109,6 +114,7 @@ const loginHistory = ref([])
 
 // 提交状态
 const isChangingPassword = ref(false)
+const isLoadingHistory = ref(false)
 
 // 格式化日期
 const formatDate = (dateString) => {
@@ -126,7 +132,6 @@ const formatDate = (dateString) => {
 // 修改密码
 const changePassword = async () => {
     try {
-        // 表单验证
         if (!passwordForm.value.currentPassword) {
             ElMessage.warning('请输入当前密码')
             return
@@ -141,53 +146,38 @@ const changePassword = async () => {
         }
 
         isChangingPassword.value = true
-        // TODO: 调用修改密码API
-        logger.debug('修改密码操作')
-
-        // 模拟修改成功
-        setTimeout(() => {
-            isChangingPassword.value = false
-            // 重置表单
-            passwordForm.value = {
-                currentPassword: '',
-                newPassword: '',
-                confirmPassword: ''
-            }
-            ElMessage.success('密码修改成功')
-        }, 1000)
+        await changePasswordApi({
+            oldPassword: passwordForm.value.currentPassword,
+            newPassword: passwordForm.value.newPassword
+        })
+        ElMessage.success('密码修改成功')
+        passwordForm.value = {
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: ''
+        }
     } catch (error) {
-        isChangingPassword.value = false
         logger.error('修改密码失败:', error)
         ElMessage.error('修改密码失败，请重试')
+    } finally {
+        isChangingPassword.value = false
     }
 }
 
-// 模拟获取登录历史
-const fetchLoginHistory = () => {
-    // 这里应该通过API获取真实数据
-    loginHistory.value = [
-        {
-            id: 1,
-            device: 'Windows 10 · Chrome 120.0',
-            ipAddress: '192.168.1.1',
-            loginAt: new Date().toISOString(),
-            status: 'active'
-        },
-        {
-            id: 2,
-            device: 'MacOS · Safari 17.0',
-            ipAddress: '192.168.1.2',
-            loginAt: new Date(Date.now() - 86400000).toISOString(),
-            status: 'expired'
-        },
-        {
-            id: 3,
-            device: 'iPhone · iOS 17.0',
-            ipAddress: '192.168.1.3',
-            loginAt: new Date(Date.now() - 172800000).toISOString(),
-            status: 'expired'
+// 获取登录历史
+const fetchLoginHistory = async () => {
+    isLoadingHistory.value = true
+    try {
+        const res = await getLoginHistory(20)
+        if (res.code === 200 && res.data) {
+            loginHistory.value = res.data
         }
-    ]
+    } catch (error) {
+        logger.error('获取登录历史失败:', error)
+        ElMessage.error('获取登录历史失败')
+    } finally {
+        isLoadingHistory.value = false
+    }
 }
 
 // 组件挂载时获取数据

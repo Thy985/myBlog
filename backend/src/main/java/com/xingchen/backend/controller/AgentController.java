@@ -77,14 +77,19 @@ public class AgentController {
                 aiGateway.processStream(aiRequest, response -> {
                     try {
                         if (response.getType() == AIResponse.ResponseType.STREAM_END) {
-                            emitter.send(SseEmitter.event().name("done").data("{\"done\": true}"));
+                            ObjectNode doneNode = objectMapper.createObjectNode();
+                            doneNode.put("done", true);
+                            emitter.send(SseEmitter.event().name("done").data(toJsonString(doneNode)));
                             emitter.complete();
                         } else if (response.getType() == AIResponse.ResponseType.ERROR) {
-                            emitter.send(SseEmitter.event().name("error").data("{\"error\": \"" + escapeJson(response.getContent()) + "\"}"));
+                            ObjectNode errorNode = objectMapper.createObjectNode();
+                            errorNode.put("error", response.getContent());
+                            emitter.send(SseEmitter.event().name("error").data(toJsonString(errorNode)));
                             emitter.completeWithError(new RuntimeException(response.getContent()));
                         } else {
-                            String sseData = "{\"content\": \"" + escapeJson(response.getContent()) + "\"}";
-                            emitter.send(SseEmitter.event().name("message").data(sseData));
+                            ObjectNode messageNode = objectMapper.createObjectNode();
+                            messageNode.put("content", response.getContent());
+                            emitter.send(SseEmitter.event().name("message").data(toJsonString(messageNode)));
                             fullResponse.append(response.getContent());
                         }
                     } catch (Exception e) {
@@ -96,7 +101,9 @@ public class AgentController {
             } catch (Exception e) {
                 log.error("Agent SSE 执行异常", e);
                 try {
-                    emitter.send(SseEmitter.event().name("error").data("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}"));
+                    ObjectNode errorNode = objectMapper.createObjectNode();
+                    errorNode.put("error", e.getMessage());
+                    emitter.send(SseEmitter.event().name("error").data(toJsonString(errorNode)));
                 } catch (Exception ignored) {}
                 emitter.completeWithError(e);
             }
@@ -111,57 +118,43 @@ public class AgentController {
     private void sendIntentEvent(SseEmitter emitter, String intentType, double confidence,
                                  List<Map<String, String>> entities, boolean requiresTool,
                                  List<String> possibleTools) throws Exception {
-        StringBuilder entitiesJson = new StringBuilder("[");
-        for (int i = 0; i < entities.size(); i++) {
-            Map<String, String> entity = entities.get(i);
-            entitiesJson.append(String.format("{\"name\": \"%s\", \"value\": \"%s\"}",
-                escapeJson(entity.get("name")), escapeJson(entity.get("value"))));
-            if (i < entities.size() - 1) entitiesJson.append(", ");
-        }
-        entitiesJson.append("]");
+        ObjectNode rootNode = objectMapper.createObjectNode();
+        ObjectNode intentNode = rootNode.putObject("intent");
 
-        StringBuilder toolsJson = new StringBuilder("[");
-        for (int i = 0; i < possibleTools.size(); i++) {
-            toolsJson.append("\"").append(escapeJson(possibleTools.get(i))).append("\"");
-            if (i < possibleTools.size() - 1) toolsJson.append(", ");
-        }
-        toolsJson.append("]");
+        intentNode.put("type", intentType);
+        intentNode.put("confidence", confidence);
+        intentNode.put("requiresTool", requiresTool);
 
-        String data = String.format(
-            "{\"intent\": {\"type\": \"%s\", \"confidence\": %.2f, \"entities\": %s, \"requiresTool\": %b, \"possibleTools\": %s}}",
-            intentType, confidence, entitiesJson, requiresTool, toolsJson
-        );
-        emitter.send(SseEmitter.event().name("intent").data(data));
+        ArrayNode entitiesArray = intentNode.putArray("entities");
+        for (Map<String, String> entity : entities) {
+            ObjectNode entityNode = entitiesArray.addObject();
+            entityNode.put("name", entity.get("name"));
+            entityNode.put("value", entity.get("value"));
+        }
+
+        ArrayNode toolsArray = intentNode.putArray("possibleTools");
+        for (String tool : possibleTools) {
+            toolsArray.add(tool);
+        }
+
+        emitter.send(SseEmitter.event().name("intent").data(toJsonString(rootNode)));
     }
 
     /**
      * 发送工具调用事件
      */
     private void sendToolCallEvent(SseEmitter emitter, String toolName, Map<String, Object> parameters) throws Exception {
-        StringBuilder paramsJson = new StringBuilder("{");
-        int i = 0;
-        for (Map.Entry<String, Object> entry : parameters.entrySet()) {
-            paramsJson.append(String.format("\"%s\": ", escapeJson(entry.getKey())));
-            Object value = entry.getValue();
-            if (value instanceof String) {
-                paramsJson.append("\"").append(escapeJson((String) value)).append("\"");
-            } else if (value instanceof Number) {
-                paramsJson.append(value);
-            } else if (value instanceof Boolean) {
-                paramsJson.append(value);
-            } else {
-                paramsJson.append("\"").append(escapeJson(value.toString())).append("\"");
-            }
-            if (i < parameters.size() - 1) paramsJson.append(", ");
-            i++;
-        }
-        paramsJson.append("}");
+        ObjectNode rootNode = objectMapper.createObjectNode();
 
-        String data = String.format(
-            "{\"toolName\": \"%s\", \"parameters\": %s, \"status\": \"executing\"}",
-            escapeJson(toolName), paramsJson
-        );
-        emitter.send(SseEmitter.event().name("tool_call").data(data));
+        rootNode.put("toolName", toolName);
+        rootNode.put("status", "executing");
+
+        ObjectNode paramsNode = rootNode.putObject("parameters");
+        for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+            putValue(paramsNode, entry.getKey(), entry.getValue());
+        }
+
+        emitter.send(SseEmitter.event().name("tool_call").data(toJsonString(rootNode)));
     }
 
     /**
@@ -169,83 +162,61 @@ public class AgentController {
      */
     private void sendToolResultEvent(SseEmitter emitter, String toolName, boolean success,
                                      Map<String, Object> result, String message, long executionTime) throws Exception {
-        StringBuilder resultJson = new StringBuilder("{");
-        int i = 0;
-        for (Map.Entry<String, Object> entry : result.entrySet()) {
-            resultJson.append(String.format("\"%s\": ", escapeJson(entry.getKey())));
-            Object value = entry.getValue();
-            if (value instanceof String) {
-                resultJson.append("\"").append(escapeJson((String) value)).append("\"");
-            } else if (value instanceof Number) {
-                resultJson.append(value);
-            } else if (value instanceof Boolean) {
-                resultJson.append(value);
-            } else {
-                resultJson.append("\"").append(escapeJson(value.toString())).append("\"");
-            }
-            if (i < result.size() - 1) resultJson.append(", ");
-            i++;
-        }
-        resultJson.append("}");
+        ObjectNode rootNode = objectMapper.createObjectNode();
 
-        String data = String.format(
-            "{\"toolName\": \"%s\", \"success\": %b, \"result\": %s, \"message\": \"%s\", \"executionTime\": %d}",
-            escapeJson(toolName), success, resultJson, escapeJson(message), executionTime
-        );
-        emitter.send(SseEmitter.event().name("tool_result").data(data));
+        rootNode.put("toolName", toolName);
+        rootNode.put("success", success);
+        rootNode.put("message", message);
+        rootNode.put("executionTime", executionTime);
+
+        ObjectNode resultNode = rootNode.putObject("result");
+        for (Map.Entry<String, Object> entry : result.entrySet()) {
+            putValue(resultNode, entry.getKey(), entry.getValue());
+        }
+
+        emitter.send(SseEmitter.event().name("tool_result").data(toJsonString(rootNode)));
     }
 
     /**
      * 发送 RAG 来源事件
      */
     private void sendRagEvent(SseEmitter emitter, String query, List<WebSearchService.SearchResult> sources) throws Exception {
-        StringBuilder sourcesJson = new StringBuilder("[");
+        ObjectNode rootNode = objectMapper.createObjectNode();
+
+        rootNode.put("query", query);
+
+        ArrayNode sourcesArray = rootNode.putArray("sources");
         for (int i = 0; i < sources.size(); i++) {
             WebSearchService.SearchResult source = sources.get(i);
             String cleanContent = cleanHtml(source.content());
             if (cleanContent.length() > 200) {
                 cleanContent = cleanContent.substring(0, 200) + "...";
             }
-            // 模拟相关度评分（实际应该由 RAG 系统提供）
-            double relevance = 0.9 - (i * 0.1);
-            sourcesJson.append(String.format(
-                "{\"title\": \"%s\", \"url\": \"%s\", \"snippet\": \"%s\", \"relevance\": %.2f}",
-                escapeJson(source.title()),
-                escapeJson(source.url()),
-                escapeJson(cleanContent),
-                relevance
-            ));
-            if (i < sources.size() - 1) sourcesJson.append(", ");
-        }
-        sourcesJson.append("]");
 
-        String data = String.format(
-            "{\"query\": \"%s\", \"sources\": %s}",
-            escapeJson(query), sourcesJson
-        );
-        emitter.send(SseEmitter.event().name("rag").data(data));
+            ObjectNode sourceNode = sourcesArray.addObject();
+            sourceNode.put("title", source.title());
+            sourceNode.put("url", source.url());
+            sourceNode.put("snippet", cleanContent);
+            sourceNode.put("relevance", 0.9 - (i * 0.1));
+        }
+
+        emitter.send(SseEmitter.event().name("rag").data(toJsonString(rootNode)));
     }
 
     private void sendStep(SseEmitter emitter, int currentStep, int totalSteps, String stepName, String status, String description, Long executionTime) throws Exception {
-        StringBuilder dataBuilder = new StringBuilder();
-        dataBuilder.append(String.format(
-            "{\"currentStep\": %d, \"totalSteps\": %d, \"stepName\": \"%s\", \"status\": \"%s\", \"description\": \"%s\"",
-            currentStep, totalSteps, escapeJson(stepName), status, escapeJson(description)
-        ));
-        if (executionTime != null) {
-            dataBuilder.append(String.format(", \"executionTime\": %d", executionTime));
-        }
-        dataBuilder.append("}");
-        emitter.send(SseEmitter.event().name("step").data(dataBuilder.toString()));
-    }
+        ObjectNode rootNode = objectMapper.createObjectNode();
 
-    private String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                 .replace("\"", "\\\"")
-                 .replace("\n", "\\n")
-                 .replace("\r", "\\r")
-                 .replace("\t", "\\t");
+        rootNode.put("currentStep", currentStep);
+        rootNode.put("totalSteps", totalSteps);
+        rootNode.put("stepName", stepName);
+        rootNode.put("status", status);
+        rootNode.put("description", description);
+
+        if (executionTime != null) {
+            rootNode.put("executionTime", executionTime);
+        }
+
+        emitter.send(SseEmitter.event().name("step").data(toJsonString(rootNode)));
     }
 
     /**
@@ -290,6 +261,33 @@ public class AgentController {
                 .replaceAll("&#\\d+;", "")
                 .replaceAll("\\s+", " ")
                 .trim();
+    }
+
+    private String toJsonString(ObjectNode node) {
+        try {
+            return objectMapper.writeValueAsString(node);
+        } catch (JsonProcessingException e) {
+            log.error("JSON 序列化失败", e);
+            return "{}";
+        }
+    }
+
+    private void putValue(ObjectNode node, String key, Object value) {
+        if (value instanceof String) {
+            node.put(key, (String) value);
+        } else if (value instanceof Number) {
+            if (value instanceof Integer) {
+                node.put(key, ((Number) value).intValue());
+            } else if (value instanceof Long) {
+                node.put(key, ((Number) value).longValue());
+            } else {
+                node.put(key, ((Number) value).doubleValue());
+            }
+        } else if (value instanceof Boolean) {
+            node.put(key, (Boolean) value);
+        } else if (value != null) {
+            node.put(key, value.toString());
+        }
     }
 
     // ========== A/B 测试接口 ==========

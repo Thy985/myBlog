@@ -102,7 +102,7 @@ public class ArticleSearchRepository {
      */
     public List<HybridSearchResult> hybridSearch(String query, float[] queryEmbedding, int topK) {
         String sql = """
-            SELECT * FROM hybrid_search(?, ?, ?)
+            SELECT * FROM hybrid_search(?, ?::vector(512), ?)
             """;
 
         return jdbcTemplate.query(sql, new HybridSearchResultRowMapper(),

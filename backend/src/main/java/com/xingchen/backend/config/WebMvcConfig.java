@@ -23,11 +23,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // 将 /uploads/** 映射到文件系统路径
         Path uploadDir = Paths.get(uploadPath).toAbsolutePath().normalize();
-        
+
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:" + uploadDir + "/")
-                .setCachePeriod(3600);  // 缓存1小时
-        
+                .setCachePeriod(3600);
+
         System.out.println("静态资源映射已配置: /uploads/** -> " + uploadDir);
     }
 

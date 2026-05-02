@@ -10,7 +10,6 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
@@ -55,11 +54,9 @@ public class ApiKeyHealthCheckJob {
     }
 
     private List<UserApiKey> getActiveApiKeys() {
-        LocalDateTime now = LocalDateTime.now();
         return userApiKeyMapper.selectListByQuery(
                 QueryWrapper.create()
-                        .le("start_time", now)
-                        .ge("end_time", now)
+                        .eq("enabled", 1)
         );
     }
 

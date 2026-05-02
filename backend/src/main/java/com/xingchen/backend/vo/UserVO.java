@@ -14,7 +14,6 @@ public class UserVO {
     private String phone;
     private String avatar;
     private String nickname;
-    private String intro;
     private String bio;
     private String website;
     private String location;

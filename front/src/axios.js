@@ -1,12 +1,12 @@
 import axios from 'axios'
 import router from '@/router'
 import { showMessage } from '@/utils'
-import { getToken, setToken, setRefreshToken, clearAuthInfo, setRedirectUrl, getCsrfToken } from '@/composables/auth'
+import { clearAuthInfo, setRedirectUrl, getCsrfToken } from '@/composables/auth'
 import logger from '@/utils/logger'
 import { API_STATUS } from '@/composables/api'
 
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_APP_BASE_API,
+  baseURL: import.meta.env.DEV ? '/api' : import.meta.env.VITE_APP_BASE_API,
   timeout: 15000,
   withCredentials: true
 })
@@ -15,19 +15,14 @@ let isRefreshing = false
 let refreshSubscribers = []
 let refreshPromise = null
 
-let cachedToken = null
 let cachedCsrfToken = null
 
-function updateCachedTokens() {
-  cachedToken = getToken()
+function updateCachedCsrfToken() {
   cachedCsrfToken = getCsrfToken()
 }
 
-function onRefreshTokenComplete(newToken, newRefreshToken) {
-  setToken(newToken)
-  setRefreshToken(newRefreshToken)
-  updateCachedTokens()
-  refreshSubscribers.forEach(callback => callback(newToken))
+function onRefreshTokenComplete() {
+  refreshSubscribers.forEach(callback => callback())
   refreshSubscribers = []
   isRefreshing = false
   refreshPromise = null
@@ -44,15 +39,21 @@ function addRefreshSubscriber(callback) {
   refreshSubscribers.push(callback)
 }
 
+async function clearAuthStoreCache() {
+  try {
+    const { useAuthStore } = await import('@/stores')
+    const authStore = useAuthStore()
+    authStore.invalidateAndLogout?.() || authStore.clearCache?.()
+  } catch (e) {
+    // store 可能未初始化，忽略
+  }
+}
+
 function refreshToken() {
   if (isRefreshing && refreshPromise) {
-    return new Promise((resolve, reject) => {
-      addRefreshSubscriber(token => {
-        if (token instanceof Error || token instanceof Promise) {
-          reject(token)
-        } else {
-          resolve(token)
-        }
+    return new Promise((resolve) => {
+      addRefreshSubscriber(() => {
+        resolve()
       })
     })
   }
@@ -60,26 +61,31 @@ function refreshToken() {
   isRefreshing = true
 
   refreshPromise = instance.post('/auth/refresh', {})
-    .then(response => {
-      const { token, refreshToken: newRefreshToken } = response.data
-      onRefreshTokenComplete(token, newRefreshToken)
-      return token
+    .then(() => {
+      onRefreshTokenComplete()
     })
-    .catch(error => {
+    .catch(async error => {
       logger.error('Token刷新失败:', error.message)
       clearAuthInfo()
+      await clearAuthStoreCache()
 
       const currentPath = window.location.pathname + window.location.search
-      if (currentPath && !currentPath.includes('/login') && !currentPath.includes('/admin/login')) {
+      if (currentPath && !currentPath.includes('/login')) {
         setRedirectUrl(currentPath)
         logger.info('已保存当前路径，登录后将自动返回:', currentPath)
       }
 
       if (!window.location.pathname.includes('/login')) {
-        showMessage('登录已过期，请重新登录', 'warning')
-        setTimeout(() => {
-          router.push('/login')
-        }, 1000)
+        import('element-plus').then(({ ElMessageBox }) => {
+          ElMessageBox.confirm('登录已过期，请重新登录', '提示', {
+            confirmButtonText: '重新登录',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            router.push('/login')
+          }).catch(() => {
+          })
+        })
       }
 
       onRefreshTokenFailed(error)
@@ -90,12 +96,8 @@ function refreshToken() {
 }
 
 instance.interceptors.request.use((config) => {
-  if (!cachedToken) {
-    updateCachedTokens()
-  }
-
-  if (cachedToken) {
-    config.headers.Authorization = `Bearer ${cachedToken}`
+  if (!cachedCsrfToken) {
+    updateCachedCsrfToken()
   }
 
   if (cachedCsrfToken && ['post', 'put', 'patch', 'delete'].includes(config.method)) {
@@ -116,8 +118,6 @@ instance.interceptors.response.use((response) => {
   if (status === API_STATUS.UNAUTHORIZED && !config._isRetry) {
     config._isRetry = true
     return refreshToken().then(() => {
-      updateCachedTokens()
-      config.headers.Authorization = `Bearer ${cachedToken}`
       return instance(config)
     }).catch(() => {
       return Promise.reject(error)
@@ -127,7 +127,13 @@ instance.interceptors.response.use((response) => {
   if (error.response?.data) {
     const { code, message } = error.response.data
     if (code !== API_STATUS.SUCCESS) {
-      showMessage(message || '请求失败', 'error')
+      if (code === 429) {
+        // 限流错误不显示消息，由调用者处理
+      } else if (code === API_STATUS.SUCCESS) {
+        // 成功不显示
+      } else {
+        showMessage(message || '请求失败', 'error')
+      }
     }
   } else {
     showMessage('网络错误，请稍后重试', 'error')
@@ -137,7 +143,6 @@ instance.interceptors.response.use((response) => {
 })
 
 export function invalidateTokenCache() {
-  cachedToken = null
   cachedCsrfToken = null
 }
 

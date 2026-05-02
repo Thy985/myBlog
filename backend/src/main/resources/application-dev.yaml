@@ -124,23 +124,17 @@ server:
 file:
   upload:
     path: ./uploads
+    # 存储类型: local 或 minio
+    type: minio
   access:
     url: /uploads
-
-# Qdrant 向量数据库配置
-qdrant:
-  host: localhost
-  port: 6334  # gRPC 端口（HTTP REST API 是 6333）
-  collection: myblog_articles
-  vector-size: 512
-
-# OpenSearch 配置（已废弃，迁移到 PostgreSQL）
-# opensearch:
-#   host: localhost
-#   port: 9201
-#   username: admin
-#   password: OpenSearch@2024!
-#   index: myblog_search
+  # MinIO 对象存储配置
+  minio:
+    endpoint: http://localhost:9000
+    access-key: minioadmin
+    secret-key: minioadmin
+    bucket: myblog
+    secure: false
 
 # AI 模型配置
 ai:

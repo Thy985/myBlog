@@ -129,6 +129,17 @@
                                             账户设置
                                         </router-link>
                                     </li>
+                                    <li>
+                                        <router-link 
+                                            to="/user/settings"
+                                            class="nav-link"
+                                        >
+                                            <svg class="w-5 h-5 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                            智能体设置
+                                        </router-link>
+                                    </li>
                                 </ul>
                             </li>
                         </ul>

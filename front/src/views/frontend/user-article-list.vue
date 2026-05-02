@@ -142,19 +142,23 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-
+import { ElMessage } from 'element-plus'
 import logger from '@/utils/logger'
-// 文章数据
+import { useMainStore } from '@/stores'
+import { getUserArticleList } from '@/api/frontend/user'
+import { deleteArticle as apiDeleteArticle } from '@/api/frontend/article'
+import { API_STATUS } from '@/composables/api'
+
+const store = useMainStore()
 const articles = ref([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const searchKeyword = ref('')
+const loading = ref(false)
 
-// 计算总页数
 const totalPages = ref(0)
 
-// 格式化日期
 const formatDate = (dateString) => {
     if (!dateString) {return '未知'}
     const date = new Date(dateString)
@@ -165,61 +169,54 @@ const formatDate = (dateString) => {
     })
 }
 
-// 搜索文章
+const fetchArticles = async () => {
+    try {
+        loading.value = true
+        const userId = store.user?.id
+        if (!userId) {return}
+        const res = await getUserArticleList(userId, {
+            current: currentPage.value,
+            size: pageSize.value,
+            keyword: searchKeyword.value
+        })
+        if (res.code === API_STATUS.SUCCESS && res.data) {
+            articles.value = res.data.list || []
+            total.value = res.data.total || 0
+            totalPages.value = Math.ceil(total.value / pageSize.value)
+        }
+    } catch (err) {
+        logger.error('获取文章列表失败:', err.message)
+        ElMessage.error('获取文章列表失败')
+    } finally {
+        loading.value = false
+    }
+}
+
 const searchArticles = () => {
     currentPage.value = 1
     fetchArticles()
 }
 
-// 切换页码
 const changePage = (page) => {
     currentPage.value = page
     fetchArticles()
 }
 
-// 编辑文章
 const editArticle = (id) => {
-    // 这里应该跳转到编辑页面
     logger.debug('编辑文章:', id)
 }
 
-// 删除文章
-const deleteArticle = (id) => {
-    // 这里应该实现删除逻辑
-    logger.debug('删除文章:', id)
+const deleteArticle = async (id) => {
+    try {
+        await apiDeleteArticle(id)
+        ElMessage.success('删除成功')
+        fetchArticles()
+    } catch (err) {
+        logger.error('删除文章失败:', err.message)
+        ElMessage.error('删除文章失败')
+    }
 }
 
-// 模拟获取文章列表
-const fetchArticles = () => {
-    // 这里应该通过API获取真实数据
-    articles.value = [
-        {
-            id: 1,
-            title: 'Vue 3 组合式 API 最佳实践',
-            category: '前端开发',
-            createdAt: '2024-01-15T10:00:00Z',
-            status: 'published'
-        },
-        {
-            id: 2,
-            title: 'Spring Boot 4.0 新特性详解',
-            category: '后端开发',
-            createdAt: '2024-01-10T14:30:00Z',
-            status: 'published'
-        },
-        {
-            id: 3,
-            title: 'Tailwind CSS 3.0 入门指南',
-            category: '前端开发',
-            createdAt: '2024-01-05T09:15:00Z',
-            status: 'draft'
-        }
-    ]
-    total.value = articles.value.length
-    totalPages.value = Math.ceil(total.value / pageSize.value)
-}
-
-// 组件挂载时获取数据
 onMounted(() => {
     fetchArticles()
 })

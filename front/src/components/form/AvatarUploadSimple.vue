@@ -74,7 +74,7 @@ const props = defineProps({
     },
     uploadUrl: {
         type: String,
-        default: '/user/avatar/upload'
+        default: '/user/avatar'
     }
 })
 
@@ -188,9 +188,9 @@ const uploadAvatar = async (blob) => {
         })
 
         if (data.code === API_STATUS.SUCCESS) {
-            currentAvatar.value = data.data.avatarUrl
-            emit('update:modelValue', data.data.avatarUrl)
-            emit('change', data.data.avatarUrl)
+            currentAvatar.value = data.data.fileUrl
+            emit('update:modelValue', data.data.fileUrl)
+            emit('change', data.data.fileUrl)
             ElMessage.success('头像上传成功！')
         } else {
             ElMessage.error(data.message || '上传失败')

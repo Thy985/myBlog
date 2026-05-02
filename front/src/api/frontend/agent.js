@@ -522,7 +522,7 @@ export function getAgentABAssign(experimentId) {
  * @returns {Promise<{code: number, data: ToolDefinition[], message: string}>}
  */
 export function getAvailableTools() {
-  return request.get('/agent/tools')
+  return request.get('/ai/react/tools')
 }
 
 /**
@@ -532,5 +532,5 @@ export function getAvailableTools() {
  * @returns {Promise<{code: number, data: any, message: string}>}
  */
 export function executeTool(toolId, parameters) {
-  return request.post('/agent/tools/execute', { toolId, parameters })
+  return request.post('/ai/react/tools/execute', { toolId, parameters })
 }

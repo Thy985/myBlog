@@ -93,20 +93,21 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import logger from '@/utils/logger'
+import { getUserCategoryList, updateCategory, deleteCategory as apiDeleteCategory } from '@/api/frontend/user'
+import { API_STATUS } from '@/composables/api'
 
-// 分类数据
 const categories = ref([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const searchKeyword = ref('')
 const showCreateDialog = ref(false)
+const loading = ref(false)
 
-// 计算总页数
 const totalPages = ref(0)
 
-// 格式化日期
 const formatDate = (dateString) => {
     if (!dateString) {return '未知'}
     const date = new Date(dateString)
@@ -117,64 +118,55 @@ const formatDate = (dateString) => {
     })
 }
 
-// 搜索分类
+const fetchCategories = async () => {
+    try {
+        loading.value = true
+        const res = await getUserCategoryList()
+        if (res.code === API_STATUS.SUCCESS && res.data) {
+            categories.value = res.data || []
+            total.value = categories.value.length
+            totalPages.value = 1
+        }
+    } catch (err) {
+        logger.error('获取分类列表失败:', err.message)
+        ElMessage.error('获取分类列表失败')
+    } finally {
+        loading.value = false
+    }
+}
+
 const searchCategories = () => {
     currentPage.value = 1
     fetchCategories()
 }
 
-// 切换页码
 const changePage = (page) => {
     currentPage.value = page
     fetchCategories()
 }
 
-// 编辑分类
-const editCategory = (category) => {
-    // TODO: 实现编辑分类的逻辑
-    logger.debug('编辑分类:', category.id)
+const editCategory = async (category) => {
+    try {
+        await updateCategory(category.id, { name: category.name, description: category.description })
+        ElMessage.success('更新成功')
+        fetchCategories()
+    } catch (err) {
+        logger.error('更新分类失败:', err.message)
+        ElMessage.error('更新分类失败')
+    }
 }
 
-const deleteCategory = (id) => {
-    // TODO: 实现删除分类的逻辑
-    logger.debug('删除分类:', id)
-    // 模拟删除分类
-    categories.value = categories.value.filter(item => item.id !== id)
-    total.value = categories.value.length
-    totalPages.value = Math.ceil(total.value / pageSize.value)
+const deleteCategory = async (id) => {
+    try {
+        await apiDeleteCategory(id)
+        ElMessage.success('删除成功')
+        fetchCategories()
+    } catch (err) {
+        logger.error('删除分类失败:', err.message)
+        ElMessage.error('删除分类失败')
+    }
 }
 
-// 模拟获取分类列表
-const fetchCategories = () => {
-    // 这里应该通过API获取真实数据
-    categories.value = [
-        {
-            id: 1,
-            name: '前端开发',
-            description: '前端开发相关文章',
-            articleCount: 5,
-            createdAt: '2024-01-15T10:00:00Z'
-        },
-        {
-            id: 2,
-            name: '后端开发',
-            description: '后端开发相关文章',
-            articleCount: 3,
-            createdAt: '2024-01-10T14:30:00Z'
-        },
-        {
-            id: 3,
-            name: '技术分享',
-            description: '技术分享和经验总结',
-            articleCount: 2,
-            createdAt: '2024-01-05T09:15:00Z'
-        }
-    ]
-    total.value = categories.value.length
-    totalPages.value = Math.ceil(total.value / pageSize.value)
-}
-
-// 组件挂载时获取数据
 onMounted(() => {
     fetchCategories()
 })

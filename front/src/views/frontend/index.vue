@@ -291,6 +291,9 @@ const handleSubscribe = (email) => {
 
 async function initData() {
   try {
+    // 确保博客设置已加载 - 始终调用以确保数据最新
+    await store.getBlogSetting()
+
     const results = await Promise.allSettled([
       featuredData.execute(),
       articlePagination.fetchData(1),

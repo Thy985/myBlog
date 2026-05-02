@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-background-secondary border border-border-color rounded-xl p-6">
+  <div class="bg-[var(--bg-card)] rounded-xl p-6 shadow-sm">
     <h2 class="text-lg font-bold text-text-primary mb-4">头像设置</h2>
     <div class="flex items-center gap-6">
       <div class="flex-shrink-0">

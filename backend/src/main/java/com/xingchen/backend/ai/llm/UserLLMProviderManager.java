@@ -119,6 +119,8 @@ public class UserLLMProviderManager {
             return new UserGLMProvider(apiKey, baseUrl, model);
         } else if ("OPENAI".equals(type)) {
             return new UserOpenAIProvider(apiKey, baseUrl, model);
+        } else if ("DEEPSEEK".equals(type)) {
+            return new UserDeepSeekProvider(apiKey, baseUrl, model);
         } else {
             log.warn("不支持的Provider类型: {}", providerType);
             return null;

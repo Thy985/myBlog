@@ -1,7 +1,7 @@
 # Myblog 接口文档
 
-> 版本: 3.0.0  
-> 更新日期: 2026-02-16  
+> 版本: 3.0.0
+> 更新日期: 2026-04-29
 > 基础URL: `/api`
 
 ---
@@ -457,6 +457,142 @@
 
 ---
 
+## AI Agent 接口 `/agent`
+
+### 1. 发送消息（流式）
+- **URL**: `POST /agent/chat/stream`
+- **认证**: 需要登录
+- **Content-Type**: `text/event-stream`
+- **请求体**:
+```json
+{
+  "message": "用户输入的消息",
+  "sessionId": "会话ID（可选，首次为空）",
+  "preferredModel": "首选模型（可选）"
+}
+```
+- **响应**: SSE 流式事件
+```
+event: thought_start
+data: {"type": "THOUGHT_START", "timestamp": 1714392000}
+
+event: intent_detected
+data: {"type": "INTENT_DETECTED", "intent": "ARTICLE_GENERATE", "confidence": 0.95}
+
+event: plan_created
+data: {"type": "PLAN_CREATED", "plan": [{"step": 1, "description": "生成文章"}]}
+
+event: tool_call_start
+data: {"type": "TOOL_CALL_START", "toolName": "article_generator"}
+
+event: tool_call_complete
+data: {"type": "TOOL_CALL_COMPLETE", "toolName": "article_generator", "result": {...}}
+
+event: llm_generate_chunk
+data: {"type": "LLM_GENERATE_CHUNK", "content": "生成的内容片段"}
+
+event: message_complete
+data: {"type": "MESSAGE_COMPLETE", "messageId": "msg_xxx", "finalContent": "完整回复"}
+```
+
+### 2. 发送消息（非流式）
+- **URL**: `POST /agent/chat`
+- **认证**: 需要登录
+- **请求体**: 同上
+- **响应**:
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "messageId": "msg_xxx",
+    "content": "AI 回复内容",
+    "intent": "ARTICLE_GENERATE",
+    "toolCalls": [...],
+    "ragSources": [...],
+    "sessionId": "sess_xxx"
+  }
+}
+```
+
+### 3. 获取会话历史
+- **URL**: `GET /agent/session/{sessionId}/history`
+- **认证**: 需要登录
+- **响应**: 返回会话消息列表
+
+### 4. 获取用户会话列表
+- **URL**: `GET /agent/sessions`
+- **认证**: 需要登录
+- **响应**:
+```json
+{
+  "code": 200,
+  "data": [
+    {
+      "sessionId": "sess_xxx",
+      "createdAt": "2026-04-29T10:00:00",
+      "lastMessage": "最后一条消息",
+      "messageCount": 10
+    }
+  ]
+}
+```
+
+### 5. 删除会话
+- **URL**: `DELETE /agent/session/{sessionId}`
+- **认证**: 需要登录
+
+### 6. 清空会话历史
+- **URL**: `DELETE /agent/session/{sessionId}/messages`
+- **认证**: 需要登录
+
+### 7. 获取可用工具列表
+- **URL**: `GET /agent/tools`
+- **认证**: 需要登录
+- **响应**: 返回可用工具列表及参数定义
+
+### 8. 获取可用模型列表
+- **URL**: `GET /agent/models`
+- **认证**: 需要登录
+- **响应**:
+```json
+{
+  "code": 200,
+  "data": [
+    {
+      "provider": "OpenAI",
+      "model": "gpt-4",
+      "name": "GPT-4",
+      "description": "最强大的 GPT 模型"
+    },
+    {
+      "provider": "GLM",
+      "model": "glm-4",
+      "name": "GLM-4",
+      "description": "智谱 AI 大模型"
+    }
+  ]
+}
+```
+
+### 9. 重试消息
+- **URL**: `POST /agent/message/{messageId}/retry`
+- **认证**: 需要登录
+- **响应**: 流式或非流式响应（同发送消息）
+
+### 10. 消息反馈（点赞/点踩）
+- **URL**: `POST /agent/message/{messageId}/feedback`
+- **认证**: 需要登录
+- **请求体**:
+```json
+{
+  "type": "LIKE",  // 或 "DISLIKE"
+  "comment": "反馈说明（可选）"
+}
+```
+
+---
+
 ## 搜索接口 `/search`
 
 ### 1. 搜索文章
@@ -609,4 +745,6 @@
 | 账号 | 密码 | 角色 |
 |------|------|------|
 | admin | 147258369Thy@ | 管理员 |
-| test | test1234@ | 普通用户 |
+| test | Test1234@ | 普通用户 |
+
+> **注意**: 测试密码从环境变量 `TEST_ADMIN_PASSWORD` 和 `TEST_USER_PASSWORD` 读取

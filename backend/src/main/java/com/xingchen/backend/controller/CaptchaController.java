@@ -2,6 +2,7 @@ package com.xingchen.backend.controller;
 
 import cn.hutool.captcha.CaptchaUtil;
 import cn.hutool.captcha.LineCaptcha;
+import com.xingchen.backend.common.Result;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -54,23 +56,24 @@ public class CaptchaController {
 
     /**
      * 获取 base64 格式的验证码图片
-     * 返回 JSON 格式，包含 base64 数据
+     * 返回 JSON 格式，包含 base64 数据和 captchaId
      */
     @GetMapping("/captcha/base64")
-    public Map<String, Object> getCaptchaBase64(HttpServletRequest request) {
+    public Result<Map<String, String>> getCaptchaBase64(HttpServletRequest request) {
         // 创建图片验证码，使用线条干扰
         LineCaptcha captcha = CaptchaUtil.createLineCaptcha(WIDTH, HEIGHT, CODE_LENGTH, 50);
         captcha.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 24));
 
         String code = captcha.getCode();
+        String captchaId = UUID.randomUUID().toString();
         HttpSession session = request.getSession(true);
         session.setAttribute(CAPTCHA_CODE_KEY, code);
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 200);
-        result.put("data", "data:image/png;base64," + captcha.getImageBase64());
+        Map<String, String> data = new HashMap<>();
+        data.put("image", "data:image/png;base64," + captcha.getImageBase64());
+        data.put("captchaId", captchaId);
 
-        return result;
+        return Result.success(data);
     }
 
     /**

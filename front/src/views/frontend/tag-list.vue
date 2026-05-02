@@ -94,7 +94,10 @@ const UserInfoCard = defineAsyncComponent(() => import('@/components/common/User
 const router = useRouter()
 
 const goTagArticleListPage = (id, name) => {
-    router.push({ path: '/tag/list', query: { id, name } })
+    router.push({
+        name: 'tag-articles',
+        params: { id: String(id), name: name }
+    })
 }
 
 const tags = ref([])

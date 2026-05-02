@@ -9,7 +9,8 @@ export function useAvatar(avatar: string | { value: string } | undefined) {
     if (!avatar && !(avatar as any)?.value) {
       return DEFAULT_AVATAR
     }
-    const path = (avatar as any)?.value ?? avatar as string
+    const raw = (avatar as any)?.value ?? avatar
+    const path = typeof raw === 'string' ? raw : ''
     if (!path) {
       return DEFAULT_AVATAR
     }
@@ -17,7 +18,8 @@ export function useAvatar(avatar: string | { value: string } | undefined) {
       return path
     }
     if (path.startsWith('/')) {
-      return `${import.meta.env.VITE_APP_BASE_API}${path}`
+      const baseApi = import.meta.env.VITE_APP_BASE_API.replace(/\/$/, '')
+      return `${baseApi}${path}`
     }
     return `${import.meta.env.VITE_APP_BASE_API}/${path}`
   })

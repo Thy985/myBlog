@@ -1,1 +1,0 @@
-function t(t){return t?`https://picsum.photos/seed/${t}/800/450`:"https://picsum.photos/seed/blog/800/450"}function s(s,i){return s?s.startsWith("http://")||s.startsWith("https://")||s.startsWith("/")?s:"/"+s:t(i)}function i(t){return t&&Array.isArray(t)?t.map(t=>({...t,titleImage:s(t.titleImage,t.id),thumbnail:s(t.thumbnail,t.id)})):[]}export{t as a,s as g,i as p};

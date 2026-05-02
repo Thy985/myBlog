@@ -186,17 +186,10 @@ public class FileServiceImpl implements FileService {
                             .build()
             );
 
-            // 生成访问 URL（预签名 URL，有效期 7 天）
-            String url = minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                            .method(Method.GET)
-                            .bucket(minioConfig.getBucket())
-                            .object(objectName)
-                            .expiry(7, TimeUnit.DAYS)
-                            .build()
-            );
+            // 生成永久访问 URL
+            String url = minioConfig.getEndpoint() + "/" + minioConfig.getBucket() + "/" + objectName;
 
-            log.info("文件上传到 MinIO 成功: bucket={}, object={}", minioConfig.getBucket(), objectName);
+            log.info("文件上传到 MinIO 成功: bucket={}, object={}, url={}", minioConfig.getBucket(), objectName, url);
             return url;
         } catch (Exception e) {
             log.error("MinIO 上传失败: {}", e.getMessage(), e);

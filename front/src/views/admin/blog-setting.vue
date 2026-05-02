@@ -108,9 +108,7 @@ const zhihuSwitchChange = (e) => {
 const handleTitleImageChange = (file) => {
     logger.debug('开始上传文件')
     logger.debug(file)
-    const formData = new FormData()
-    formData.append('file', file.raw)
-    uploadFile(formData).then((e) => {
+    uploadFile(file.raw).then((e) => {
         if (e.code !== 200) {
             const message = e.message
             showMessage(message, 'error', 'message')
@@ -118,6 +116,9 @@ const handleTitleImageChange = (file) => {
         }
         form.avatar = e.data.url
         showMessage('头像上传成功', 'success', 'message')
+    }).catch((error) => {
+        logger.error('头像上传失败:', error)
+        showMessage('头像上传失败: ' + (error.message || '未知错误'), 'error', 'message')
     })
 }
 

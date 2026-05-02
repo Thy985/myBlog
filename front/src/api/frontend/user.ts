@@ -1,6 +1,15 @@
 import request from '@/axios'
 import type { ApiResponse } from '@/types/api'
 import type { UserProfile, PasswordChangeForm, UserProfileForm } from '@/types/user'
+import type { Category, Tag } from '@/types/article'
+
+export interface LoginHistory {
+  id: number
+  device: string
+  ipAddress: string
+  loginAt: string
+  status: 'active' | 'expired'
+}
 
 // 更新用户个人资料
 export function updateProfile(data: UserProfileForm): Promise<ApiResponse<UserProfile>> {
@@ -18,10 +27,15 @@ export function updatePrivacy(data: { privacyLevel: string }): Promise<ApiRespon
 }
 
 // 上传头像
-export function uploadAvatar(formData: FormData): Promise<ApiResponse<{ avatar: string }>> {
+export function uploadAvatar(formData: FormData): Promise<ApiResponse<{ fileUrl: string }>> {
   return request.post('/user/avatar', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
+}
+
+// 获取登录历史
+export function getLoginHistory(limit: number = 20): Promise<ApiResponse<LoginHistory[]>> {
+  return request.get('/auth/login-history', { params: { limit } })
 }
 
 // 启用/禁用 MFA
@@ -47,4 +61,130 @@ export function testAiConnection(data: { provider: string; apiKey: string }): Pr
 // 保存 AI 配置
 export function saveAiConfig(data: { provider: string; apiKey: string; model?: string }): Promise<ApiResponse<null>> {
   return request.put('/ai/config', data)
+}
+
+export interface UserArticleParams {
+  current?: number
+  size?: number
+  keyword?: string
+  status?: string
+}
+
+export interface UserCommentParams {
+  current?: number
+  size?: number
+  keyword?: string
+}
+
+export interface UserCategoryParams {
+  current?: number
+  size?: number
+  keyword?: string
+}
+
+export interface UserTagParams {
+  current?: number
+  size?: number
+  keyword?: string
+}
+
+export interface UserMediaParams {
+  current?: number
+  size?: number
+  keyword?: string
+  type?: string
+}
+
+export interface MediaFile {
+  id: number
+  name: string
+  url: string
+  type: string
+  size: number
+  createdAt: string
+}
+
+export interface UserCategory {
+  id: number
+  name: string
+  description: string
+  articleCount: number
+  createdAt: string
+}
+
+export interface UserTag {
+  id: number
+  name: string
+  description: string
+  articleCount: number
+  createdAt: string
+}
+
+export interface UserComment {
+  id: number
+  articleId: number
+  articleTitle: string
+  content: string
+  createdAt: string
+  status: string
+}
+
+export interface UserArticle {
+  id: number
+  title: string
+  category: string
+  createdAt: string
+  status: string
+}
+
+export function getUserArticleList(userId: number, params?: UserArticleParams): Promise<ApiResponse<{ list: UserArticle[]; total: number; page: number; size: number }>> {
+  return request.get(`/article/user/${userId}`, { params })
+}
+
+export function getUserCategoryList(): Promise<ApiResponse<Category[]>> {
+  return request.get('/category/user')
+}
+
+export function createCategory(data: { name: string; description?: string }): Promise<ApiResponse<Category>> {
+  return request.post('/category', data)
+}
+
+export function updateCategory(id: number, data: { name: string; description?: string }): Promise<ApiResponse<Category>> {
+  return request.put(`/category/${id}`, data)
+}
+
+export function deleteCategory(id: number): Promise<ApiResponse<null>> {
+  return request.delete(`/category/${id}`)
+}
+
+export function getUserTagList(): Promise<ApiResponse<Tag[]>> {
+  return request.get('/tag/user')
+}
+
+export function createTag(data: { name: string; description?: string }): Promise<ApiResponse<Tag>> {
+  return request.post('/tag', data)
+}
+
+export function updateTag(id: number, data: { name: string; description?: string }): Promise<ApiResponse<Tag>> {
+  return request.put(`/tag/${id}`, data)
+}
+
+export function deleteTag(id: number): Promise<ApiResponse<null>> {
+  return request.delete(`/tag/${id}`)
+}
+
+export function getUserCommentList(params?: UserCommentParams): Promise<ApiResponse<{ list: UserComment[]; total: number; page: number; size: number }>> {
+  return request.get('/comment/user', { params })
+}
+
+export function updateComment(id: number, data: { content: string }): Promise<ApiResponse<UserComment>> {
+  return request.put(`/comment/${id}`, data)
+}
+
+export function getUserMediaList(params?: UserMediaParams): Promise<ApiResponse<{ list: MediaFile[]; total: number; page: number; size: number }>> {
+  return request.get('/file/list', { params })
+}
+
+export function deleteMedia(id: number): Promise<ApiResponse<null>> {
+  return request.delete(`/file/${id}`)
 }

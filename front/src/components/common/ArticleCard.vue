@@ -76,7 +76,14 @@
 
                 <div class="card-footer">
                     <div class="author">
-                        <div class="author-avatar">
+                        <img
+                            v-if="article.authorAvatar"
+                            :src="getAuthorAvatarUrl(article.authorAvatar)"
+                            class="author-avatar-img"
+                            :alt="article.authorName"
+                            @error="$event.target.style.display='none'"
+                        />
+                        <div v-else class="author-avatar">
                             {{ authorInitial }}
                         </div>
                         <span class="author-name">{{ article.authorName || '匿名' }}</span>
@@ -158,6 +165,20 @@ const authorInitial = computed(() => {
     const name = props.article.authorName || '匿名'
     return name.charAt(0).toUpperCase()
 })
+
+// 获取作者头像URL
+const getAuthorAvatarUrl = (avatar) => {
+    if (!avatar) { return null }
+    if (avatar.startsWith('http://') || avatar.startsWith('https://')) { return avatar }
+    // 处理 /uploads/ 和 /api/file/ 开头的路径
+    if (avatar.startsWith('/uploads/') || avatar.startsWith('/api/file/')) {
+        return `http://localhost:8080${avatar}`
+    }
+    if (avatar.startsWith('/')) {
+        return `http://localhost:8080${avatar}`
+    }
+    return `http://localhost:8080/${avatar}`
+}
 
 const handleImageError = (e) => {
     // 图片加载失败时使用占位图
@@ -426,6 +447,13 @@ const goTagArticleListPage = (tagId, tagName) => {
     font-size: 14px;
     font-weight: 600;
     color: white;
+}
+
+.author-avatar-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
 .author-name {

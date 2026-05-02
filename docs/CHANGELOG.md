@@ -2,6 +2,33 @@
 
 所有重要的项目更新都将记录在此文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.2.0] - 2026-04-29
+
+### 🎯 重大更新
+
+#### AI 智能体架构 2.0
+- ✨ 重构 Agent 架构：分层编排模式（AI 层 + Agent 层）
+- ✨ 新增 AgentOrchestrator 中央编排器
+- ✨ 新增 AgentSessionManager 会话管理（用户隔离 + 过期清理）
+- ✨ 新增 AgentWorkflow 工作流管理
+- ✨ 新增三级记忆系统（工作记忆/短期记忆/长期记忆）
+- ✨ 新增流式响应支持（SSE 实时推送）
+- ✨ 新增断路器保护（Resilience4j）
+- ✨ 新增监控指标（Micrometer）
+
+#### 前端智能体 UI
+- ✨ 新增 AgentFloatPanel 悬浮面板（可拖拽 + 边缘吸附）
+- ✨ 新增 AgentChat 聊天组件
+- ✨ 新增思考过程可视化（意图卡片/计划进度/工具调用/RAG 来源）
+- ✨ 新增 AgentMessageActions（复制/重试/反馈）
+- ✨ 新增快捷指令系统
+
+#### 文档更新
+- ✏️ 新增 AGENT_ARCHITECTURE.md 智能体架构文档
+- ✏️ 更新 API 接口文档（新增 Agent 相关接口）
+
+---
+
 ## [0.1.0] - 2026-04-19
 
 ### 🎯 重大更新

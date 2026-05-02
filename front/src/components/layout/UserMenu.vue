@@ -74,18 +74,6 @@
             设置
           </a>
         </li>
-        <li v-if="isAdmin">
-          <a
-            class="flex items-center px-4 py-3 text-sm text-text-secondary hover:bg-primary-subtle hover:text-primary-color transition-all duration-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-color/20"
-            role="menuitem"
-            @click="$router.push('/admin')"
-          >
-            <svg class="w-5 h-5 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14v4m-4 1h8M1 10h18M2 1h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1Z" />
-            </svg>
-            后台管理
-          </a>
-        </li>
         <li>
           <a
             class="flex items-center px-4 py-3 text-sm text-text-secondary hover:bg-primary-subtle hover:text-primary-color transition-all duration-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-color/20"

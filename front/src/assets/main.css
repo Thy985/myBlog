@@ -2,7 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 设计系统 token 和主题已通过 main.js 导入 */
+/* 旋转动画优化 - 减少重绘 */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 0.8s linear infinite;
+  will-change: transform;
+}
 
 /* ============================================
    以下变量已迁移到 tokens/design-tokens.css

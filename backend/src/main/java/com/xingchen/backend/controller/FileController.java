@@ -71,6 +71,28 @@ public class FileController {
         return Result.success(fileService.getFileUrl(id));
     }
 
+    @GetMapping("/{id}")
+    public void getFile(@PathVariable Long id, jakarta.servlet.http.HttpServletResponse response) {
+        try {
+            String fileUrl = fileService.getFileUrl(id);
+            if (fileUrl == null) {
+                response.setStatus(404);
+                return;
+            }
+
+            // 如果是 MinIO URL，尝试重定向或代理
+            if (fileUrl.startsWith("http://") || fileUrl.startsWith("https://")) {
+                // 直接重定向到 MinIO URL
+                response.sendRedirect(fileUrl);
+            } else {
+                // 本地文件，forward 到静态资源处理器
+                response.sendRedirect("/uploads" + fileUrl);
+            }
+        } catch (Exception e) {
+            response.setStatus(500);
+        }
+    }
+
     @PostMapping("/{id}/download")
     public Result<Void> recordDownload(@PathVariable Long id) {
         fileService.incrementDownloadCount(id);

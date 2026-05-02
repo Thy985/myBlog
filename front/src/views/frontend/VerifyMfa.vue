@@ -171,7 +171,7 @@ const handleVerify = async () => {
       ElMessage.success('验证成功，正在登录...')
 
       const redirectUrl = getRedirectUrl()
-      if (redirectUrl !== '/login' && redirectUrl !== '/admin/login') {
+      if (redirectUrl !== '/login') {
         router.push(redirectUrl)
       } else {
         router.push('/')
@@ -281,48 +281,47 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   padding: 20px;
-  animation: gradientShift 15s ease infinite;
+  position: relative;
+  overflow: hidden;
 }
 
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+.verify-mfa-page::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 50%),
+              radial-gradient(circle at 70% 70%, rgba(236,72,153,0.15) 0%, transparent 40%);
+  animation: shimmer 20s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(-5%, -5%) rotate(3deg); }
 }
 
 .verify-mfa-container {
   width: 100%;
-  max-width: 450px;
-  background-color: rgba(255, 255, 255, 0.95);
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  max-width: 420px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   padding: 40px;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-  backdrop-filter: blur(10px);
-}
-
-.verify-mfa-container:hover {
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
-  transform: translateY(-5px);
+  position: relative;
+  z-index: 1;
 }
 
 .verify-mfa-header {
   text-align: center;
-  margin-bottom: 32px;
-  animation: fadeInDown 0.6s ease;
-}
-
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  margin-bottom: 28px;
 }
 
 .logo {
@@ -334,62 +333,47 @@ onUnmounted(() => {
 
 .login-logo-icon {
   font-size: 32px;
-  color: #667eea;
-  margin-right: 12px;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+  color: var(--color-primary);
+  margin-right: 10px;
 }
 
 .login-logo-text {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
   margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .verify-mfa-title {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
+  letter-spacing: -0.01em;
 }
 
 .verify-mfa-subtitle {
   font-size: 14px;
-  color: #666;
+  color: var(--text-muted);
   margin: 0;
 }
 
 .verify-mfa-form {
   width: 100%;
-  animation: fadeIn 0.8s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 .verify-mfa-info {
   margin: 16px 0;
   padding: 12px;
-  background-color: rgba(102, 126, 234, 0.08);
-  border-radius: 8px;
-  border-left: 1px solid rgba(102, 126, 234, 0.3);
+  background: var(--color-primary-subtle);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-primary);
 }
 
 .verify-mfa-info-text {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -402,20 +386,20 @@ onUnmounted(() => {
 
 .resend-code-link {
   font-size: 14px;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  color: var(--color-primary);
 }
 
 .resend-code-link:hover {
-  color: #667eea;
+  text-decoration: underline;
 }
 
 .go-back-link {
   font-size: 14px;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  color: var(--color-error);
 }
 
 .go-back-link:hover {
-  color: #f56c6c;
+  text-decoration: underline;
 }
 
 .verify-mfa-button {
@@ -423,73 +407,48 @@ onUnmounted(() => {
   padding: 14px;
   font-size: 16px;
   font-weight: 500;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: var(--radius-md);
+  background: var(--gradient-primary);
   border: none;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-  position: relative;
-  overflow: hidden;
+  color: white;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
-.verify-mfa-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+.verify-mfa-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-primary);
 }
 
-.verify-mfa-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+.verify-mfa-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
-.verify-mfa-button:hover::before {
-  left: 100%;
-}
-
-/* 表单错误消息 */
-.form-error-message {
-  font-size: 12px;
-  color: #f56c6c;
-  margin-top: 4px;
-  animation: shake 0.5s ease;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-5px); }
-  40%, 80% { transform: translateX(5px); }
-}
-
-/* 按钮加载动画 */
 .is-loading {
   margin-right: 8px;
 }
 
 @media (max-width: 768px) {
   .verify-mfa-container {
-    padding: 30px 24px;
+    padding: 32px 24px;
     max-width: 100%;
+    border-radius: var(--radius-lg);
   }
-  
+
   .verify-mfa-title {
     font-size: 22px;
   }
-  
+
   .login-logo-text {
-    font-size: 20px;
+    font-size: 18px;
   }
-  
+
   .verify-mfa-actions {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
-  
+
   .go-back-link {
     align-self: flex-end;
   }
@@ -498,49 +457,41 @@ onUnmounted(() => {
 @media (max-width: 480px) {
   .verify-mfa-page {
     padding: 16px;
+    align-items: flex-start;
+    padding-top: 48px;
   }
-  
+
   .verify-mfa-container {
-    padding: 24px 20px;
+    padding: 28px 20px;
   }
-  
+
   .verify-mfa-title {
     font-size: 20px;
   }
-  
+
   .verify-mfa-button {
     padding: 12px;
     font-size: 15px;
   }
 }
 
-/* 无障碍支持 */
 @media (prefers-reduced-motion: reduce) {
-  .verify-mfa-page {
-    animation: none;
-  }
-  
-  .login-logo-icon {
-    animation: none;
-  }
-  
-  .form-error-message {
+  .verify-mfa-page::before {
     animation: none;
   }
 }
 
-/* 高对比度模式支持 */
 @media (prefers-contrast: high) {
   .verify-mfa-container {
-    border: 2px solid #000;
+    border: 2px solid var(--text-primary);
   }
-  
+
   .verify-mfa-button {
-    border: 2px solid #000;
+    border: 2px solid var(--text-primary);
   }
-  
+
   .verify-mfa-info {
-    border: 2px solid #000;
+    border: 2px solid var(--text-primary);
   }
 }
 </style>

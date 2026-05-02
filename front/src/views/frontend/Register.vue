@@ -102,48 +102,47 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   padding: 20px;
-  animation: gradientShift 15s ease infinite;
+  position: relative;
+  overflow: hidden;
 }
 
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+.register-page::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 50%),
+              radial-gradient(circle at 70% 70%, rgba(236,72,153,0.15) 0%, transparent 40%);
+  animation: shimmer 20s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(-5%, -5%) rotate(3deg); }
 }
 
 .register-container {
   width: 100%;
-  max-width: 450px;
-  background-color: rgba(255, 255, 255, 0.95);
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  max-width: 420px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   padding: 40px;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-  backdrop-filter: blur(10px);
-}
-
-.register-container:hover {
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
-  transform: translateY(-5px);
+  position: relative;
+  z-index: 1;
 }
 
 .register-header {
   text-align: center;
-  margin-bottom: 32px;
-  animation: fadeInDown 0.6s ease;
-}
-
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  margin-bottom: 28px;
 }
 
 .logo {
@@ -155,79 +154,73 @@ onMounted(() => {
 
 .register-logo-icon {
   font-size: 32px;
-  color: #667eea;
-  margin-right: 12px;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+  color: var(--color-primary);
+  margin-right: 10px;
 }
 
 .register-logo-text {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
   margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .register-title {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
+  letter-spacing: -0.01em;
 }
 
 .register-subtitle {
   font-size: 14px;
-  color: #666;
+  color: var(--text-muted);
   margin: 0;
 }
 
 @media (max-width: 768px) {
   .register-container {
-    padding: 30px 24px;
+    padding: 32px 24px;
     max-width: 100%;
+    border-radius: var(--radius-lg);
   }
 
   .register-title {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .register-logo-text {
-    font-size: 20px;
+    font-size: 18px;
   }
 }
 
 @media (max-width: 480px) {
   .register-page {
     padding: 16px;
+    align-items: flex-start;
+    padding-top: 48px;
   }
 
   .register-container {
-    padding: 24px 20px;
+    padding: 28px 20px;
   }
 
   .register-title {
-    font-size: 22px;
+    font-size: 20px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .register-page {
-    animation: none;
-  }
-
-  .register-logo-icon {
+  .register-page::before {
     animation: none;
   }
 }
 
 @media (prefers-contrast: high) {
   .register-container {
-    border: 2px solid #000;
+    border: 2px solid var(--text-primary);
   }
 }
 </style>

@@ -7,6 +7,7 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
+    ActionButton: typeof import('./src/components/common/ActionButton.vue')['default']
     AgentChat: typeof import('./src/components/business/AgentChat.vue')['default']
     AgentFloatPanel: typeof import('./src/components/business/AgentFloatPanel.vue')['default']
     AgentInputArea: typeof import('./src/components/business/agent/AgentInputArea.vue')['default']
@@ -36,6 +37,9 @@ declare module 'vue' {
     CommentInput: typeof import('./src/components/common/CommentInput.vue')['default']
     CommentItem: typeof import('./src/components/common/CommentItem.vue')['default']
     CommentList: typeof import('./src/components/common/CommentList.vue')['default']
+    ConfigSection: typeof import('./src/components/common/ConfigSection.vue')['default']
+    ConfigSelect: typeof import('./src/components/common/ConfigSelect.vue')['default']
+    ConfigToggle: typeof import('./src/components/common/ConfigToggle.vue')['default']
     CountTo: typeof import('./src/components/ui/CountTo.vue')['default']
     DashboardActivity: typeof import('./src/components/admin/DashboardActivity.vue')['default']
     DashboardCharts: typeof import('./src/components/admin/DashboardCharts.vue')['default']
@@ -95,6 +99,7 @@ declare module 'vue' {
     FormDialog: typeof import('./src/components/admin/FormDialog.vue')['default']
     FormDrawer: typeof import('./src/components/form/FormDrawer.vue')['default']
     FormInput: typeof import('./src/components/form/FormInput.vue')['default']
+    GrowthSettings: typeof import('./src/components/common/GrowthSettings.vue')['default']
     HeroSection: typeof import('./src/components/frontend/HeroSection.vue')['default']
     HotArticles: typeof import('./src/components/common/HotArticles.vue')['default']
     LoginCaptcha: typeof import('./src/components/common/LoginCaptcha.vue')['default']
@@ -111,9 +116,12 @@ declare module 'vue' {
     PrivacySettings: typeof import('./src/components/common/PrivacySettings.vue')['default']
     ProfileSettings: typeof import('./src/components/common/ProfileSettings.vue')['default']
     PVChart: typeof import('./src/components/business/PVChart.vue')['default']
+    QuickActionsPanel: typeof import('./src/components/common/QuickActionsPanel.vue')['default']
+    RagSearchPanel: typeof import('./src/components/common/RagSearchPanel.vue')['default']
     RegisterForm: typeof import('./src/components/common/RegisterForm.vue')['default']
     RelatedArticles: typeof import('./src/components/common/RelatedArticles.vue')['default']
     ResponsiveImage: typeof import('./src/components/ui/ResponsiveImage.vue')['default']
+    ResultPanel: typeof import('./src/components/common/ResultPanel.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SearchBar: typeof import('./src/components/layout/SearchBar.vue')['default']

@@ -33,8 +33,9 @@ public class User {
     @Column("nickname")
     private String nickname;
     
+    @Deprecated
     @Column("intro")
-    private String intro;
+    private String intro; // 已弃用，请使用 bio 字段
     
     @Column("status")
     private Integer status;

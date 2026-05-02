@@ -57,10 +57,10 @@
 ┌─────────────────────────────┼───────────────────────────────────┐
 │                      基础设施层 (Infrastructure Layer)            │
 │                             │                                    │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐              │
-│  │  MySQL  │  │  Redis  │  │  MinIO  │  │ Kafka   │              │
-│  │  8.0    │  │  7.0    │  │ 对象存储│  │ 消息队列│              │
-│  └─────────┘  └─────────┘  └─────────┘  └─────────┘              │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐│
+│  │  MySQL  │  │  Redis  │  │  MinIO  │  │ Postgre │  │ RabbitMQ││
+│  │  8.0    │  │  7.0    │  │ 对象存储│  │SQL+pgvec│  │  消息   ││
+│  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘│
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -257,13 +257,14 @@ ai/
 
 | 层级 | 技术 | 版本 | 说明 |
 |------|------|------|------|
-| 框架 | Spring Boot | 3.4.1 | Web 框架 |
-| ORM | MyBatis-Flex | 1.11.5 | 灵活 ORM |
-| 认证 | Sa-Token | 1.38.0 | 轻量认证 |
+| 框架 | Spring Boot | 3.4.x | Web 框架 |
+| ORM | MyBatis-Flex | 1.11.x | 灵活 ORM |
+| 认证 | Sa-Token | 1.38.x | 轻量认证 |
 | 缓存 | Redis | - | 会话/缓存 |
-| 搜索 | Elasticsearch | 8.x | 全文搜索 |
-| 消息 | Kafka | - | 事件驱动 |
-| AI | LangChain4j | - | Agent 框架 |
+| 主数据库 | MySQL | 8.0 | 业务数据存储 |
+| 向量数据库 | PostgreSQL + pgvector | 15+ | RAG 向量检索（主力） |
+| 消息 | RabbitMQ | - | 异步消息/事件驱动 |
+| AI | LangChain4j + 自研编排器 | 0.35.x | Agent 框架 |
 
 ### 前端技术栈
 
@@ -280,10 +281,11 @@ ai/
 
 | 组件 | 技术 | 用途 |
 |------|------|------|
-| 向量数据库 | Milvus/Weaviate | RAG 检索 |
-| Embedding | OpenAI/text-embedding-3 | 文本向量化 |
-| LLM | Claude/GPT-4/GLM | 内容生成 |
-| Agent | LangChain4j + LangGraph | 工作流编排 |
+| 向量数据库 | PostgreSQL + pgvector（主力） | RAG 检索 |
+| Embedding | BGE / OpenAI text-embedding-3 | 文本向量化 |
+| LLM | Claude/GPT-4/GLM/Baidu/Ollama | 内容生成 |
+| Agent | LangChain4j + 自研编排器 | 工作流编排 |
+| 搜索增强 | Tavily API | 联网搜索 |
 
 ---
 
@@ -330,11 +332,11 @@ public class UserLLMProviderManager {
 public class VectorConfig {
     @Bean
     public VectorStore vectorStore(
-            @Value("${vector.db:weaviate}") String dbType) {
+            @Value("${vector.db:postgresql}") String dbType) {
         return switch (dbType) {
+            case "qdrant" -> new QdrantVectorStore();
             case "milvus" -> new MilvusVectorStore();
-            case "pinecone" -> new PineconeVectorStore();
-            default -> new WeaviateVectorStore();
+            default -> new PostgreSQLVectorStore();  // pgvector
         };
     }
 }

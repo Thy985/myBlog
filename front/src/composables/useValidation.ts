@@ -133,15 +133,10 @@ export function useValidationRules() {
           callback()
         }
       } else {
-        const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/
-        if (!usernameRegex.test(value)) {
-          callback(new Error(getMessage('username')))
-        } else {
-          callback()
-        }
+        callback()
       }
     },
-    trigger: ['blur', 'change']
+    trigger: ['blur']
   })
 
   const captcha = (): FormItemRule => ({

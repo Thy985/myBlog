@@ -105,7 +105,7 @@ const emit = defineEmits(['update:modelValue', 'change'])
 
 // 数据
 const avatarUrl = ref(props.modelValue)
-const uploadUrl = '/user/avatar/upload'
+const uploadUrl = '/user/avatar'
 const cropDialogVisible = ref(false)
 const cropImageUrl = ref('')
 const uploading = ref(false)
@@ -160,9 +160,9 @@ const confirmCrop = () => {
             })
 
             if (data.code === 200) {
-                avatarUrl.value = data.data.avatarUrl
-                emit('update:modelValue', data.data.avatarUrl)
-                emit('change', data.data.avatarUrl)
+                avatarUrl.value = data.data.fileUrl
+                emit('update:modelValue', data.data.fileUrl)
+                emit('change', data.data.fileUrl)
                 ElMessage.success('头像上传成功！')
                 cropDialogVisible.value = false
             } else {

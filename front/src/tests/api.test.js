@@ -3,7 +3,6 @@ import { request, requestWithCache, clearCache, clearAllCache } from '@/composab
 import { ElMessage, ElLoading } from 'element-plus'
 import { showPageLoading, hidePageLoading } from '@/utils/loading'
 
-// 模拟element-plus
 vi.mock('element-plus', () => ({
   ElMessage: {
     error: vi.fn(),
@@ -18,13 +17,11 @@ vi.mock('element-plus', () => ({
   }
 }))
 
-// 模拟loading
 vi.mock('@/utils/loading', () => ({
   showPageLoading: vi.fn(),
   hidePageLoading: vi.fn()
 }))
 
-// 模拟localStorage
 vi.spyOn(localStorage, 'getItem').mockImplementation()
 vi.spyOn(localStorage, 'setItem').mockImplementation()
 vi.spyOn(localStorage, 'removeItem').mockImplementation()
@@ -42,30 +39,30 @@ describe('API请求处理测试', () => {
   it('应该处理成功的API请求', async () => {
     const mockApiFunc = vi.fn().mockResolvedValue({ code: 200, data: { id: 1, name: '测试数据' } })
 
-    const result = await request(mockApiFunc, { id: 1 })
+    const result = await request(mockApiFunc)
 
-    expect(mockApiFunc).toHaveBeenCalledWith({ id: 1 })
+    expect(mockApiFunc).toHaveBeenCalled()
     expect(result).toEqual({ code: 200, data: { id: 1, name: '测试数据' } })
   })
 
   it('应该处理失败的API请求', async () => {
     const mockApiFunc = vi.fn().mockResolvedValue({ code: 500, message: '请求失败' })
 
-    await expect(request(mockApiFunc, { id: 1 })).rejects.toThrow('请求失败')
+    await expect(request(mockApiFunc)).rejects.toThrow('请求失败')
     expect(ElMessage.warning).toHaveBeenCalledWith('请求失败')
   })
 
   it('应该处理API请求异常', async () => {
     const mockApiFunc = vi.fn().mockRejectedValue(new Error('网络错误'))
 
-    await expect(request(mockApiFunc, { id: 1 })).rejects.toThrow('网络错误')
+    await expect(request(mockApiFunc)).rejects.toThrow('网络错误')
     expect(ElMessage.error).toHaveBeenCalledWith('网络错误')
   })
 
   it('应该显示加载动画', async () => {
     const mockApiFunc = vi.fn().mockResolvedValue({ code: 200, data: { id: 1, name: '测试数据' } })
 
-    await request(mockApiFunc, { id: 1 }, { showLoading: true, loadingMessage: '加载中...' })
+    await request(mockApiFunc, undefined, { showLoading: true, loadingMessage: '加载中...' })
 
     expect(ElLoading.service).toHaveBeenCalledWith({
       lock: true,
@@ -77,7 +74,7 @@ describe('API请求处理测试', () => {
   it('应该显示页面级加载动画', async () => {
     const mockApiFunc = vi.fn().mockResolvedValue({ code: 200, data: { id: 1, name: '测试数据' } })
 
-    await request(mockApiFunc, { id: 1 }, { showPageLoading: true })
+    await request(mockApiFunc, undefined, { showPageLoading: true })
 
     expect(showPageLoading).toHaveBeenCalled()
     expect(hidePageLoading).toHaveBeenCalled()
@@ -86,7 +83,7 @@ describe('API请求处理测试', () => {
   it('应该显示成功提示', async () => {
     const mockApiFunc = vi.fn().mockResolvedValue({ code: 200, data: { id: 1, name: '测试数据' } })
 
-    await request(mockApiFunc, { id: 1 }, { showSuccess: true, successMessage: '操作成功' })
+    await request(mockApiFunc, undefined, { showSuccess: true, successMessage: '操作成功' })
 
     expect(ElMessage.success).toHaveBeenCalledWith('操作成功')
   })
@@ -105,7 +102,7 @@ describe('API请求处理测试', () => {
       return null
     })
 
-    const result = await requestWithCache(mockApiFunc, 'test-cache', { id: 1 })
+    const result = await requestWithCache(mockApiFunc, 'test-cache')
 
     expect(localStorage.getItem).toHaveBeenCalledWith('blog_cache_test-cache')
     expect(mockApiFunc).not.toHaveBeenCalled()
@@ -117,9 +114,9 @@ describe('API请求处理测试', () => {
 
     localStorage.getItem.mockReturnValue(null)
 
-    const result = await requestWithCache(mockApiFunc, 'test-cache', { id: 1 })
+    const result = await requestWithCache(mockApiFunc, 'test-cache')
 
-    expect(mockApiFunc).toHaveBeenCalledWith({ id: 1 })
+    expect(mockApiFunc).toHaveBeenCalled()
     expect(localStorage.setItem).toHaveBeenCalledWith('blog_cache_test-cache', JSON.stringify({ code: 200, data: { id: 1, name: '测试数据' } }))
     expect(result).toEqual({ code: 200, data: { id: 1, name: '测试数据' } })
   })
@@ -153,6 +150,8 @@ describe('API请求处理测试', () => {
     }
 
     clearAllCache()
-    expect(localStorage.removeItem).toHaveBeenCalled()
+
+    expect(localStorage.removeItem).toHaveBeenCalledWith('blog_cache_theme')
+    expect(localStorage.removeItem).toHaveBeenCalledWith('blog_cache_blogSetting')
   })
 })

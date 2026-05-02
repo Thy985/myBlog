@@ -40,7 +40,7 @@ public class UserApiKey {
 
     /**
      * 加密后的 API Key（AES-256）
-     * 存储格式: ENC:base64(iv+ciphertext)
+     * 存储格式: base64(iv+ciphertext)
      */
     @Column("api_key")
     private String apiKey;
@@ -48,7 +48,6 @@ public class UserApiKey {
     /**
      * 临时明文 API Key（不存入数据库）
      * 仅用于接收前端传入的新 API Key 或解密后临时使用
-     * 注意：此字段不参与数据库映射
      */
     @Column(ignore = true)
     private String apiKeyPlain;
@@ -88,29 +87,19 @@ public class UserApiKey {
 
     /**
      * 安全地获取 API Key 的日志表示（掩码形式）
-     * 绝不返回明文，用于日志记录
-     *
-     * @return 掩码后的 API Key 表示
      */
     public String getApiKeyForLog() {
         if (apiKey == null || apiKey.isBlank()) {
             return "[EMPTY]";
         }
-        if (apiKey.startsWith("ENC:")) {
+        if (apiKey.length() > 20) {
             return "[ENCRYPTED]";
         }
-        // 明文情况（不应该发生）- 返回掩码
-        if (apiKey.length() <= 10) {
-            return "***";
-        }
-        return apiKey.substring(0, 3) + "***" + apiKey.substring(apiKey.length() - 4);
+        return "***";
     }
 
     /**
      * 获取解密后的 API Key
-     * 注意：仅在必要时调用，避免日志泄露
-     *
-     * @return 解密后的明文 API Key
      */
     public String getDecryptedApiKey() {
         if (apiKeyPlain != null && !apiKeyPlain.isBlank()) {
@@ -119,19 +108,14 @@ public class UserApiKey {
         if (apiKey == null || apiKey.isBlank()) {
             return null;
         }
-        // 使用加密服务解密
-        if (encryptionService != null) {
-            return encryptionService.decrypt(apiKey);
+        if (encryptionService == null) {
+            throw new IllegalStateException("ApiKeyEncryptionService 未注入");
         }
-        // 降级：返回密文（不应在生产环境发生）
-        log.warn("ApiKeyEncryptionService 未注入，返回密文");
-        return apiKey;
+        return encryptionService.decrypt(apiKey);
     }
 
     /**
      * 设置 API Key（自动加密存储）
-     *
-     * @param plainApiKey 明文 API Key
      */
     public void setApiKeyEncrypted(String plainApiKey) {
         if (plainApiKey == null || plainApiKey.isBlank()) {
@@ -139,21 +123,15 @@ public class UserApiKey {
             this.apiKeyPlain = null;
             return;
         }
-        // 临时保存明文
         this.apiKeyPlain = plainApiKey;
-        // 使用加密服务加密存储
-        if (encryptionService != null) {
-            this.apiKey = encryptionService.encrypt(plainApiKey);
-        } else {
-            // 降级：存储明文（不应在生产环境发生）
-            log.warn("ApiKeyEncryptionService 未注入，存储明文");
-            this.apiKey = plainApiKey;
+        if (encryptionService == null) {
+            throw new IllegalStateException("ApiKeyEncryptionService 未注入");
         }
+        this.apiKey = encryptionService.encrypt(plainApiKey);
     }
 
     @Override
     public String toString() {
-        // 重写 toString，确保不会泄露 apiKey 明文
         return "UserApiKey{" +
                 "id=" + id +
                 ", userId=" + userId +

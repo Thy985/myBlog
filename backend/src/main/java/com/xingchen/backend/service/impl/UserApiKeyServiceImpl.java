@@ -39,12 +39,12 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
             .build();
 
     private static final Map<String, List<String>> PROVIDER_MODELS = Map.of(
-            "OPENAI", Arrays.asList("gpt-4o", "gpt-4o-mini", "gpt-4-turbo"),
-            "ANTHROPIC", Arrays.asList("claude-3-5-sonnet", "claude-3-opus"),
-            "ZHIPU", Arrays.asList("glm-4-flash", "glm-4-plus", "glm-4"),
-            "BAIDU", Arrays.asList("qianfan-code-latest", "ernie-bot-4"),
-            "AZURE", Arrays.asList("gpt-4o", "gpt-35-turbo"),
-            "DEEPSEEK", Arrays.asList("deepseek-chat", "deepseek-reasoner"),
+            "OPENAI", Arrays.asList("gpt-5.4", "gpt-5.5", "gpt-4o", "gpt-4o-mini"),
+            "ANTHROPIC", Arrays.asList("claude-4.7-opus", "claude-4.7-sonnet", "claude-4.5-sonnet"),
+            "ZHIPU", Arrays.asList("glm-5-plus", "glm-5-flash", "glm-4-plus"),
+            "BAIDU", Arrays.asList("ernie-5.0", "ernie-4.0", "qianfan-code-latest"),
+            "AZURE", Arrays.asList("gpt-5.4", "gpt-4o"),
+            "DEEPSEEK", Arrays.asList("deepseek-chat-v4-pro", "deepseek-chat-v4-flash", "deepseek-reasoner"),
             "CUSTOM", Arrays.asList()
     );
 
@@ -148,16 +148,6 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
     public String getEffectiveApiKey(Long userId) {
         UserApiKey apiKey = getByUserId(userId);
 
-        System.out.println(">>>>>>>>>>>>> [DEBUG] getEffectiveApiKey called: userId=" + userId +
-                ", apiKey=" + (apiKey != null ? apiKey.getApiKeyForLog() : "null") +
-                ", enabled=" + (apiKey != null ? apiKey.getEnabled() : "null") +
-                ", apiKeyLength=" + (apiKey != null && apiKey.getApiKey() != null ? apiKey.getApiKey().length() : "null"));
-        log.info(">>>>>>>>>>>>> getEffectiveApiKey called: userId={}, apiKey={}, enabled={}, apiKeyPlain={}",
-                userId,
-                apiKey != null ? apiKey.getApiKeyForLog() : "null",
-                apiKey != null ? apiKey.getEnabled() : "null",
-                apiKey != null ? apiKey.getApiKeyPlain() : "null");
-
         if (apiKey != null && apiKey.getEnabled() == 1 &&
             apiKey.getApiKey() != null && !apiKey.getApiKey().isEmpty()) {
 
@@ -172,14 +162,11 @@ public class UserApiKeyServiceImpl implements UserApiKeyService {
             }
 
             String decrypted = apiKey.getDecryptedApiKey();
-            System.out.println(">>>>>>>>>>>>> [DEBUG] API Key decrypted, length=" + (decrypted != null ? decrypted.length() : "null"));
             log.debug("API Key 解密结果: {}", decrypted != null ? "成功" : "失败");
             return decrypted;
         }
 
-        System.out.println(">>>>>>>>>>>>> [DEBUG] API Key is null or empty, will use system default");
-        log.debug("用户 {} 未配置有效 API Key，使用系统默认. systemDefaultApiKey 配置: {}",
-                userId, systemDefaultApiKey != null && !systemDefaultApiKey.isEmpty() ? "有值" : "空");
+        log.debug("用户 {} 未配置有效 API Key，使用系统默认", userId);
         return systemDefaultApiKey;
     }
 

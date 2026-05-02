@@ -91,18 +91,20 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import logger from '@/utils/logger'
+import { getUserCommentList, updateComment as apiUpdateComment, deleteComment as apiDeleteComment } from '@/api/frontend/user'
+import { API_STATUS } from '@/composables/api'
 
 const comments = ref([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const searchKeyword = ref('')
+const loading = ref(false)
 
-// 计算总页数
 const totalPages = ref(0)
 
-// 格式化日期
 const formatDate = (dateString) => {
     if (!dateString) {return '未知'}
     const date = new Date(dateString)
@@ -115,63 +117,62 @@ const formatDate = (dateString) => {
     })
 }
 
-// 搜索评论
+const fetchComments = async () => {
+    try {
+        loading.value = true
+        const res = await getUserCommentList({
+            current: currentPage.value,
+            size: pageSize.value,
+            keyword: searchKeyword.value
+        })
+        if (res.code === API_STATUS.SUCCESS && res.data) {
+            comments.value = res.data.list || []
+            total.value = res.data.total || 0
+            totalPages.value = Math.ceil(total.value / pageSize.value)
+        }
+    } catch (err) {
+        logger.error('获取评论列表失败:', err.message)
+        ElMessage.error('获取评论列表失败')
+    } finally {
+        loading.value = false
+    }
+}
+
 const searchComments = () => {
     currentPage.value = 1
     fetchComments()
 }
 
-// 切换页码
 const changePage = (page) => {
     currentPage.value = page
     fetchComments()
 }
 
-// 编辑评论
-const editComment = (id) => {
-    // TODO: 实现编辑评论的逻辑
-    logger.debug('编辑评论:', id)
-}
-
-const deleteComment = (id) => {
-    // TODO: 实现删除评论的逻辑
-    logger.debug('删除评论:', id)
-}
-
-// 模拟获取评论列表
-const fetchComments = () => {
-    // 这里应该通过API获取真实数据
-    comments.value = [
-        {
-            id: 1,
-            articleId: 1,
-            articleTitle: 'Vue 3 组合式 API 最佳实践',
-            content: '这篇文章写得非常好，对我理解 Vue 3 的组合式 API 很有帮助！',
-            createdAt: '2024-01-15T10:00:00Z',
-            status: 'approved'
-        },
-        {
-            id: 2,
-            articleId: 2,
-            articleTitle: 'Spring Boot 4.0 新特性详解',
-            content: 'Spring Boot 4.0 的新特性确实很强大，期待在项目中使用！',
-            createdAt: '2024-01-10T14:30:00Z',
-            status: 'approved'
-        },
-        {
-            id: 3,
-            articleId: 3,
-            articleTitle: 'Tailwind CSS 3.0 入门指南',
-            content: 'Tailwind CSS 3.0 的响应式设计非常方便，大大提高了开发效率。',
-            createdAt: '2024-01-05T09:15:00Z',
-            status: 'approved'
+const editComment = async (id) => {
+    try {
+        const comment = comments.value.find(c => c.id === id)
+        if (comment) {
+            await apiUpdateComment(id, { content: comment.content })
+            ElMessage.success('更新成功')
+            fetchComments()
         }
-    ]
-    total.value = comments.value.length
-    totalPages.value = Math.ceil(total.value / pageSize.value)
+    } catch (err) {
+        logger.error('更新评论失败:', err.message)
+        ElMessage.error('更新评论失败')
+    }
 }
 
-// 组件挂载时获取数据
+const deleteComment = async (id) => {
+    try {
+        await apiDeleteComment(id)
+        ElMessage.success('删除成功')
+        fetchComments()
+    } catch (err) {
+        logger.error('删除评论失败:', err.message)
+        ElMessage.error('删除评论失败')
+    }
+}
+
 onMounted(() => {
     fetchComments()
 })

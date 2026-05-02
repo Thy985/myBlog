@@ -18,5 +18,5 @@ public class Memory {
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
     private LocalDateTime expireTime;
-    private String vectorId; // Qdrant vector UUID
+    private String vectorId;
 }

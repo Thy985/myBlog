@@ -1,7 +1,13 @@
 package com.xingchen.backend.service;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.xingchen.backend.agent.base.BaseAgent;
+import com.xingchen.backend.agent.content.ContentAuditAgent;
+import com.xingchen.backend.agent.content.ContentGenerationAgent;
+import com.xingchen.backend.agent.content.OpportunityDiscoveryAgent;
+import com.xingchen.backend.agent.content.SEOOptimizationAgent;
 import com.xingchen.backend.common.PageResult;
+import com.xingchen.backend.dto.ArticleCreateDTO;
 import com.xingchen.backend.service.ArticleService;
 import com.xingchen.backend.vo.ArticleListVO;
 import com.xingchen.backend.vo.ArticleVO;
@@ -21,6 +27,10 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class GrowthOrchestrator {
 
+    private final ContentAuditAgent contentAuditAgent;
+    private final OpportunityDiscoveryAgent opportunityDiscoveryAgent;
+    private final ContentGenerationAgent contentGenerationAgent;
+    private final SEOOptimizationAgent seoOptimizationAgent;
     private final ContentOptimizer contentOptimizer;
     private final SEOService seoService;
     private final ArticleService articleService;
@@ -86,14 +96,14 @@ public class GrowthOrchestrator {
         try {
             Map<String, Object> reportData = new HashMap<>();
 
-            List<Map<String, Object>> auditResults = executeContentAudit(userId);
-            reportData.put("contentAudit", auditResults);
+            BaseAgent.AgentResult auditResult = executeContentAuditAgent(userId);
+            reportData.put("contentAudit", auditResult.isSuccess() ? auditResult.getData() : null);
 
-            List<Map<String, Object>> optimizationResults = executeContentOptimization(userId);
-            reportData.put("contentOptimization", optimizationResults);
+            BaseAgent.AgentResult seoResult = executeSEOOptimizationAgent(userId);
+            reportData.put("seoOptimization", seoResult.isSuccess() ? seoResult.getData() : null);
 
-            List<Map<String, Object>> generationResults = executeContentGeneration(userId);
-            reportData.put("contentGeneration", generationResults);
+            BaseAgent.AgentResult opportunityResult = executeOpportunityDiscoveryAgent(userId);
+            reportData.put("opportunityDiscovery", opportunityResult.isSuccess() ? opportunityResult.getData() : null);
 
             Map<String, Object> summary = generateSummary(reportData);
             reportData.put("summary", summary);
@@ -116,130 +126,169 @@ public class GrowthOrchestrator {
         }
     }
 
-    private List<Map<String, Object>> executeContentAudit(Long userId) {
-        log.info("执行内容审计...");
-        List<Map<String, Object>> results = new ArrayList<>();
+    private BaseAgent.AgentResult executeContentAuditAgent(Long userId) {
+        log.info("执行内容审核 Agent...");
+
+        try {
+            BaseAgent.AgentContext context = BaseAgent.AgentContext.builder()
+                    .userId(userId)
+                    .input("content audit task")
+                    .params(Map.of("userId", userId, "limit", 100))
+                    .build();
+
+            return contentAuditAgent.execute(context);
+        } catch (Exception e) {
+            log.error("内容审核 Agent 执行失败", e);
+            return BaseAgent.AgentResult.failure("CONTENT_AUDIT_FAILED", e.getMessage());
+        }
+    }
+
+    private BaseAgent.AgentResult executeSEOOptimizationAgent(Long userId) {
+        log.info("执行 SEO 优化 Agent...");
 
         try {
             PageResult<ArticleListVO> pageResult =
-                    articleService.getArticleList(1, 100, null, null, null, userId);
-
+                    articleService.getArticleList(1, 10, null, null, null, userId);
             List<ArticleListVO> articles = pageResult.getList();
+
             if (articles == null || articles.isEmpty()) {
-                return results;
+                return BaseAgent.AgentResult.success(Map.of("suggestions", List.of(), "message", "无文章需要优化"));
             }
 
-            int duplicateCount = 0;
-            int lowQualityCount = 0;
+            ArticleListVO articleToOptimize = articles.get(0);
 
-            for (ArticleListVO article : articles) {
-                if (article.getDescription() == null || article.getDescription().length() < 50) {
-                    lowQualityCount++;
-                }
-            }
+            BaseAgent.AgentContext context = BaseAgent.AgentContext.builder()
+                    .userId(userId)
+                    .input("SEO optimization task")
+                    .params(Map.of(
+                            "articleId", articleToOptimize.getId(),
+                            "userId", userId,
+                            "type", "FULL"
+                    ))
+                    .build();
 
-            results.add(Map.of(
-                    "type", "audit",
-                    "totalArticles", articles.size(),
-                    "duplicatesFound", duplicateCount,
-                    "lowQualityFound", lowQualityCount,
-                    "status", "completed"
-            ));
-
+            return seoOptimizationAgent.execute(context);
         } catch (Exception e) {
-            log.error("内容审计执行失败", e);
-            results.add(Map.of(
-                    "type", "audit",
-                    "status", "failed",
-                    "error", e.getMessage()
-            ));
+            log.error("SEO 优化 Agent 执行失败", e);
+            return BaseAgent.AgentResult.failure("SEO_OPT_FAILED", e.getMessage());
         }
-
-        return results;
     }
 
-    private List<Map<String, Object>> executeContentOptimization(Long userId) {
-        log.info("执行内容优化...");
-        List<Map<String, Object>> results = new ArrayList<>();
+    private BaseAgent.AgentResult executeOpportunityDiscoveryAgent(Long userId) {
+        log.info("执行机会发现 Agent...");
 
         try {
-            PageResult<ArticleListVO> pageResult =
-                    articleService.getArticleList(1, 50, null, null, null, userId);
+            BaseAgent.AgentContext context = BaseAgent.AgentContext.builder()
+                    .userId(userId)
+                    .input("opportunity discovery task")
+                    .params(Map.of(
+                            "userId", userId,
+                            "niche", "",
+                            "topN", 5
+                    ))
+                    .build();
 
-            List<ArticleListVO> articles = pageResult.getList();
-            if (articles == null || articles.isEmpty()) {
-                return results;
-            }
-
-            int optimizedCount = 0;
-            for (ArticleListVO article : articles) {
-                try {
-                    ArticleVO fullArticle = articleService.getArticleById(article.getId(), userId);
-                    if (fullArticle != null && fullArticle.getContent() != null) {
-                        List<ContentOptimizer.OptimizationIssue> issues =
-                                contentOptimizer.analyzeContent(fullArticle.getContent(), fullArticle.getTitle());
-
-                        long highPriorityIssues = issues.stream()
-                                .filter(i -> "HIGH".equals(i.getSeverity()))
-                                .count();
-
-                        if (highPriorityIssues > 0) {
-                            optimizedCount++;
-                        }
-                    }
-                } catch (Exception e) {
-                    log.warn("优化文章失败: articleId={}", article.getId(), e);
-                }
-            }
-
-            results.add(Map.of(
-                    "type", "optimization",
-                    "articlesAnalyzed", articles.size(),
-                    "articlesNeedingOptimization", optimizedCount,
-                    "status", "completed"
-            ));
-
+            return opportunityDiscoveryAgent.execute(context);
         } catch (Exception e) {
-            log.error("内容优化执行失败", e);
-            results.add(Map.of(
-                    "type", "optimization",
-                    "status", "failed",
-                    "error", e.getMessage()
-            ));
+            log.error("机会发现 Agent 执行失败", e);
+            return BaseAgent.AgentResult.failure("OPPORTUNITY_DISCOVERY_FAILED", e.getMessage());
         }
-
-        return results;
     }
 
-    private List<Map<String, Object>> executeContentGeneration(Long userId) {
-        log.info("执行内容生成...");
-        List<Map<String, Object>> results = new ArrayList<>();
+    public GrowthTaskResult generateContent(Long userId, String topic, String tags, String category) {
+        log.info("生成内容: userId={}, topic={}", userId, topic);
 
-        results.add(Map.of(
-                "type", "generation",
-                "status", "skipped",
-                "reason", "需要明确主题才能生成内容"
-        ));
+        try {
+            BaseAgent.AgentContext context = BaseAgent.AgentContext.builder()
+                    .userId(userId)
+                    .input(topic)
+                    .params(new HashMap<>() {{
+                        put("topic", topic);
+                        put("userId", userId);
+                        put("tags", tags != null ? tags : "");
+                        put("category", category != null ? category : "");
+                    }})
+                    .build();
 
-        return results;
+            BaseAgent.AgentResult result = contentGenerationAgent.execute(context);
+
+            if (result.isSuccess()) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = (Map<String, Object>) result.getData();
+
+                ArticleCreateDTO createDTO = new ArticleCreateDTO();
+                createDTO.setTitle((String) data.get("title"));
+                createDTO.setContent((String) data.get("content"));
+                createDTO.setSummary((String) data.get("description"));
+
+                ArticleVO createdArticle = articleService.createArticle(userId, createDTO);
+
+                return new GrowthTaskResult(true, "内容生成成功",
+                        Map.of("articleId", createdArticle.getId(), "title", createdArticle.getTitle()));
+            } else {
+                return new GrowthTaskResult(false, result.getError(), Map.of());
+            }
+        } catch (Exception e) {
+            log.error("内容生成失败: userId={}", userId, e);
+            return new GrowthTaskResult(false, "内容生成失败: " + e.getMessage(), Map.of());
+        }
+    }
+
+    public GrowthTaskResult optimizeArticle(Long userId, Long articleId) {
+        log.info("优化文章: userId={}, articleId={}", userId, articleId);
+
+        try {
+            BaseAgent.AgentContext context = BaseAgent.AgentContext.builder()
+                    .userId(userId)
+                    .input("SEO optimization task")
+                    .params(Map.of(
+                            "articleId", articleId,
+                            "userId", userId,
+                            "type", "FULL"
+                    ))
+                    .build();
+
+            BaseAgent.AgentResult result = seoOptimizationAgent.execute(context);
+
+            if (result.isSuccess()) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> resultData = (Map<String, Object>) result.getData();
+                return new GrowthTaskResult(true, "文章优化建议已生成", resultData);
+            } else {
+                return new GrowthTaskResult(false, result.getError(), Map.of());
+            }
+        } catch (Exception e) {
+            log.error("文章优化失败: userId={}, articleId={}", userId, articleId, e);
+            return new GrowthTaskResult(false, "文章优化失败: " + e.getMessage(), Map.of());
+        }
     }
 
     private Map<String, Object> generateSummary(Map<String, Object> reportData) {
         Map<String, Object> summary = new HashMap<>();
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> auditResults = (List<Map<String, Object>>) reportData.get("contentAudit");
-        if (auditResults != null && !auditResults.isEmpty()) {
-            Map<String, Object> audit = auditResults.get(0);
+        Object auditData = reportData.get("contentAudit");
+        if (auditData instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> audit = (Map<String, Object>) auditData;
             summary.put("totalArticles", audit.getOrDefault("totalArticles", 0));
-            summary.put("issuesFound", audit.getOrDefault("lowQualityFound", 0));
+            summary.put("passCount", audit.getOrDefault("passCount", 0));
+            summary.put("warningCount", audit.getOrDefault("warningCount", 0));
+            summary.put("failCount", audit.getOrDefault("failCount", 0));
+            summary.put("healthScore", audit.getOrDefault("healthScore", 0));
         }
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> optResults = (List<Map<String, Object>>) reportData.get("contentOptimization");
-        if (optResults != null && !optResults.isEmpty()) {
-            Map<String, Object> opt = optResults.get(0);
-            summary.put("articlesNeedingOptimization", opt.getOrDefault("articlesNeedingOptimization", 0));
+        Object opportunityData = reportData.get("opportunityDiscovery");
+        if (opportunityData instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> opportunity = (Map<String, Object>) opportunityData;
+            summary.put("opportunitiesFound", opportunity.getOrDefault("totalOpportunities", 0));
+        }
+
+        Object seoData = reportData.get("seoOptimization");
+        if (seoData instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> seo = (Map<String, Object>) seoData;
+            summary.put("seoSuggestions", seo.getOrDefault("suggestions", List.of()));
         }
 
         summary.put("growthScore", calculateGrowthScore(summary));
@@ -258,16 +307,14 @@ public class GrowthOrchestrator {
             else if (articles < 10) score -= 15;
         }
 
-        Object issuesFound = summary.get("issuesFound");
-        if (issuesFound instanceof Integer) {
-            int issues = (Integer) issuesFound;
-            score -= issues * 5;
+        Object failCount = summary.get("failCount");
+        if (failCount instanceof Integer) {
+            score -= ((Integer) failCount) * 10;
         }
 
-        Object articlesNeedingOpt = summary.get("articlesNeedingOptimization");
-        if (articlesNeedingOpt instanceof Integer) {
-            int needingOpt = (Integer) articlesNeedingOpt;
-            score -= needingOpt * 3;
+        Object warningCount = summary.get("warningCount");
+        if (warningCount instanceof Integer) {
+            score -= ((Integer) warningCount) * 3;
         }
 
         return Math.max(0, Math.min(100, score));

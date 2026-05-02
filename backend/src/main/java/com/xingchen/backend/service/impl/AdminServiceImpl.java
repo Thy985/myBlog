@@ -188,9 +188,9 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public void updateSetting(String key, String value) {
         BlogSetting setting = getOrCreateBlogSetting();
-        
+
         setting.setUpdateTime(LocalDateTime.now());
-        
+
         switch (key) {
             case "blogName":
                 setting.setBlogName(value);
@@ -210,10 +210,34 @@ public class AdminServiceImpl implements AdminService {
             case "seoDescription":
                 setting.setSeoDescription(value);
                 break;
+            case "beianCode":
+                setting.setBeianCode(value);
+                break;
+            case "beianLink":
+                setting.setBeianLink(value);
+                break;
+            case "github":
+                setting.setGithubHome(value);
+                break;
+            case "gitee":
+                setting.setGiteeHome(value);
+                break;
+            case "csdn":
+                setting.setCsdnHome(value);
+                break;
+            case "zhihu":
+                setting.setZhihuHome(value);
+                break;
+            case "avatar":
+                setting.setAvatar(value);
+                break;
+            case "logo":
+                setting.setLogo(value);
+                break;
             default:
                 throw new IllegalArgumentException("未知的设置项: " + key);
         }
-        
+
         if (setting.getId() == null) {
             setting.setCreateTime(LocalDateTime.now());
             blogSettingMapper.insert(setting);

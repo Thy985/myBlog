@@ -55,6 +55,17 @@
   --border-hover: #d1d5db;
 
   /* === COMPONENT TOKENS === */
+  --toggle-track: #e5e7eb;
+  --toggle-track-checked: var(--color-primary);
+  --toggle-thumb: #ffffff;
+  --toggle-border: #d1d5db;
+
+  /* === STRENGTH INDICATOR TOKENS === */
+  --strength-weak: #EF4444;
+  --strength-fair: #F97316;
+  --strength-good: #EAB308;
+  --strength-strong: #22C55E;
+
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -75,6 +86,11 @@
   --transition-normal: 250ms ease;
   --transition-slow: 400ms ease;
   --transition-bounce: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* === EASING TOKENS === */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* === GLASS TOKENS === */
   --glass-bg: rgba(255, 255, 255, 0.7);
@@ -148,6 +164,18 @@
 
 /* === DARK MODE === */
 .dark {
+  /* === COMPONENT TOKENS === */
+  --toggle-track: #334155;
+  --toggle-track-checked: var(--color-primary);
+  --toggle-thumb: #ffffff;
+  --toggle-border: #475569;
+
+  /* === STRENGTH INDICATOR TOKENS (Dark Mode) === */
+  --strength-weak: #F87171;
+  --strength-fair: #FB923C;
+  --strength-good: #FACC15;
+  --strength-strong: #4ADE80;
+
   /* === SEMANTIC TOKENS (Dark Mode) - Modern Dark Theme === */
   --bg-primary: #0F172A;
   --bg-secondary: #1E293B;

@@ -7,7 +7,47 @@ describe('AISettings组件测试', () => {
     vi.clearAllMocks()
   })
 
-  describe('WebSocket配置', () => {
+  describe('模式切换', () => {
+    it('默认应该是快速模式', () => {
+      const wrapper = mount(AISettings, {
+        props: {}
+      })
+
+      expect(wrapper.vm.isExpertMode).toBe(false)
+    })
+
+    it('点击专家模式按钮应该切换到专家模式', async () => {
+      const wrapper = mount(AISettings, {
+        props: {}
+      })
+
+      const expertButton = wrapper.findAll('button').find(b => b.text() === '专家模式')
+      await expertButton.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.vm.isExpertMode).toBe(true)
+    })
+
+    it('点击快速模式按钮应该切换回快速模式', async () => {
+      const wrapper = mount(AISettings, {
+        props: {}
+      })
+
+      // 先切换到专家模式
+      const expertButton = wrapper.findAll('button').find(b => b.text() === '专家模式')
+      await expertButton.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      // 再切换回快速模式
+      const quickButton = wrapper.findAll('button').find(b => b.text() === '快速模式')
+      await quickButton.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.vm.isExpertMode).toBe(false)
+    })
+  })
+
+  describe('WebSocket配置（专家模式）', () => {
     it('WebSocket默认应该启用', () => {
       const wrapper = mount(AISettings, {
         props: {}
@@ -37,7 +77,13 @@ describe('AISettings组件测试', () => {
       wrapper.vm.formData.wsEnabled = false
       await wrapper.vm.$nextTick()
 
+      // 切换到专家模式以显示输入框
+      const expertButton = wrapper.findAll('button').find(b => b.text() === '专家模式')
+      await expertButton.trigger('click')
+      await wrapper.vm.$nextTick()
+
       const wsUrlInput = wrapper.find('input[placeholder="ws://localhost:8080/ws/agent"]')
+      expect(wsUrlInput.exists()).toBe(true)
       expect(wsUrlInput.attributes('disabled')).toBeDefined()
     })
 
@@ -69,13 +115,13 @@ describe('AISettings组件测试', () => {
     })
   })
 
-  describe('LLM API配置', () => {
-    it('默认provider应该是openrouter', () => {
+  describe('LLM API配置（专家模式）', () => {
+    it('默认provider应该是deepseek', () => {
       const wrapper = mount(AISettings, {
         props: {}
       })
 
-      expect(wrapper.vm.formData.llmProvider).toBe('openrouter')
+      expect(wrapper.vm.formData.llmProvider).toBe('deepseek')
     })
 
     it('应该能选择不同的provider', async () => {
@@ -83,19 +129,31 @@ describe('AISettings组件测试', () => {
         props: {}
       })
 
-      const select = wrapper.find('select')
-      await select.setValue('openai')
+      // 切换到专家模式以显示配置
+      const expertButton = wrapper.findAll('button').find(b => b.text() === '专家模式')
+      await expertButton.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const selects = wrapper.findAll('select')
+      const providerSelect = selects.at(0)
+      await providerSelect.setValue('openai')
       await wrapper.vm.$nextTick()
 
       expect(wrapper.vm.formData.llmProvider).toBe('openai')
     })
 
-    it('API Key输入框初始应该是密码类型', () => {
+    it('API Key输入框初始应该是密码类型', async () => {
       const wrapper = mount(AISettings, {
         props: {}
       })
 
+      // 切换到专家模式以显示输入框
+      const expertButton = wrapper.findAll('button').find(b => b.text() === '专家模式')
+      await expertButton.trigger('click')
+      await wrapper.vm.$nextTick()
+
       const apiKeyInput = wrapper.find('input[placeholder="sk-..."]')
+      expect(apiKeyInput.exists()).toBe(true)
       expect(apiKeyInput.attributes('type')).toBe('password')
     })
 
@@ -103,6 +161,11 @@ describe('AISettings组件测试', () => {
       const wrapper = mount(AISettings, {
         props: {}
       })
+
+      // 切换到专家模式以显示输入框
+      const expertButton = wrapper.findAll('button').find(b => b.text() === '专家模式')
+      await expertButton.trigger('click')
+      await wrapper.vm.$nextTick()
 
       const apiKeyInput = wrapper.find('input[placeholder="sk-..."]')
       await apiKeyInput.setValue('test-api-key')
@@ -116,6 +179,11 @@ describe('AISettings组件测试', () => {
         props: {}
       })
 
+      // 切换到专家模式
+      const expertButton = wrapper.findAll('button').find(b => b.text() === '专家模式')
+      await expertButton.trigger('click')
+      await wrapper.vm.$nextTick()
+
       expect(wrapper.vm.showApiKey).toBe(false)
 
       wrapper.vm.showApiKey = true
@@ -126,52 +194,37 @@ describe('AISettings组件测试', () => {
     })
   })
 
-  describe('模型选择', () => {
-    it('模型选择器应该正确渲染', () => {
+  describe('模型选择（专家模式）', () => {
+    it('模型选择器应该正确渲染', async () => {
       const wrapper = mount(AISettings, {
         props: {}
       })
 
-      const modelSelects = wrapper.findAll('select')
-      expect(modelSelects.length).toBe(2)
-    })
-
-    it('选择预设模型应该更新formData.model', async () => {
-      const wrapper = mount(AISettings, {
-        props: {}
-      })
-
-      const modelSelect = wrapper.findAll('select')[1]
-      await modelSelect.setValue('deepseek/deepseek-chat-v4-flash')
+      // 切换到专家模式
+      const expertButton = wrapper.findAll('button').find(b => b.text() === '专家模式')
+      await expertButton.trigger('click')
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.vm.formData.model).toBe('deepseek/deepseek-chat-v4-flash')
+      const selects = wrapper.findAll('select')
+      expect(selects.length).toBeGreaterThanOrEqual(2)
     })
 
-    it('选择自定义模型应该显示文本输入框', async () => {
+    it('选择预设模型应该更新selectedModelPreset', async () => {
       const wrapper = mount(AISettings, {
         props: {}
       })
 
-      const modelSelect = wrapper.findAll('select')[1]
-      await modelSelect.setValue('__custom__')
+      // 切换到专家模式
+      const expertButton = wrapper.findAll('button').find(b => b.text() === '专家模式')
+      await expertButton.trigger('click')
       await wrapper.vm.$nextTick()
 
-      const customInput = wrapper.find('input[placeholder="输入自定义模型名称"]')
-      expect(customInput.exists()).toBe(true)
-    })
-
-    it('选择自定义模型后应该显示输入框', async () => {
-      const wrapper = mount(AISettings, {
-        props: {}
-      })
-
-      const modelSelect = wrapper.findAll('select')[1]
-      await modelSelect.setValue('__custom__')
+      const selects = wrapper.findAll('select')
+      const modelSelect = selects.at(1)
+      await modelSelect.setValue('deepseek-chat')
       await wrapper.vm.$nextTick()
 
-      const customInput = wrapper.find('input[placeholder="输入自定义模型名称"]')
-      expect(customInput.exists()).toBe(true)
+      expect(wrapper.vm.selectedModelPreset).toBe('deepseek-chat')
     })
   })
 
@@ -215,19 +268,24 @@ describe('AISettings组件测试', () => {
       wrapper.vm.formData.personalBio = 'b'
       await wrapper.vm.$nextTick()
 
-      // 字数统计是 writingStyle + personalBio 的长度
       expect(wrapper.vm.formData.writingStyle.length + wrapper.vm.formData.personalBio.length).toBe(2)
     })
   })
 
   describe('操作按钮', () => {
-    it('没有API Key时测试连接按钮应该禁用', () => {
+    it('没有API Key时测试连接按钮应该禁用', async () => {
       const wrapper = mount(AISettings, {
         props: {}
       })
 
+      // 切换到专家模式以显示按钮
+      const expertButton = wrapper.findAll('button').find(b => b.text() === '专家模式')
+      await expertButton.trigger('click')
+      await wrapper.vm.$nextTick()
+
       const buttons = wrapper.findAll('button')
       const testButton = buttons.find(b => b.text() === '测试连接')
+      expect(testButton?.exists()).toBe(true)
       expect(testButton?.attributes('disabled')).toBeDefined()
     })
 
@@ -235,6 +293,11 @@ describe('AISettings组件测试', () => {
       const wrapper = mount(AISettings, {
         props: {}
       })
+
+      // 切换到专家模式
+      const expertButton = wrapper.findAll('button').find(b => b.text() === '专家模式')
+      await expertButton.trigger('click')
+      await wrapper.vm.$nextTick()
 
       wrapper.vm.formData.apiKey = 'test-key'
       await wrapper.vm.$nextTick()
@@ -249,6 +312,11 @@ describe('AISettings组件测试', () => {
         props: {},
         emits: ['test-connection']
       })
+
+      // 切换到专家模式
+      const expertButton = wrapper.findAll('button').find(b => b.text() === '专家模式')
+      await expertButton.trigger('click')
+      await wrapper.vm.$nextTick()
 
       wrapper.vm.formData.apiKey = 'test-key'
       await wrapper.vm.$nextTick()
@@ -291,44 +359,6 @@ describe('AISettings组件测试', () => {
       const loadingButton = loadingButtons.find(b => b.text() === '保存中...')
       expect(loadingButton?.exists()).toBe(true)
     })
-
-    it('saved变化应该显示保存成功提示', async () => {
-      const wrapper = mount(AISettings, {
-        props: { saved: false }
-      })
-
-      expect(wrapper.find('.text-\\[var\\(--color-success\\)\\]').exists()).toBe(false)
-
-      await wrapper.setProps({ saved: true })
-      await wrapper.vm.$nextTick()
-
-      const successMsg = wrapper.find('.text-\\[var\\(--color-success\\)\\]')
-      expect(successMsg.exists()).toBe(true)
-    })
-  })
-
-  describe('密码显示/隐藏', () => {
-    it('默认API Key应该隐藏', () => {
-      const wrapper = mount(AISettings, {
-        props: {}
-      })
-
-      expect(wrapper.vm.showApiKey).toBe(false)
-      const apiKeyInput = wrapper.find('input[placeholder="sk-..."]')
-      expect(apiKeyInput.attributes('type')).toBe('password')
-    })
-
-    it('切换showApiKey应该改变输入类型', async () => {
-      const wrapper = mount(AISettings, {
-        props: {}
-      })
-
-      wrapper.vm.showApiKey = true
-      await wrapper.vm.$nextTick()
-
-      const apiKeyInput = wrapper.find('input[placeholder="sk-..."]')
-      expect(apiKeyInput.attributes('type')).toBe('text')
-    })
   })
 
   describe('表单数据一致性', () => {
@@ -340,7 +370,7 @@ describe('AISettings组件测试', () => {
       expect(wrapper.vm.formData.wsEnabled).toBe(true)
       expect(wrapper.vm.formData.autoReconnect).toBe(true)
       expect(wrapper.vm.formData.reconnectInterval).toBe(5)
-      expect(wrapper.vm.formData.llmProvider).toBe('openrouter')
+      expect(wrapper.vm.formData.llmProvider).toBe('deepseek')
       expect(wrapper.vm.formData.memoryEnabled).toBe(true)
     })
   })

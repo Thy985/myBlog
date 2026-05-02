@@ -107,9 +107,8 @@ function initApp() {
       // 初始化深色模式
       mainStore.initDarkMode()
 
-      // 同步 Element Plus 暗色主题
-      const { watchDarkModeForElementPlus } = await import('@/utils/theme')
-      watchDarkModeForElementPlus()
+      // 同步 Element Plus 暗色主题 - 使用 mainStore 的内置方法
+      mainStore.applyDarkMode()
 
       // 获取博客设置（非关键，不阻塞应用渲染）
       mainStore.getBlogSetting().catch(err => {

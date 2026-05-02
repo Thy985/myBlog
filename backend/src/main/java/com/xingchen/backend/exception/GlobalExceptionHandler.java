@@ -58,7 +58,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SaTokenException.class)
     public Result<Void> handleSecurityException(SaTokenException e) {
         log.warn("安全异常: {}", e.getMessage());
-        return Result.fail(403, "请求不安全: " + e.getMessage());
+        return Result.fail(403, "请求不安全，请重新登录");
     }
 
     /**
@@ -107,7 +107,7 @@ public class GlobalExceptionHandler {
     public Result<Void> handleException(Exception e) {
         // 记录完整异常堆栈，供调试使用
         log.error("系统异常 [{}]: {}", e.getClass().getName(), e.getMessage(), e);
-        // 生产环境对用户隐藏具体错误，但返回错误码便于排查
-        return Result.fail(500, "系统繁忙，请稍后再试（错误码：" + e.getClass().getSimpleName() + "）");
+        // 生产环境对用户隐藏具体错误信息
+        return Result.fail(500, "系统繁忙，请稍后再试");
     }
 }

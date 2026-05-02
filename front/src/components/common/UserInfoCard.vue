@@ -78,11 +78,11 @@
                       loading="lazy"
                       width="80"
                       height="80"
-                      @error="(e) => e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22%3E%3Ccircle fill=%22%23e5e7eb%22 cx=%2240%22 cy=%2240%22 r=%2240%22/%3E%3Ctext x=%2250%25%22 y=%2252%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%239ca3af%22 font-family=%22sans-serif%22 font-size=%2228%22%3E?%3C/text%3E%3C/svg%3E'"
+                      @error="handleAvatarError"
                     />
                 </div>
                 <!-- Online indicator -->
-                <div class="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-background-primary"></div>
+                <div class="absolute bottom-1 right-1 w-4 h-4 bg-[var(--color-success)] rounded-full border-2 border-background-primary"></div>
             </div>
 
             <!-- Author name - prominent display -->
@@ -190,16 +190,42 @@ import { generateSrcset, generateSizes } from '@/utils/image'
 
 const store = useMainStore()
 
-// 计算头像URL
+// 计算头像URL（优先使用用户头像，其次使用博客设置头像）
 const getAvatarUrl = computed(() => {
-  const avatar = store.setting.avatar
-  if (!avatar) {return defaultAvatar}
-  if (avatar.startsWith('http://') || avatar.startsWith('https://')) {return avatar}
-  if (avatar.startsWith('/')) {return `${import.meta.env.VITE_APP_BASE_API}${avatar}`}
-  return `${import.meta.env.VITE_APP_BASE_API}/${avatar}`
+  // 优先使用用户头像
+  const userAvatar = store.user?.avatar
+  if (userAvatar) {
+    if (userAvatar.startsWith('http://') || userAvatar.startsWith('https://')) {
+      return userAvatar
+    }
+    if (userAvatar.startsWith('/')) {
+      const baseApi = import.meta.env.VITE_APP_BASE_API.replace(/\/$/, '')
+      return `${baseApi}${userAvatar}`
+    }
+    return `${import.meta.env.VITE_APP_BASE_API}/${userAvatar}`
+  }
+
+  // 其次使用博客设置头像
+  const settingAvatar = store.setting?.avatar
+  if (!settingAvatar) {return defaultAvatar}
+  if (settingAvatar.startsWith('http://') || settingAvatar.startsWith('https://')) {
+    return settingAvatar
+  }
+  if (settingAvatar.startsWith('/')) {
+    const baseApi = import.meta.env.VITE_APP_BASE_API.replace(/\/$/, '')
+    return `${baseApi}${settingAvatar}`
+  }
+  return `${import.meta.env.VITE_APP_BASE_API}/${settingAvatar}`
 })
 
 const defaultAvatar = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"%3E%3Ccircle fill="%23e5e7eb" cx="40" cy="40" r="40"/%3E%3Ctext x="50%25" y="52%25" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-family="sans-serif" font-size="28"%3E?%3C/text%3E%3C/svg%3E'
+
+// 处理头像加载错误
+const handleAvatarError = (e) => {
+  // 使用本地默认头像图片代替 data URL
+  e.target.src = new URL('@/assets/头像.jpg', import.meta.url).href
+  e.target.onerror = null // 防止无限循环
+}
 
 </script>
 

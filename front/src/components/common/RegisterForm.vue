@@ -337,24 +337,32 @@ defineExpose({
 .register-steps {
   display: flex;
   justify-content: center;
-  gap: 32px;
+  align-items: center;
+  gap: 0;
   margin-bottom: 32px;
+  position: relative;
+}
+
+.register-steps::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: calc(50% - 80px);
+  right: calc(50% - 80px);
+  height: 2px;
+  background: var(--border-color);
+  z-index: 0;
 }
 
 .step {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
-  color: var(--text-muted);
-  transition: color 0.2s ease;
-}
-
-.step.active {
-  color: var(--color-primary);
-}
-
-.step.completed {
-  color: var(--color-success);
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  max-width: 100px;
 }
 
 .step-dot {
@@ -366,15 +374,17 @@ defineExpose({
   justify-content: center;
   font-size: 12px;
   font-weight: 600;
-  background: var(--bg-tertiary);
+  background: var(--bg-primary);
   border: 2px solid var(--border-color);
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
 }
 
 .step.active .step-dot {
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: white;
+  box-shadow: 0 0 0 4px var(--color-primary-subtle);
 }
 
 .step.completed .step-dot {
@@ -384,13 +394,37 @@ defineExpose({
 }
 
 .step-label {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+}
+
+.step.active .step-label {
+  color: var(--color-primary);
+}
+
+.step.completed .step-label {
+  color: var(--color-success);
 }
 
 /* Form items */
 .el-form-item {
   margin-bottom: 20px;
+}
+
+.el-form-item :deep(.el-input__wrapper) {
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 1px var(--border-color);
+  transition: box-shadow var(--transition-fast);
+}
+
+.el-form-item :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--border-hover);
+}
+
+.el-form-item :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 2px var(--color-primary-subtle), 0 0 0 1px var(--color-primary) !important;
 }
 
 /* Verification code */
@@ -402,6 +436,7 @@ defineExpose({
 .verification-code-button {
   white-space: nowrap;
   min-width: 120px;
+  border-radius: var(--radius-md);
 }
 
 .verification-hint {
@@ -423,15 +458,17 @@ defineExpose({
   padding: 14px;
   font-size: 16px;
   font-weight: 500;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--color-primary);
   border: none;
   color: white;
-  transition: background var(--transition-fast);
+  transition: background var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .register-button:hover:not(:disabled) {
   background: var(--color-primary-hover);
+  box-shadow: var(--shadow-primary);
+  transform: translateY(-1px);
 }
 
 .register-button:focus-visible {
@@ -439,13 +476,19 @@ defineExpose({
   outline-offset: 2px;
 }
 
+.register-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .back-button {
   padding: 14px 24px;
   font-size: 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  background: transparent;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .back-button:hover {
@@ -460,13 +503,13 @@ defineExpose({
 }
 
 .login-link span {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   margin-right: 8px;
 }
 
 .login-button {
   font-weight: 500;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  color: var(--color-primary);
 }
 
 .login-button:hover {
@@ -478,12 +521,17 @@ defineExpose({
 }
 
 @media (max-width: 768px) {
-  .register-steps {
-    gap: 16px;
+  .register-steps::before {
+    left: calc(50% - 60px);
+    right: calc(50% - 60px);
+  }
+
+  .step {
+    max-width: 70px;
   }
 
   .step-label {
-    display: none;
+    font-size: 11px;
   }
 
   .verification-code-container {

@@ -3,6 +3,7 @@ package com.xingchen.backend.controller;
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.stp.StpUtil;
+import com.xingchen.backend.ai.llm.UserLLMProviderManager;
 import com.xingchen.backend.common.Result;
 import com.xingchen.backend.dto.ApiKeyConfigDTO;
 import com.xingchen.backend.entity.UserApiKey;
@@ -22,6 +23,7 @@ public class UserApiKeyController {
 
     private final UserApiKeyService userApiKeyService;
     private final AIServiceImplV3 aiService;
+    private final UserLLMProviderManager userLLMProviderManager;
 
     @SaCheckLogin
     @GetMapping
@@ -57,7 +59,7 @@ public class UserApiKeyController {
         UserApiKey apiKey = new UserApiKey();
         apiKey.setUserId(userId);
         apiKey.setProvider(config.getProvider());
-        apiKey.setApiKey(config.getApiKey());
+        apiKey.setApiKeyEncrypted(config.getApiKey());
         apiKey.setBaseUrl(config.getBaseUrl());
         apiKey.setDefaultModel(config.getDefaultModel());
         apiKey.setQuota(config.getQuota());
@@ -72,6 +74,7 @@ public class UserApiKeyController {
         userApiKeyService.saveOrUpdate(apiKey);
 
         aiService.clearUserModelCache(userId);
+        userLLMProviderManager.clearUserProviderCache(userId);
 
         return Result.success();
     }
@@ -107,17 +110,12 @@ public class UserApiKeyController {
     @SaCheckLogin
     @PostMapping("/test")
     public Result<Map<String, Object>> testApiKey(@RequestBody ApiKeyConfigDTO config) {
-        Map<String, Object> result = new HashMap<>();
-
-        if (config.getApiKey() == null || config.getApiKey().isEmpty()) {
-            result.put("success", false);
-            result.put("message", "API Key 不能为空");
-            return Result.success(result);
-        }
-
-        result.put("success", true);
-        result.put("message", "API Key 格式验证通过！保存成功后即可使用。");
-
+        Map<String, Object> result = userApiKeyService.validateApiKey(
+                config.getProvider(),
+                config.getApiKey(),
+                config.getBaseUrl(),
+                config.getDefaultModel()
+        );
         return Result.success(result);
     }
 

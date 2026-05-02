@@ -70,7 +70,7 @@ export function generateBackupCodes() {
  * @returns {Promise}
  */
 export function testAiConnection(data) {
-  return request.post('/ai/test-connection', data)
+  return request.post('/user/apikey/test', data)
 }
 
 /**
@@ -79,5 +79,57 @@ export function testAiConnection(data) {
  * @returns {Promise}
  */
 export function saveAiConfig(data) {
-  return request.put('/ai/config', data)
+  return request.put('/user/apikey', data)
+}
+
+export function getUserArticleList(userId, params = {}) {
+  return request.get(`/article/user/${userId}`, { params })
+}
+
+export function getUserCategoryList() {
+  return request.get('/category/user')
+}
+
+export function createCategory(data) {
+  return request.post('/category', data)
+}
+
+export function updateCategory(id, data) {
+  return request.put(`/category/${id}`, data)
+}
+
+export function deleteCategory(id) {
+  return request.delete(`/category/${id}`)
+}
+
+export function getUserTagList() {
+  return request.get('/tag/user')
+}
+
+export function createTag(data) {
+  return request.post('/tag', data)
+}
+
+export function updateTag(id, data) {
+  return request.put(`/tag/${id}`, data)
+}
+
+export function deleteTag(id) {
+  return request.delete(`/tag/${id}`)
+}
+
+export function getUserCommentList(params = {}) {
+  return request.get('/comment/user', { params })
+}
+
+export function updateComment(id, data) {
+  return request.put(`/comment/${id}`, data)
+}
+
+export function getUserMediaList(params = {}) {
+  return request.get('/file/list', { params })
+}
+
+export function deleteMedia(id) {
+  return request.delete(`/file/${id}`)
 }

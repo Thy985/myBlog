@@ -161,38 +161,6 @@
             <version>0.35.0</version>
         </dependency>
 
-        <!-- Qdrant 向量数据库客户端 -->
-        <dependency>
-            <groupId>io.qdrant</groupId>
-            <artifactId>client</artifactId>
-            <version>1.11.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.grpc</groupId>
-                    <artifactId>grpc-protobuf-lite</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <!-- grpc-protobuf (full) - 解决 MapFieldReflectionAccessor 缺失问题 -->
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-protobuf</artifactId>
-            <version>1.65.1</version>
-        </dependency>
-
-        <!-- OpenSearch 客户端 -->
-        <dependency>
-            <groupId>org.opensearch.client</groupId>
-            <artifactId>opensearch-java</artifactId>
-            <version>2.11.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.opensearch.client</groupId>
-            <artifactId>opensearch-rest-client</artifactId>
-            <version>2.11.1</version>
-        </dependency>
-
         <!-- RabbitMQ -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

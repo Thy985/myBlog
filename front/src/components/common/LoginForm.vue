@@ -6,7 +6,6 @@
       :rules="formRules"
       label-position="top"
       class="login-form"
-      autocomplete="off"
       @keydown.enter="handleSubmit"
     >
       <el-form-item prop="account">
@@ -16,6 +15,7 @@
           size="large"
           prefix-icon="User"
           tabindex="1"
+          autocomplete="username"
         />
       </el-form-item>
 
@@ -28,12 +28,15 @@
           size="large"
           prefix-icon="Lock"
           tabindex="2"
+          autocomplete="current-password"
         />
       </el-form-item>
 
       <el-form-item prop="captcha">
         <LoginCaptcha
+          ref="captchaRef"
           v-model="formData.captcha"
+          @update:captcha-id="formData.captchaId = $event"
           @submit="handleSubmit"
         />
       </el-form-item>
@@ -43,7 +46,7 @@
           v-model="formData.remember"
           class="remember-checkbox"
           tabindex="3"
-        >记住密码</el-checkbox>
+        >保持登录状态</el-checkbox>
         <el-link
           type="primary"
           class="forgot-password-link"
@@ -105,12 +108,14 @@ const emit = defineEmits([
 ])
 
 const formRef = ref(null)
+const captchaRef = ref(null)
 
 const formData = reactive({
   account: '',
   password: '',
   remember: false,
-  captcha: ''
+  captcha: '',
+  captchaId: ''
 })
 
 const formRules = {
@@ -128,7 +133,8 @@ const handleSubmit = async () => {
       account: formData.account,
       password: formData.password,
       remember: formData.remember,
-      captcha: formData.captcha
+      captcha: formData.captcha,
+      captchaId: formData.captchaId
     })
   } catch (error) {
     // 表单验证失败
@@ -143,9 +149,16 @@ const resetForm = () => {
   formRef.value?.resetFields()
 }
 
+const refreshCaptcha = () => {
+  if (captchaRef.value) {
+    captchaRef.value.refreshCaptcha()
+  }
+}
+
 defineExpose({
   validate,
   resetForm,
+  refreshCaptcha,
   formData
 })
 </script>
@@ -159,6 +172,42 @@ defineExpose({
   width: 100%;
 }
 
+.login-form :deep(.el-input__wrapper) {
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 1px var(--border-color);
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.login-form :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--border-hover);
+}
+
+.login-form :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 2px var(--color-primary-subtle), 0 0 0 1px var(--color-primary) !important;
+}
+
+.login-form :deep(.el-input__wrapper.is-focus .el-input__prefix-icon) {
+  color: var(--color-primary);
+  transition: color var(--transition-fast);
+}
+
+.login-form :deep(.el-input__prefix-icon) {
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+}
+
+.login-form :deep(.el-form-item__error) {
+  font-size: 12px;
+  padding-top: 4px;
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
 .login-form-actions {
   display: flex;
   justify-content: space-between;
@@ -167,19 +216,18 @@ defineExpose({
 }
 
 .remember-checkbox {
-    font-size: 14px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
 }
 
 .remember-checkbox:hover {
-    color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .forgot-password-link {
   font-size: 14px;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  color: var(--color-primary);
 }
 
 .forgot-password-link:hover {
@@ -187,24 +235,36 @@ defineExpose({
 }
 
 .login-button {
-    width: 100%;
-    padding: 14px;
-    font-size: 16px;
-    font-weight: 500;
-    border-radius: 8px;
-    background: var(--color-primary);
-    border: none;
-    color: white;
-    transition: background var(--transition-fast);
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  border: none;
+  color: white;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .login-button:hover:not(:disabled) {
-    background: var(--color-primary-hover);
+  background: var(--color-primary-hover);
+  box-shadow: var(--shadow-primary);
+  transform: translateY(-1px);
+}
+
+.login-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
 .login-button:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.login-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .register-link {
@@ -214,13 +274,13 @@ defineExpose({
 }
 
 .register-link span {
-    color: var(--text-secondary);
-    margin-right: 8px;
+  color: var(--text-muted);
+  margin-right: 8px;
 }
 
 .register-button {
   font-weight: 500;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  color: var(--color-primary);
 }
 
 .register-button:hover {

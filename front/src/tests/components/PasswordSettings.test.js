@@ -43,7 +43,7 @@ describe('PasswordSettings组件测试', () => {
         props: {}
       })
 
-      expect(wrapper.find('.flex.gap-1.mb-1').exists()).toBe(false)
+      expect(wrapper.find('.flex.gap-1.mb-2').exists()).toBe(false)
     })
 
     it('输入密码后显示强度指示器', async () => {
@@ -54,7 +54,7 @@ describe('PasswordSettings组件测试', () => {
       await wrapper.find('input[placeholder="请输入新密码"]').setValue('Test1234')
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.find('.flex.gap-1.mb-1').exists()).toBe(true)
+      expect(wrapper.find('.flex.gap-1.mb-2').exists()).toBe(true)
     })
 
     it('强度文本应该正确显示', async () => {

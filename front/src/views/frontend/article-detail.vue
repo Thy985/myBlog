@@ -372,11 +372,18 @@ async function toggleCollect() {
 // Component mount
 onMounted(() => {
   loadAllData()
-  window.addEventListener('scroll', handleScroll)
+  window.addEventListener('scroll', handleScroll, { passive: true })
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+})
+
+watch(() => route.params.id, (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    loadAllData()
+    scrollToTop()
+  }
 })
 </script>
 

@@ -21,29 +21,42 @@
 ```
 Myblog/
 ├── backend/              # 后端项目（Spring Boot）
-│   ├── module-admin/    # 后台管理模块
-│   ├── module-common/   # 公共模块（实体、工具类）
-│   ├── web/            # 前台展示模块
-│   ├── sql/            # 数据库脚本
-│   ├── .env.example    # 环境变量模板
-│   ├── pom.xml         # Maven 配置
-│   └── README.md       # 后端文档
+│   ├── src/main/java/   # 源代码
+│   │   ├── agent/       # AI 编排层（Orchestrator, Session, Workflow）
+│   │   ├── ai/          # AI 能力层
+│   │   │   ├── intent/  # 意图分类（Regex/Embedding/Hybrid）
+│   │   │   ├── llm/     # LLM Provider（OpenAI/GLM/Claude/Baidu/Ollama）
+│   │   │   ├── tool/    # 工具系统
+│   │   │   ├── memory/  # 三级记忆系统
+│   │   │   └── model/   # 数据模型
+│   │   ├── controller/  # REST API 控制器
+│   │   ├── service/    # 业务服务层
+│   │   ├── mapper/     # MyBatis-Flex 数据访问
+│   │   ├── entity/dto/vo/  # 数据模型
+│   │   ├── config/     # 配置类
+│   │   └── vector/     # 向量数据库集成
+│   ├── src/main/resources/  # 配置文件
+│   └── pom.xml         # Maven 配置
 │
 ├── front/               # 前端项目（Vue 3 + Vite）
 │   ├── src/            # 源代码
-│   │   ├── api/        # API 接口
-│   │   ├── components/ # 组件
-│   │   ├── views/      # 页面
-│   │   ├── stores/     # 状态管理
-│   │   └── router/     # 路由
-│   ├── .env.example    # 环境变量模板
-│   └── README.md       # 前端文档
+│   │   ├── api/        # API 接口定义
+│   │   ├── components/ # Vue 组件
+│   │   │   └── business/agent/  # 智能体 UI 组件
+│   │   ├── views/      # 页面（frontend/ & admin/）
+│   │   ├── stores/     # Pinia 状态管理
+│   │   ├── composables/ # 组合式函数
+│   │   ├── layouts/    # 布局组件
+│   │   └── router/     # 路由配置
+│   └── package.json
 │
 ├── docs/               # 项目文档
-│   ├── 开发文档/       # 开发指南
-│   ├── 设计文档/       # 设计文档
-│   ├── 配置文档/       # 配置说明
-│   └── 整理报告/       # 优化报告
+│   ├── ARCHITECTURE.md         # 系统架构
+│   ├── AGENT_ARCHITECTURE.md   # AI 智能体架构
+│   ├── API接口文档.md           # API 文档
+│   ├── DEPLOYMENT.md           # 部署指南
+│   ├── CHANGELOG.md            # 变更日志
+│   └── myblog-api-openapi.yaml # OpenAPI 规范
 │
 └── README.md           # 项目总览（本文件）
 ```
@@ -51,17 +64,22 @@ Myblog/
 ## 🛠️ 技术栈
 
 ### 后端
-- **框架**: Spring Boot 2.7
+- **框架**: Spring Boot 3.4.x
 - **ORM**: MyBatis-Flex
-- **数据库**: MySQL 8.0
-- **缓存**: Redis 5.0+
+- **主数据库**: MySQL 8.0
+- **向量数据库**: PostgreSQL 15+ (pgvector) / Qdrant
+- **缓存**: Redis 6.0+
+- **消息队列**: RabbitMQ
 - **对象存储**: MinIO
 - **邮件**: Spring Mail
-- **安全**: Spring Security + JWT
-- **监控**: Druid + Actuator
+- **安全**: Sa-Token
+- **监控**: Druid + Actuator + Micrometer
+- **AI 框架**: LangChain4j
+- **智能体**: 分层编排架构 (AI层 + Agent层)
+- **LLM 支持**: GLM / OpenAI / Claude / Baidu / Ollama / OpenRouter
 
 ### 前端
-- **框架**: Vue 3.3
+- **框架**: Vue 3.3+
 - **构建**: Vite 4.x
 - **语言**: TypeScript
 - **UI**: Element Plus
@@ -74,14 +92,14 @@ Myblog/
 
 ### 环境要求
 
-- **后端**: JDK 11+, Maven 3.6+, MySQL 8.0+, Redis 5.0+
-- **前端**: Node.js 16+, npm 8+ 或 pnpm 7+
+- **后端**: JDK 17+, Maven 3.8+, MySQL 8.0+, PostgreSQL 15+, Redis 6.0+
+- **前端**: Node.js 18+, pnpm 8+
 
 ### 1️⃣ 克隆项目
 
 ```bash
-git clone https://github.com/yourusername/myblog.git
-cd myblog
+git clone https://github.com/Thy985/myBlog.git
+cd myBlog
 ```
 
 ### 2️⃣ 后端配置
@@ -131,11 +149,15 @@ npm run dev
 
 ## 📖 详细文档
 
-- [后端开发文档](backend/README.md)
-- [前端开发文档](front/README.md)
-- [项目结构最佳实践](docs/整理报告/项目结构最佳实践建议.md)
-- [快速开始指南](docs/开发文档/Myblog快速开始指南.md)
-- [API 接口文档](docs/myblog-api-openapi.yaml)
+- [系统架构](./ARCHITECTURE.md) - 整体架构设计
+- [AI 智能体架构](./AGENT_ARCHITECTURE.md) - Agent 核心架构
+- [API 接口文档](./API接口文档.md) - REST API 详细说明
+- [OpenAPI 规范](./myblog-api-openapi.yaml) - API 规范文件
+- [部署指南](./DEPLOYMENT.md) - 开发/生产环境部署
+- [变更日志](./CHANGELOG.md) - 版本历史
+- [贡献指南](./CONTRIBUTING.md) - 如何参与贡献
+- [页面跳转指南](./开发文档/页面跳转指南.md) - 前端路由机制
+- [用户使用指南](./开发文档/用户使用指南文档.md) - 用户操作手册
 
 ## 📦 Git 提交规范
 
@@ -213,10 +235,12 @@ docker-compose up -d
 ```
 
 这将启动：
-- MySQL 数据库
+- MySQL 8.0 数据库
+- PostgreSQL（向量数据 + pgvector）
 - Redis 缓存
 - MinIO 对象存储
-- Spring Boot 应用
+- RabbitMQ 消息队列
+- Spring Boot 后端
 
 ### 分别部署
 
@@ -242,6 +266,7 @@ docker run -d -p 80:80 myblog-frontend
 - ✅ 评论系统
 - ✅ 用户注册/登录
 - ✅ 个人中心
+- ✅ **AI 智能体助手** - 悬浮对话面板，支持文章生成、内容优化、智能问答
 
 ### 后台功能
 - ✅ 文章管理（增删改查）
@@ -250,6 +275,17 @@ docker run -d -p 80:80 myblog-frontend
 - ✅ 用户管理
 - ✅ 系统配置
 - ✅ 数据统计
+- ✅ **AI 智能体配置** - 模型管理、工具配置、知识库管理
+
+### AI 智能体功能
+- ✅ 智能对话 - 自然语言交互，理解用户意图
+- ✅ 文章生成 - 根据主题自动生成 SEO 优化文章
+- ✅ 内容优化 - 润色、扩写、改写现有文章
+- ✅ 工具调用 - 文章查询、编辑、发布、删除等操作
+- ✅ 知识检索 - RAG 检索增强，基于知识库回答
+- ✅ 多模型支持 - OpenAI、GLM、Baidu、Ollama 等
+- ✅ 流式响应 - 实时打字机效果，思考过程可视化
+- ✅ 会话管理 - 用户隔离、历史记录、上下文记忆
 
 ## 🤝 贡献
 
@@ -261,23 +297,38 @@ docker run -d -p 80:80 myblog-frontend
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 开启 Pull Request
 
+## 📚 文档
+
+- [系统架构文档](./ARCHITECTURE.md)
+- [AI 智能体架构](./AGENT_ARCHITECTURE.md)
+- [API 接口文档](./API接口文档.md)
+- [部署指南](./DEPLOYMENT.md)
+- [变更日志](./CHANGELOG.md)
+
 ## 📄 许可证
 
 本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
 
 ## 👤 作者
 
-- **Your Name** - [GitHub](https://github.com/yourusername)
+- **Thy985** - [GitHub](https://github.com/Thy985/myBlog)
 
 ## 🙏 致谢
 
 感谢所有贡献者和开源项目的支持！
 
+## 📚 相关文档
+
+- [智能体架构文档](./AGENT_ARCHITECTURE.md) - AI Agent 详细架构设计
+- [API 接口文档](./API接口文档.md) - 完整的 API 接口说明
+- [部署指南](./DEPLOYMENT.md) - 环境搭建和部署教程
+- [系统架构](./ARCHITECTURE.md) - 整体系统架构设计
+
 ## 📮 联系方式
 
-- Email: your.email@example.com
-- Blog: https://yourblog.com
-- Issues: https://github.com/yourusername/myblog/issues
+- Email: 1850833838@qq.com
+- Blog: https://xingchen.cloud
+- Issues: https://github.com/Thy985/myBlog/issues
 
 ---
 
