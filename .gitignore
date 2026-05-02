@@ -256,3 +256,4 @@ nginx.conf
 nginx_api.conf
 deploy*
 !deploy/.gitkeep
+.claude/settings.local.json
