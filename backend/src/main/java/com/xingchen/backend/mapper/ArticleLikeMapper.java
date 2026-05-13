@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.List;
+
 @Mapper
 public interface ArticleLikeMapper extends BaseMapper<ArticleLike> {
 
@@ -21,4 +23,10 @@ public interface ArticleLikeMapper extends BaseMapper<ArticleLike> {
 
     @Select("SELECT COUNT(*) FROM t_article_like WHERE user_id = #{userId}")
     Long selectCountByUserId(@Param("userId") Long userId);
+
+    @Delete("DELETE FROM t_article_like WHERE article_id = #{articleId}")
+    int deleteByArticleId(@Param("articleId") Long articleId);
+
+    @Select("<script>SELECT article_id FROM t_article_like WHERE user_id = #{userId} AND article_id IN <foreach collection='articleIds' item='id' open='(' separator=',' close=')'>#{id}</foreach></script>")
+    List<Long> selectArticleIdsByUserAndArticleIds(@Param("userId") Long userId, @Param("articleIds") List<Long> articleIds);
 }

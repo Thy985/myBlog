@@ -30,4 +30,7 @@ public class ArticleListVO {
     private String authorAvatar;
     private String categoryName;
     private List<String> tagNames;
+
+    private Boolean isLiked;
+    private Boolean isCollected;
 }

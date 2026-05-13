@@ -1,88 +1,74 @@
 <template>
     <div class="container mx-auto max-w-screen-xl mt-8 px-4">
-        <div class="bg-background-primary border border-border-color rounded-xl shadow-md overflow-hidden">
-            <div class="bg-primary-subtle border-b border-border-color p-6">
+        <div class="bg-background-primary border border-border-color rounded-xl shadow-md overflow-hidden user-page-card">
+            <div class="bg-primary-subtle border-b border-border-color p-6 card-header">
                 <h1 class="text-2xl font-bold text-text-primary">我的媒体库</h1>
                 <p class="text-text-secondary mt-2">管理您上传的文件</p>
             </div>
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <button 
-                            class="btn btn-primary px-4 py-2 text-sm font-medium transition-all duration-300 hover:scale-105"
-                            @click="showUploadDialog = true"
-                        >
-                            <svg class="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.994 19.944a1 1 0 0 0 1.05-.58l1.006-1.937a1 1 0 0 0-.364-1.293L16.273 15.09l-1.91-1.021a2.995 2.995 0 0 0-1.998-.524 2.995 2.995 0 0 0-1.998.524l-1.91 1.021-1.056 1.056a1 1 0 0 0-.28.618l-.154 1.543a1 1 0 0 0 1.182 1.182l1.543-.154a1 1 0 0 0 .618-.28l1.056-1.056 1.021 1.91a1 1 0 0 0 1.293.364l1.937-1.006a1 1 0 0 0 .58-1.05Z" />
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.05 3.05a2.5 2.5 0 0 1 3.535 0l1.414 1.414a2.5 2.5 0 0 1 0 3.535l-8.586 8.586A2 2 0 0 0 4 18h4a1 1 0 0 0 1-1v-4a2.5 2.5 0 0 1 0-3.535l1.414-1.414a2.5 2.5 0 0 1 3.535 0l4.243 4.243a1 1 0 0 0 1.414 0l2.829-2.829a1 1 0 0 0 0-1.414l-4.243-4.243a2.5 2.5 0 0 1 0-3.535l1.414-1.414a2.5 2.5 0 0 1 3.535 0l1.414 1.414a2.5 2.5 0 0 1 0 3.535l-.822.822" />
-                            </svg>
-                            上传文件
-                        </button>
-                    </div>
-                    <div class="flex gap-2">
-                        <input 
-                            v-model="searchKeyword"
-                            type="text"
-                            placeholder="搜索文件"
-                            class="input input-outline px-3 py-2 text-sm"
-                        >
-                        <button 
-                            class="btn btn-outline px-3 py-2 text-sm"
-                            @click="searchFiles"
-                        >
-                            搜索
-                        </button>
-                    </div>
+            <div class="p-6 card-body">
+                <div class="flex justify-end mb-6 user-page-mb-6">
+                    <button
+                        class="btn btn-primary px-4 py-2 text-sm font-medium transition-all duration-300 hover:scale-105"
+                        @click="showUploadDialog = true"
+                    >
+                        <svg class="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        上传文件
+                    </button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div v-if="files.length === 0" class="col-span-full py-16 text-center text-text-secondary">
-                        暂无文件
+
+                <div v-if="loading" class="user-page-loading">
+                    <div class="user-page-loading-spinner"></div>
+                </div>
+
+                <div v-else class="space-y-4">
+                    <div v-if="files.length === 0" class="user-page-empty">
+                        <svg class="user-page-empty-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2Z" />
+                        </svg>
+                        <h3 class="user-page-empty-title">暂无文件</h3>
+                        <p class="user-page-empty-desc">点击上方按钮上传您的第一个文件</p>
                     </div>
-                    <div v-for="file in files" :key="file.id" class="border border-border-color rounded-lg overflow-hidden hover:shadow-md transition-all duration-300">
-                        <div class="p-4">
-                            <div class="flex justify-between items-start mb-3">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-12 h-12 rounded-full bg-primary-subtle flex items-center justify-center">
-                                        <svg v-if="file.type.startsWith('image/')" class="w-6 h-6 text-primary-color" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.994 19.944a1 1 0 0 0 1.05-.58l1.006-1.937a1 1 0 0 0-.364-1.293L16.273 15.09l-1.91-1.021a2.995 2.995 0 0 0-1.998-.524 2.995 2.995 0 0 0-1.998.524l-1.91 1.021-1.056 1.056a1 1 0 0 0-.28.618l-.154 1.543a1 1 0 0 0 1.182 1.182l1.543-.154a1 1 0 0 0 .618-.28l1.056-1.056 1.021 1.91a1 1 0 0 0 1.293.364l1.937-1.006a1 1 0 0 0 .58-1.05Z" />
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div v-for="file in files" :key="file.id" class="border border-border-color rounded-lg overflow-hidden hover:shadow-md transition-all duration-300">
+                            <div class="p-4">
+                                <div class="flex items-start gap-3">
+                                    <div class="w-12 h-12 rounded-lg bg-primary-subtle flex items-center justify-center flex-shrink-0">
+                                        <svg v-if="file.type?.startsWith('image/')" class="w-6 h-6 text-primary-color" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2 1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z" />
                                         </svg>
-                                        <svg v-else-if="file.type.startsWith('video/')" class="w-6 h-6 text-primary-color" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 15a.75.75 0 0 1-.75-.75v-7.5A.75.75 0 0 1 10 6h.008a2 2 0 0 1 1.992 2v1.056a2 2 0 0 1-.555 1.437l-.69 1.039a2 2 0 0 0-.555 1.44V14.25A.75.75 0 0 1 10 15Z" />
-                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v-2.25A2.25 2.25 0 0 1 5.25 12H10m0 0v3.75m0-3.75H5.25m10.5 3H19v-3a2 2 0 0 0-2-2H5.25a2 2 0 0 0-2 2v3m14.5 0v-2.25a2.25 2.25 0 0 0-2.25-2.25H15m0 0H8.75m4.5 0H15" />
-                                        </svg>
-                                        <svg v-else-if="file.type.startsWith('audio/')" class="w-6 h-6 text-primary-color" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 11.686a.5.5 0 0 1-.447.283l-7-2a.5.5 0 0 1-.316-.948l7-2a.5.5 0 0 1 .763.445v4.926Z" />
-                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.5 6v10a1.5 1.5 0 0 1-3 0V6a1.5 1.5 0 0 1 3 0Z" />
-                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.5 6v10a1.5 1.5 0 0 1-3 0V6a1.5 1.5 0 0 1 3 0Z" />
-                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.5 6v10a1.5 1.5 0 0 1-3 0V6a1.5 1.5 0 0 1 3 0Z" />
+                                        <svg v-else-if="file.type?.startsWith('video/')" class="w-6 h-6 text-primary-color" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v2.764a1 1 0 0 1-1.447.894L15 14M3 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8Z" />
                                         </svg>
                                         <svg v-else class="w-6 h-6 text-primary-color" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4Zm12 12H4m10-7h-4m4 0-4-4m4 4-4 4" />
+                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 0 0 2-2V9.414a1 1 0 0 0-.293-.707l-5.414-5.414A1 1 0 0 0 12.586 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2Z" />
                                         </svg>
                                     </div>
-                                    <div>
-                                        <h3 class="font-medium text-text-primary text-sm truncate max-w-[200px]">{{ file.name }}</h3>
-                                        <p class="text-xs text-text-secondary">
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="font-medium text-text-primary text-sm truncate" :title="file.name">{{ file.name }}</h3>
+                                        <p class="text-xs text-text-secondary mt-1">
                                             {{ formatFileSize(file.size) }}
                                         </p>
                                     </div>
                                 </div>
-                                <div class="flex gap-1">
-                                    <button 
-                                        class="btn btn-outline btn-sm px-2 py-1 text-xs"
-                                        @click="previewFile(file.id)"
+                                <div class="flex gap-2 mt-3">
+                                    <button
+                                        v-if="file.type?.startsWith('image/')"
+                                        class="btn btn-outline btn-sm px-2 py-1 text-xs flex-1"
+                                        @click="previewFile(file)"
                                     >
                                         预览
                                     </button>
-                                    <button 
-                                        class="btn btn-outline btn-sm px-2 py-1 text-xs"
-                                        @click="copyFileUrl(file.id)"
+                                    <button
+                                        class="btn btn-outline btn-sm px-2 py-1 text-xs flex-1"
+                                        @click="copyFileUrl(file)"
                                     >
                                         复制链接
                                     </button>
-                                    <button 
-                                        class="btn btn-outline btn-sm px-2 py-1 text-xs text-danger-color"
-                                        @click="deleteFile(file.id)"
+                                    <button
+                                        class="btn btn-outline btn-sm px-2 py-1 text-xs text-danger-color flex-1"
+                                        @click="handleDeleteFile(file)"
                                     >
                                         删除
                                     </button>
@@ -91,45 +77,120 @@
                         </div>
                     </div>
                 </div>
-                <div class="mt-6 flex justify-between items-center">
+
+                <div v-if="!loading && totalPages > 1" class="mt-6 flex justify-between items-center user-page-mt-6">
                     <p class="text-sm text-text-secondary">
                         共 {{ total }} 条记录
                     </p>
-                    <div class="flex gap-1">
-                        <button 
-                            v-for="page in totalPages" 
+                    <div class="flex gap-1 user-page-gap-2">
+                        <button
+                            class="user-page-pagination-btn"
+                            :disabled="currentPage === 1"
+                            @click="changePage(currentPage - 1)"
+                        >
+                            上一页
+                        </button>
+                        <button
+                            v-for="page in visiblePages"
                             :key="page"
                             :class="[
-                                'px-3 py-1 rounded text-sm',
-                                currentPage === page ? 'bg-primary-color text-white' : 'border border-border-color hover:bg-primary-subtle'
+                                'user-page-pagination-btn',
+                                page === currentPage ? 'active' : '',
+                                page === '...' ? 'user-page-pagination-ellipsis' : ''
                             ]"
-                            @click="changePage(page)"
+                            :disabled="page === '...'"
+                            @click="page !== '...' && changePage(page)"
                         >
                             {{ page }}
+                        </button>
+                        <button
+                            class="user-page-pagination-btn"
+                            :disabled="currentPage === totalPages"
+                            @click="changePage(currentPage + 1)"
+                        >
+                            下一页
                         </button>
                     </div>
                 </div>
             </div>
         </div>
+
+        <el-dialog v-model="previewVisible" title="文件预览" width="800px">
+            <div class="flex justify-center">
+                <img v-if="previewFile?.type?.startsWith('image/')" :src="previewFile.url" :alt="previewFile.name" class="max-w-full" />
+                <video v-else-if="previewFile?.type?.startsWith('video/')" :src="previewFile.url" controls class="max-w-full"></video>
+                <div v-else class="text-center py-8">
+                    <p class="text-text-secondary">该文件类型不支持预览</p>
+                </div>
+            </div>
+        </el-dialog>
+
+        <el-dialog v-model="showUploadDialog" title="上传文件" width="500px">
+            <div class="py-4">
+                <el-upload
+                    class="upload-demo"
+                    drag
+                    :action="uploadUrl"
+                    :headers="{ Authorization: 'Bearer ' + token }"
+                    :on-success="handleUploadSuccess"
+                    :on-error="handleUploadError"
+                    multiple
+                >
+                    <div class="el-upload__text">
+                        拖拽文件到此处或 <em>点击上传</em>
+                    </div>
+                </el-upload>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import logger from '@/utils/logger'
+import { confirmDelete, showSuccess } from '@/utils'
 import { getUserMediaList, deleteMedia as apiDeleteMedia } from '@/api/frontend/user'
 import { API_STATUS } from '@/composables/api'
+import '@/assets/css/common-user-pages.css'
 
 const files = ref([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(12)
-const searchKeyword = ref('')
-const showUploadDialog = ref(false)
 const loading = ref(false)
+const showUploadDialog = ref(false)
+const previewVisible = ref(false)
+const previewFile = ref(null)
+const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 
-const totalPages = ref(0)
+const uploadUrl = import.meta.env.VITE_APP_BASE_URL + '/file/upload'
+const token = localStorage.getItem('token') || ''
+
+const visiblePages = computed(() => {
+    const pages = []
+    const total = totalPages.value
+    const current = currentPage.value
+
+    if (total <= 7) {
+        for (let i = 1; i <= total; i++) {
+            pages.push(i)
+        }
+    } else {
+        pages.push(1)
+        if (current > 3) {
+            pages.push('...')
+        }
+        for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+            pages.push(i)
+        }
+        if (current < total - 2) {
+            pages.push('...')
+        }
+        pages.push(total)
+    }
+    return pages
+})
 
 const formatFileSize = (bytes) => {
     if (bytes === 0) {return '0 B'}
@@ -143,14 +204,12 @@ const fetchFiles = async () => {
     try {
         loading.value = true
         const res = await getUserMediaList({
-            current: currentPage.value,
-            size: pageSize.value,
-            keyword: searchKeyword.value
+            page: currentPage.value,
+            size: pageSize.value
         })
         if (res.code === API_STATUS.SUCCESS && res.data) {
             files.value = res.data.list || []
             total.value = res.data.total || 0
-            totalPages.value = Math.ceil(total.value / pageSize.value)
         }
     } catch (err) {
         logger.error('获取文件列表失败:', err.message)
@@ -160,23 +219,18 @@ const fetchFiles = async () => {
     }
 }
 
-const searchFiles = () => {
-    currentPage.value = 1
-    fetchFiles()
-}
-
 const changePage = (page) => {
     currentPage.value = page
     fetchFiles()
 }
 
-const previewFile = (id) => {
-    logger.debug('预览文件:', id)
+const previewFile = (file) => {
+    previewFile.value = file
+    previewVisible.value = true
 }
 
-const copyFileUrl = (id) => {
-    const file = files.value.find(f => f.id === id)
-    if (file) {
+const copyFileUrl = (file) => {
+    if (file.url) {
         navigator.clipboard.writeText(file.url).then(() => {
             ElMessage.success('文件链接已复制到剪贴板')
         }).catch(() => {
@@ -185,77 +239,38 @@ const copyFileUrl = (id) => {
     }
 }
 
-const deleteFile = async (id) => {
+const handleDeleteFile = async (file) => {
     try {
-        await apiDeleteMedia(id)
-        ElMessage.success('删除成功')
+        await confirmDelete(file.name, '文件')
+        await apiDeleteMedia(file.id)
+        showSuccess('删除成功')
         fetchFiles()
     } catch (err) {
-        logger.error('删除文件失败:', err.message)
-        ElMessage.error('删除文件失败')
+        if (err !== 'cancel') {
+            logger.error('删除文件失败:', err.message)
+            ElMessage.error('删除文件失败')
+        }
     }
 }
 
-onMounted(() => {
+const handleUploadSuccess = () => {
+    ElMessage.success('上传成功')
+    showUploadDialog.value = false
+    fetchFiles()
+}
+
+const handleUploadError = () => {
+    ElMessage.error('上传失败')
+}
+
+onMounted(async () => {
+    if (!store.user?.id) {
+        await store.getAdminInfo()
+    }
     fetchFiles()
 })
 </script>
 
 <style scoped>
-/* 响应式调整 */
-@media (max-width: 768px) {
-    .p-6 {
-        padding: 1rem;
-    }
-    
-    .p-4 {
-        padding: 0.75rem;
-    }
-    
-    .text-sm {
-        font-size: 0.875rem;
-    }
-    
-    .text-xs {
-        font-size: 0.75rem;
-    }
-    
-    .gap-2 {
-        gap: 0.5rem;
-    }
-    
-    .gap-1 {
-        gap: 0.25rem;
-    }
-    
-    .mt-6 {
-        margin-top: 1.5rem;
-    }
-    
-    .mb-6 {
-        margin-bottom: 1.5rem;
-    }
-    
-    .mb-3 {
-        margin-bottom: 0.75rem;
-    }
-    
-    .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .py-16 {
-        padding: 4rem 0;
-    }
-}
-
-@media (max-width: 480px) {
-    .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 {
-        grid-template-columns: 1fr;
-    }
-    
-    .max-w-\[200px\] {
-        max-width: 150px;
-    }
-}
+/* 已使用公共样式文件 common-user-pages.css */
 </style>

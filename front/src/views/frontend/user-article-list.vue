@@ -145,6 +145,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import logger from '@/utils/logger'
 import { useMainStore } from '@/stores'
+import { confirmDelete, showSuccess } from '@/utils'
 import { getUserArticleList } from '@/api/frontend/user'
 import { deleteArticle as apiDeleteArticle } from '@/api/frontend/article'
 import { API_STATUS } from '@/composables/api'
@@ -175,9 +176,9 @@ const fetchArticles = async () => {
         const userId = store.user?.id
         if (!userId) {return}
         const res = await getUserArticleList(userId, {
-            current: currentPage.value,
+            page: currentPage.value,
             size: pageSize.value,
-            keyword: searchKeyword.value
+            keyword: searchKeyword.value || undefined
         })
         if (res.code === API_STATUS.SUCCESS && res.data) {
             articles.value = res.data.list || []
@@ -207,17 +208,25 @@ const editArticle = (id) => {
 }
 
 const deleteArticle = async (id) => {
+    const article = articles.value.find(a => a.id === id)
+    if (!article) {return}
     try {
+        await confirmDelete(article.title, '文章')
         await apiDeleteArticle(id)
-        ElMessage.success('删除成功')
+        showSuccess('删除成功')
         fetchArticles()
     } catch (err) {
-        logger.error('删除文章失败:', err.message)
-        ElMessage.error('删除文章失败')
+        if (err !== 'cancel') {
+            logger.error('删除文章失败:', err.message)
+            ElMessage.error('删除文章失败')
+        }
     }
 }
 
-onMounted(() => {
+onMounted(async () => {
+    if (!store.user?.id) {
+        await store.getAdminInfo()
+    }
     fetchArticles()
 })
 </script>

@@ -54,44 +54,40 @@ export function generateBackupCodes(): Promise<ApiResponse<{ codes: string[] }>>
 }
 
 // 测试 AI 连接
-export function testAiConnection(data: { provider: string; apiKey: string }): Promise<ApiResponse<{ success: boolean }>> {
-  return request.post('/ai/test-connection', data)
+export function testAiConnection(data: { provider: string; apiKey: string; baseUrl?: string; model?: string }): Promise<ApiResponse<{ success: boolean; valid: boolean; message: string }>> {
+  return request.post('/user/apikey/test', data)
 }
 
 // 保存 AI 配置
-export function saveAiConfig(data: { provider: string; apiKey: string; model?: string }): Promise<ApiResponse<null>> {
-  return request.put('/ai/config', data)
+export function saveAiConfig(data: { provider: string; apiKey: string; baseUrl?: string; model?: string }): Promise<ApiResponse<null>> {
+  return request.put('/user/apikey', data)
 }
 
 export interface UserArticleParams {
-  current?: number
+  page?: number
   size?: number
   keyword?: string
   status?: string
 }
 
 export interface UserCommentParams {
-  current?: number
+  page?: number
   size?: number
-  keyword?: string
 }
 
 export interface UserCategoryParams {
-  current?: number
+  page?: number
   size?: number
-  keyword?: string
 }
 
 export interface UserTagParams {
-  current?: number
+  page?: number
   size?: number
-  keyword?: string
 }
 
 export interface UserMediaParams {
-  current?: number
+  page?: number
   size?: number
-  keyword?: string
   type?: string
 }
 
@@ -175,6 +171,28 @@ export function deleteTag(id: number): Promise<ApiResponse<null>> {
 
 export function getUserCommentList(params?: UserCommentParams): Promise<ApiResponse<{ list: UserComment[]; total: number; page: number; size: number }>> {
   return request.get('/comment/user', { params })
+}
+
+// 获取用户统计信息（GET /user/stats）- 需要登录
+export interface UserStats {
+  articleCount: number
+  commentCount: number
+  likeCount: number
+}
+export function getUserStats(): Promise<ApiResponse<UserStats>> {
+  return request.get('/user/stats')
+}
+
+// 获取用户最近活动（GET /user/activities）- 需要登录
+export interface UserActivity {
+  type: string
+  description: string
+  createdAt: string
+  articleId?: number
+  commentId?: number
+}
+export function getUserActivities(): Promise<ApiResponse<UserActivity[]>> {
+  return request.get('/user/activities')
 }
 
 export function updateComment(id: number, data: { content: string }): Promise<ApiResponse<UserComment>> {

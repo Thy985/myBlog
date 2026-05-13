@@ -1,5 +1,6 @@
 package com.xingchen.backend.agent.scheduler;
 
+import com.xingchen.backend.agent.growth.GrowthWorkflowOrchestrator;
 import com.xingchen.backend.service.GrowthOrchestrator;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class GrowthScheduler {
 
     private final GrowthOrchestrator growthOrchestrator;
+    private final GrowthWorkflowOrchestrator growthWorkflowOrchestrator;
     private final RedisTemplate<String, Object> redisTemplate;
     private final MeterRegistry meterRegistry;
 
@@ -42,6 +43,7 @@ public class GrowthScheduler {
     private static final String GROWTH_SCHEDULE_LOCK = "growth:scheduler:lock:";
     private static final String GROWTH_SCHEDULE_PREFIX = "growth:schedule:";
     private static final String GROWTH_LAST_RUN_PREFIX = "growth:lastrun:";
+    private static final String GROWTH_TASK_HISTORY = "growth:task:history:";
     private static final String ACTIVE_USERS_KEY = "active:users";
 
     public static final String CYCLE_DAILY = "daily";
@@ -57,6 +59,7 @@ public class GrowthScheduler {
         taskScheduler.initialize();
 
         initializeDefaultSchedules();
+        restorePendingTasks();
 
         log.info("GrowthScheduler 初始化完成");
     }
@@ -97,6 +100,17 @@ public class GrowthScheduler {
         ));
     }
 
+    private void restorePendingTasks() {
+        try {
+            Set<String> keys = redisTemplate.keys(GROWTH_SCHEDULE_PREFIX + "*");
+            if (keys != null && !keys.isEmpty()) {
+                log.info("恢复 {} 个待执行任务", keys.size());
+            }
+        } catch (Exception e) {
+            log.warn("恢复待执行任务失败", e);
+        }
+    }
+
     public String scheduleGrowthTask(Long userId, String cycle, Map<String, Object> options) {
         GrowthScheduleConfig config = scheduleConfigs.get(cycle);
         if (config == null) {
@@ -114,16 +128,19 @@ public class GrowthScheduler {
         );
 
         activeTasks.put(taskId, context);
+        persistTask(taskId, context);
 
+        Date nextRun = calculateNextRunFromCron(context.getCycle());
         ScheduledFuture<?> future = taskScheduler.schedule(
                 () -> executeGrowthTask(context),
-                parseCronExpression(config.getCronExpression())
+                nextRun
         );
 
         context.setScheduledFuture(future);
+        context.setNextExecutionTime(nextRun.getTime());
 
-        log.info("增长任务已调度: taskId={}, userId={}, cycle={}",
-                taskId, userId, cycle);
+        log.info("增长任务已调度: taskId={}, userId={}, cycle={}, nextRun={}",
+                taskId, userId, cycle, nextRun);
 
         meterRegistry.counter("growth.task.scheduled", "cycle", cycle).increment();
 
@@ -146,34 +163,42 @@ public class GrowthScheduler {
                 userId,
                 "onetime",
                 oneTimeConfig,
-                System.currentTimeMillis() + delayMs,
+                System.currentTimeMillis(),
                 options
         );
 
         activeTasks.put(taskId, context);
+        persistTask(taskId, context);
 
+        Date nextRun = new Date(System.currentTimeMillis() + delayMs);
         ScheduledFuture<?> future = taskScheduler.schedule(
                 () -> executeGrowthTask(context),
-                new Date(System.currentTimeMillis() + delayMs)
+                nextRun
         );
 
         context.setScheduledFuture(future);
+        context.setNextExecutionTime(nextRun.getTime());
 
-        log.info("一次性增长任务已调度: taskId={}, userId={}, delay={}ms",
-                taskId, userId, delayMs);
+        log.info("一次性增长任务已调度: taskId={}, userId={}, delay={}ms, nextRun={}",
+                taskId, userId, delayMs, nextRun);
 
         return taskId;
     }
 
     public boolean cancelTask(String taskId) {
         GrowthTaskContext context = activeTasks.remove(taskId);
-        if (context != null && context.getScheduledFuture() != null) {
-            boolean cancelled = context.getScheduledFuture().cancel(false);
-            if (cancelled) {
-                log.info("增长任务已取消: taskId={}", taskId);
-                meterRegistry.counter("growth.task.cancelled").increment();
+        if (context != null) {
+            if (context.getScheduledFuture() != null) {
+                boolean cancelled = context.getScheduledFuture().cancel(false);
+                if (cancelled) {
+                    log.info("增长任务已取消: taskId={}", taskId);
+                    meterRegistry.counter("growth.task.cancelled").increment();
+                    removePersistedTask(taskId);
+                }
+                return cancelled;
             }
-            return cancelled;
+            removePersistedTask(taskId);
+            return true;
         }
         return false;
     }
@@ -227,11 +252,16 @@ public class GrowthScheduler {
                             Long.parseLong(userIdObj.toString());
 
                     if (canRunForUser(userId, cycle)) {
-                        GrowthOrchestrator.GrowthTaskResult result =
-                                growthOrchestrator.executeDailyGrowthTask(userId);
-                        if (result.isSuccess()) {
-                            successCount++;
-                        } else {
+                        try {
+                            GrowthWorkflowOrchestrator.GrowthResult result =
+                                    growthWorkflowOrchestrator.executeGrowth闭环(userId, cycle);
+                            if (result.isSuccess()) {
+                                successCount++;
+                            } else {
+                                failCount++;
+                            }
+                        } catch (Exception e) {
+                            log.error("用户 {} 增长闭环执行失败", userId, e);
                             failCount++;
                         }
                     }
@@ -296,13 +326,13 @@ public class GrowthScheduler {
             log.info("开始执行增长任务: taskId={}, userId={}, cycle={}",
                     context.getTaskId(), context.getUserId(), context.getCycle());
 
-            GrowthOrchestrator.GrowthTaskResult result =
-                    growthOrchestrator.executeDailyGrowthTask(context.getUserId());
+            GrowthWorkflowOrchestrator.GrowthResult result =
+                    growthWorkflowOrchestrator.executeGrowth闭环(context.getUserId(), context.getCycle());
 
             context.setLastResult(new GrowthTaskResult(
                     result.isSuccess(),
                     result.getMessage(),
-                    result.getData(),
+                    result.getPhase() != null ? result.getPhase().name() : "UNKNOWN",
                     Instant.now()
             ));
 
@@ -311,10 +341,19 @@ public class GrowthScheduler {
                 redisTemplate.opsForValue().set(lastRunKey, System.currentTimeMillis());
             }
 
+            saveTaskHistory(context);
+
             log.info("增长任务执行完成: taskId={}, success={}, duration={}ms",
                     context.getTaskId(), result.isSuccess(),
                     context.getLastResult() != null ?
                             System.currentTimeMillis() - context.getCreateTime() : 0);
+
+            if (!"onetime".equals(context.getCycle())) {
+                scheduleNextRun(context);
+            } else {
+                activeTasks.remove(context.getTaskId());
+                removePersistedTask(context.getTaskId());
+            }
 
         } catch (Exception e) {
             log.error("增长任务执行失败: taskId={}", context.getTaskId(), e);
@@ -322,11 +361,15 @@ public class GrowthScheduler {
             context.setLastResult(new GrowthTaskResult(
                     false,
                     "执行失败: " + e.getMessage(),
-                    null,
+                    "FAILED",
                     Instant.now()
             ));
 
             meterRegistry.counter("growth.task.failed").increment();
+
+            if (!"onetime".equals(context.getCycle())) {
+                scheduleNextRun(context);
+            }
 
         } finally {
             if (acquired.get()) {
@@ -336,8 +379,89 @@ public class GrowthScheduler {
         }
     }
 
-    private java.util.Date parseCronExpression(String cronExpression) {
-        return new Date(System.currentTimeMillis() + 60000);
+    private void scheduleNextRun(GrowthTaskContext context) {
+        GrowthScheduleConfig config = context.getConfig();
+        if (config == null) {
+            return;
+        }
+
+        Date nextRun = calculateNextRunFromCron(context.getCycle());
+        ScheduledFuture<?> future = taskScheduler.schedule(
+                () -> executeGrowthTask(context),
+                nextRun
+        );
+
+        context.setScheduledFuture(future);
+        context.setNextExecutionTime(nextRun.getTime());
+
+        log.info("任务下次执行时间: taskId={}, nextRun={}", context.getTaskId(), nextRun);
+    }
+
+    private Date calculateNextRunFromCron(String cycle) {
+        try {
+            GrowthScheduleConfig config = scheduleConfigs.get(cycle);
+            if (config != null) {
+                return new Date(System.currentTimeMillis() + config.getMinIntervalMs());
+            }
+        } catch (Exception e) {
+            log.warn("计算下次执行时间失败: cycle={}", cycle, e);
+        }
+        return new Date(System.currentTimeMillis() + 60 * 1000);
+    }
+
+    private void persistTask(String taskId, GrowthTaskContext context) {
+        try {
+            String key = GROWTH_SCHEDULE_PREFIX + taskId;
+            Map<String, Object> taskData = Map.of(
+                    "taskId", context.getTaskId(),
+                    "userId", context.getUserId(),
+                    "cycle", context.getCycle(),
+                    "createTime", context.getCreateTime(),
+                    "options", context.getOptions() != null ? context.getOptions() : Map.of()
+            );
+            redisTemplate.opsForValue().set(key, taskData, Duration.ofDays(7));
+        } catch (Exception e) {
+            log.warn("任务持久化失败: taskId={}", taskId, e);
+        }
+    }
+
+    private void removePersistedTask(String taskId) {
+        try {
+            redisTemplate.delete(GROWTH_SCHEDULE_PREFIX + taskId);
+        } catch (Exception e) {
+            log.warn("删除持久化任务失败: taskId={}", taskId, e);
+        }
+    }
+
+    private void saveTaskHistory(GrowthTaskContext context) {
+        try {
+            String historyKey = GROWTH_TASK_HISTORY + context.getUserId();
+            List<Object> history = redisTemplate.opsForList().range(historyKey, 0, -1);
+            int maxHistory = 100;
+
+            if (history == null) {
+                history = new java.util.ArrayList<>();
+            }
+
+            Map<String, Object> record = Map.of(
+                    "taskId", context.getTaskId(),
+                    "cycle", context.getCycle(),
+                    "executeTime", System.currentTimeMillis(),
+                    "success", context.getLastResult() != null && context.getLastResult().isSuccess(),
+                    "message", context.getLastResult() != null ? context.getLastResult().getMessage() : ""
+            );
+
+            history.add(record);
+
+            while (history.size() > maxHistory) {
+                history.remove(0);
+            }
+
+            redisTemplate.opsForList().rightPush(historyKey, history);
+            redisTemplate.expire(historyKey, Duration.ofDays(30));
+        } catch (Exception e) {
+            log.warn("保存任务历史失败: taskId={}", context.getTaskId(), e);
+        }
     }
 
     private GrowthTaskInfo convertToInfo(GrowthTaskContext context) {
@@ -348,14 +472,10 @@ public class GrowthScheduler {
         info.setScheduleName(context.getConfig().getScheduleName());
         info.setCronExpression(context.getConfig().getCronExpression());
         info.setScheduledTime(context.getCreateTime());
-        info.setNextExecutionTime(calculateNextExecution(context));
+        info.setNextExecutionTime(context.getNextExecutionTime());
         info.setStatus(determineStatus(context));
         info.setLastResult(context.getLastResult());
         return info;
-    }
-
-    private long calculateNextExecution(GrowthTaskContext context) {
-        return context.getCreateTime() + context.getConfig().getMinIntervalMs();
     }
 
     private String determineStatus(GrowthTaskContext context) {
@@ -363,7 +483,13 @@ public class GrowthScheduler {
             return context.getLastResult().isSuccess() ? "COMPLETED" : "FAILED";
         }
         if (context.getScheduledFuture() != null) {
-            return context.getScheduledFuture().isDone() ? "DONE" : "SCHEDULED";
+            if (context.getScheduledFuture().isCancelled()) {
+                return "CANCELLED";
+            }
+            if (context.getScheduledFuture().isDone()) {
+                return "DONE";
+            }
+            return "SCHEDULED";
         }
         return "PENDING";
     }
@@ -388,6 +514,7 @@ public class GrowthScheduler {
         private Map<String, Object> options;
         private ScheduledFuture<?> scheduledFuture;
         private GrowthTaskResult lastResult;
+        private long nextExecutionTime;
 
         public GrowthTaskContext(String taskId, Long userId, String cycle,
                                   GrowthScheduleConfig config, long createTime,
@@ -406,7 +533,7 @@ public class GrowthScheduler {
     public static class GrowthTaskResult {
         private boolean success;
         private String message;
-        private Map<String, Object> data;
+        private String phase;
         private Instant timestamp;
     }
 

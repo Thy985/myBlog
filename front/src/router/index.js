@@ -208,7 +208,7 @@ const routes = [
     }
   },
   {
-    path: '/user/settings/profile',
+    path: '/user/profile',
     component: UserProfileSettings,
     meta: {
       title: '个人资料',
@@ -216,7 +216,7 @@ const routes = [
     }
   },
   {
-    path: '/user/settings/account',
+    path: '/user/account',
     component: UserAccountSettings,
     meta: {
       title: '账户设置',

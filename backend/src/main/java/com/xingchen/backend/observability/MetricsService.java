@@ -94,6 +94,14 @@ public class MetricsService {
         getCounter("circuitbreaker.state_change", "name", name, "state", state).increment();
     }
 
+    /**
+     * 记录熔断器降级事件
+     */
+    public void recordFallback(String circuitBreakerName, String exceptionType) {
+        getCounter("circuitbreaker.fallback", "circuit_breaker", circuitBreakerName, "exception_type", exceptionType).increment();
+        log.info("记录降级指标: circuitBreaker={}, exceptionType={}", circuitBreakerName, exceptionType);
+    }
+
     // ========== 私有方法 ==========
 
     private Counter getCounter(String name, String... tags) {

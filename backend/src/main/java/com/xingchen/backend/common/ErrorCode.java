@@ -37,6 +37,8 @@ public enum ErrorCode {
 
     PARAMS_ERROR(9001, "参数错误"),
 
+    OPERATION_ERROR(9002, "操作失败"),
+
     SYSTEM_ERROR(9999, "系统繁忙，请稍后重试");
 
     private final Integer code;

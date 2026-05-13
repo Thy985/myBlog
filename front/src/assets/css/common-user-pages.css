@@ -1,0 +1,147 @@
+/* 个人中心页面公共样式 */
+
+@media (max-width: 768px) {
+    .user-page-card .card-header {
+        padding: 1rem;
+    }
+
+    .user-page-card .card-body {
+        padding: 0.75rem;
+    }
+
+    .user-page-item {
+        padding: 0.75rem;
+    }
+
+    .user-page-text-sm {
+        font-size: 0.875rem;
+    }
+
+    .user-page-text-xs {
+        font-size: 0.75rem;
+    }
+
+    .user-page-gap-2 {
+        gap: 0.5rem;
+    }
+
+    .user-page-mt-6 {
+        margin-top: 1.5rem;
+    }
+
+    .user-page-mb-6 {
+        margin-bottom: 1.5rem;
+    }
+
+    .user-page-mb-3 {
+        margin-bottom: 0.75rem;
+    }
+
+    .user-page-mb-2 {
+        margin-bottom: 0.5rem;
+    }
+
+    .user-page-py-empty {
+        padding: 3rem 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .user-page-grid-responsive {
+        grid-template-columns: 1fr !important;
+    }
+
+    .user-page-truncate {
+        max-width: 150px;
+    }
+}
+
+/* 加载状态 */
+.user-page-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+}
+
+.user-page-loading-spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid var(--color-primary);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 空状态 */
+.user-page-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    text-align: center;
+}
+
+.user-page-empty-icon {
+    width: 4rem;
+    height: 4rem;
+    color: #9ca3af;
+    margin-bottom: 1rem;
+}
+
+.user-page-empty-title {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.user-page-empty-desc {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+/* 优化分页组件 */
+.user-page-pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.user-page-pagination-btn {
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.user-page-pagination-btn:hover:not(:disabled) {
+    background-color: var(--color-primary-subtle);
+}
+
+.user-page-pagination-btn.active {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+.user-page-pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.user-page-pagination-ellipsis {
+    padding: 0 0.5rem;
+    color: #9ca3af;
+}

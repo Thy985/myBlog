@@ -679,32 +679,54 @@ public class AIServiceImplV3 implements AIService {
     // ========== Fallback 方法 ==========
 
     private String fallbackChat(String message, Exception ex) {
-        log.warn("AI 服务降级，使用 fallback 模型: {}", ex.getMessage());
+        log.warn("AI 服务降级，使用 fallback 模型: {}, 消息长度: {}",
+                ex.getMessage(), message != null ? message.length() : 0);
+
+        metricsService.recordFallback("aiChat", ex.getClass().getSimpleName());
+
         try {
             ChatLanguageModel fallbackModel = modelRouter.getFallback();
             return fallbackModel.generate(message);
         } catch (Exception e) {
-            log.error("Fallback 也失败了", e);
+            log.error("Fallback 模型也失败了: {}, 错误类型: {}", e.getMessage(), e.getClass().getSimpleName());
             return "AI 服务暂时不可用，请稍后重试。";
         }
     }
 
     private String fallbackChatWithContext(String message, List<Map<String, String>> history, Exception ex) {
-        log.warn("AI 上下文对话降级: {}", ex.getMessage());
+        log.warn("AI 上下文对话降级: {}, 消息长度: {}, 历史记录数: {}",
+                ex.getMessage(), message != null ? message.length() : 0, history != null ? history.size() : 0);
+
+        metricsService.recordFallback("aiChatContext", ex.getClass().getSimpleName());
+
         return "服务繁忙，请简化您的问题后重试。";
     }
 
     private String fallbackChatWithContext(String message, List<Map<String, String>> history, String systemPrompt, Exception ex) {
-        return fallbackChatWithContext(message, history, ex);
+        log.warn("AI 上下文对话降级 (带systemPrompt): {}, 消息长度: {}, 历史记录数: {}, systemPrompt长度: {}",
+                ex.getMessage(), message != null ? message.length() : 0,
+                history != null ? history.size() : 0, systemPrompt != null ? systemPrompt.length() : 0);
+
+        metricsService.recordFallback("aiChatContext", ex.getClass().getSimpleName());
+
+        return "服务繁忙，请简化您的问题后重试。";
     }
 
     private String fallbackChatWithRag(String message, List<Map<String, String>> history, Exception ex) {
-        log.warn("AI RAG 对话降级: {}", ex.getMessage());
-        return chatWithContext(message, history);
+        log.warn("AI RAG 对话降级: {}, 消息长度: {}, 历史记录数: {}",
+                ex.getMessage(), message != null ? message.length() : 0, history != null ? history.size() : 0);
+
+        metricsService.recordFallback("aiChatRag", ex.getClass().getSimpleName());
+
+        return "知识库服务暂时不可用，请稍后重试或尝试简化您的问题。";
     }
 
     private Map<String, Object> fallbackStreamMap(String message, Consumer<String> onChunk, Exception ex) {
-        log.warn("AI 流式对话降级 (Map): {}", ex.getMessage());
+        log.warn("AI 流式对话降级: {}, 消息长度: {}", ex.getMessage(),
+                message != null ? message.length() : 0);
+
+        metricsService.recordFallback("aiStream", ex.getClass().getSimpleName());
+
         Map<String, Object> result = new HashMap<>();
         result.put("success", false);
         result.put("error", "服务暂时不可用，请稍后重试");

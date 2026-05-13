@@ -66,15 +66,18 @@ public class ArticleController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long tagId,
             @RequestParam(required = false) Long authorId) {
-        return Result.success(articleService.getArticleList(page, size, keyword, categoryId, tagId, authorId));
+        Long currentUserId = StpUtil.isLogin() ? StpUtil.getLoginIdAsLong() : null;
+        return Result.success(articleService.getArticleList(page, size, keyword, categoryId, tagId, authorId, currentUserId));
     }
 
     @GetMapping("/user/{userId}")
     public Result<PageResult<ArticleListVO>> getUserArticles(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "1") @Min(1) Integer page,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(50) Integer size) {
-        return Result.success(articleService.getUserArticles(userId, page, size));
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) Integer size,
+            @RequestParam(required = false) String keyword) {
+        Long currentUserId = StpUtil.isLogin() ? StpUtil.getLoginIdAsLong() : null;
+        return Result.success(articleService.getUserArticles(userId, page, size, keyword, currentUserId));
     }
 
     @GetMapping("/hot")
@@ -189,7 +192,7 @@ public class ArticleController {
             @RequestParam(defaultValue = "1") @Min(1) Integer page,
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) Integer size) {
         Long userId = StpUtil.isLogin() ? StpUtil.getLoginIdAsLong() : null;
-        PageResult<ArticleListVO> result = articleService.getUserArticles(userId, page, size, keyword);
+        PageResult<ArticleListVO> result = articleService.getUserArticles(userId, page, size, keyword, userId);
         searchService.saveSearchHistoryAsync(userId, keyword, result.getList() != null ? result.getList().size() : 0);
         return Result.success(result);
     }

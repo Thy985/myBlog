@@ -14,10 +14,10 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      include: ['src/**/*.{js,ts,vue}'],
+      include: ['tests/unit/**/*.{js,ts,vue}'],
       exclude: ['src/**/*.d.ts', 'src/main.js', 'src/router/**', 'src/plugins/**']
     },
-    setupFiles: ['./src/tests/setup.js'],
-    exclude: ['e2e/**', 'node_modules/**', 'dist/**']
+    setupFiles: ['./tests/unit/setup.js'],
+    exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**']
   }
 })

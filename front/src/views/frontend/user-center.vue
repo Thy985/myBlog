@@ -109,7 +109,7 @@
                                 <ul class="space-y-1">
                                     <li>
                                         <router-link 
-                                            to="/user/settings/profile"
+                                            to="/user/profile"
                                             class="nav-link"
                                         >
                                             <svg class="w-5 h-5 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
@@ -120,7 +120,7 @@
                                     </li>
                                     <li>
                                         <router-link 
-                                            to="/user/settings/account"
+                                            to="/user/account"
                                             class="nav-link"
                                         >
                                             <svg class="w-5 h-5 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
@@ -137,7 +137,7 @@
                                             <svg class="w-5 h-5 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                             </svg>
-                                            智能体设置
+                                            个人设置
                                         </router-link>
                                     </li>
                                 </ul>
@@ -179,7 +179,7 @@
                             </div>
                             <div>
                                 <router-link 
-                                    to="/user/settings/profile"
+                                    to="/user/profile"
                                     class="btn btn-outline px-4 py-2 text-sm font-medium transition-all duration-300 hover:scale-105"
                                 >
                                     编辑资料
@@ -286,7 +286,7 @@
                             <span class="font-medium text-text-primary">我的评论</span>
                         </router-link>
                         <router-link 
-                            to="/user/settings/profile"
+                            to="/user/profile"
                             class="p-4 text-center border border-border-color rounded-lg hover:bg-primary-subtle transition-all duration-300"
                         >
                             <svg class="w-8 h-8 mx-auto text-primary-color mb-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
@@ -304,9 +304,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useMainStore } from '@/stores'
-import { getUserArticles } from '@/api/frontend/article'
-import { getCommentList } from '@/api/frontend/comment'
-import { getUserCollects } from '@/api/frontend/article'
+import { getUserStats, getUserActivities } from '@/api/frontend/user'
 import logger from '@/utils/logger'
 import { API_STATUS } from '@/composables/api'
 
@@ -345,25 +343,11 @@ const formatDate = (dateString) => {
 const fetchStats = async () => {
   try {
     loading.value = true
-    const userId = store.user?.id
-    if (!userId) {return}
-
-    const [articlesRes, collectsRes] = await Promise.all([
-      getUserArticles(userId, { page: 1, size: 1 }),
-      getUserCollects({ page: 1, size: 1 })
-    ])
-
-    if (articlesRes.code === API_STATUS.SUCCESS) {
-      articleCount.value = articlesRes.data?.total || 0
-    }
-
-    if (collectsRes.code === API_STATUS.SUCCESS) {
-      likeCount.value = collectsRes.data?.total || 0
-    }
-
-    const commentsRes = await getCommentList(null, 1, 1)
-    if (commentsRes.code === API_STATUS.SUCCESS) {
-      commentCount.value = commentsRes.data?.total || 0
+    const statsRes = await getUserStats()
+    if (statsRes.code === API_STATUS.SUCCESS && statsRes.data) {
+      articleCount.value = statsRes.data.articleCount || 0
+      commentCount.value = statsRes.data.commentCount || 0
+      likeCount.value = statsRes.data.likeCount || 0
     }
   } catch (err) {
     logger.error('获取统计数据失败:', err.message)
@@ -374,42 +358,10 @@ const fetchStats = async () => {
 
 const fetchRecentActivities = async () => {
   try {
-    const userId = store.user?.id
-    if (!userId) {
-      recentActivities.value = []
-      return
+    const activitiesRes = await getUserActivities()
+    if (activitiesRes.code === API_STATUS.SUCCESS && activitiesRes.data) {
+      recentActivities.value = (activitiesRes.data || []).slice(0, 5)
     }
-
-    const [articlesRes, commentsRes] = await Promise.all([
-      getUserArticles(userId, { page: 1, size: 5 }),
-      getCommentList(null, 1, 5)
-    ])
-
-    const activities = []
-
-    if (articlesRes.code === API_STATUS.SUCCESS && articlesRes.data?.records) {
-      articlesRes.data.records.slice(0, 3).forEach(article => {
-        activities.push({
-          id: article.id,
-          description: `发布了文章《${article.title}》`,
-          createdAt: article.createTime
-        })
-      })
-    }
-
-    if (commentsRes.code === API_STATUS.SUCCESS && commentsRes.data?.records) {
-      commentsRes.data.records.slice(0, 2).forEach(comment => {
-        activities.push({
-          id: comment.id,
-          description: `评论了文章《${comment.articleTitle || '未知文章'}》`,
-          createdAt: comment.createTime
-        })
-      })
-    }
-
-    recentActivities.value = activities.sort((a, b) =>
-      new Date(b.createdAt) - new Date(a.createdAt)
-    ).slice(0, 5)
   } catch (err) {
     logger.error('获取最近活动失败:', err.message)
     recentActivities.value = []

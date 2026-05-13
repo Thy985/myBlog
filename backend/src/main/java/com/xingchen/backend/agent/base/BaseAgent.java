@@ -1,6 +1,7 @@
 package com.xingchen.backend.agent.base;
 
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
@@ -11,9 +12,9 @@ import java.util.UUID;
 @Slf4j
 public abstract class BaseAgent {
 
-    protected final String agentId;
-    protected final String agentType;
-    protected final Map<String, Object> config;
+    protected final String agentId;// 智能体 ID
+    protected final String agentType;// 任务类型
+    protected final Map<String, Object> config;// 任务配置
 
     protected BaseAgent(String agentType) {
         this.agentId = UUID.randomUUID().toString();
@@ -28,20 +29,20 @@ public abstract class BaseAgent {
     }
 
     public final AgentResult execute(AgentContext context) {
-        long startTime = System.currentTimeMillis();
-        String taskId = context.getTaskId() != null ? context.getTaskId() : UUID.randomUUID().toString();
+        long startTime = System.currentTimeMillis();// 任务开始时间
+        String taskId = context.getTaskId() != null ? context.getTaskId() : UUID.randomUUID().toString();// 任务ID
         context.setTaskId(taskId);
 
         log.info("[{}] Agent开始执行任务: taskId={}, input={}",
                 agentType, taskId, truncate(context.getInput(), 100));
 
         try {
-            preCheck(context);
+            preCheck(context);// 预检查
 
-            AgentResult result = executeImpl(context);
+            AgentResult result = executeImpl(context);// 执行任务
 
             long duration = System.currentTimeMillis() - startTime;
-            result.setDurationMs(duration);
+            result.setDurationMs(duration);// 任务耗时
             result.setTaskId(taskId);
             result.setAgentId(agentId);
             result.setAgentType(agentType);
@@ -87,6 +88,12 @@ public abstract class BaseAgent {
         }
     }
 
+    /**
+     * 预检查，检测上下文是否合法存在
+     *
+     * @param context 任务上下文
+     * @throws AgentException 预检查失败
+     */
     protected void preCheck(AgentContext context) throws AgentException {
         if (context == null) {
             throw new AgentException("Context cannot be null", "INVALID_CONTEXT");
@@ -121,6 +128,13 @@ public abstract class BaseAgent {
         return value != null ? value.toString() : defaultValue;
     }
 
+    /**
+     * 转坏为int 值
+     *
+     * @param key         配置项 key
+     * @param defaultValue 默认值
+     * @return 配置项的值
+     */
     protected int getConfigInt(String key, int defaultValue) {
         Object value = config.get(key);
         if (value instanceof Number) {
@@ -136,8 +150,7 @@ public abstract class BaseAgent {
         }
         return defaultValue;
     }
-
-    private String truncate(String text, int maxLength) {
+    private String truncate(String text, int maxLength) {//防止日志过长
         if (text == null) return null;
         return text.length() > maxLength ? text.substring(0, maxLength) + "..." : text;
     }
@@ -145,12 +158,12 @@ public abstract class BaseAgent {
     @Data
     @lombok.Builder
     public static class AgentContext {
-        private String taskId;
-        private String input;
-        private Map<String, Object> params;
-        private Map<String, Object> memory;
-        private Long userId;
-        private String sessionId;
+        private String taskId;// 任务ID
+        private String input;// 任务输入
+        private Map<String, Object> params;// 任务参数
+        private Map<String, Object> memory;// 任务记忆
+        private Long userId;// 用户ID
+        private String sessionId;// 会话ID
 
         public Object getParam(String key) {
             return params != null ? params.get(key) : null;
@@ -169,12 +182,12 @@ public abstract class BaseAgent {
         private String agentId;
         private String agentType;
         private boolean success;
-        private String output;
-        private Object data;
+        private String output;// 任务输出
+        private Object data;// 给程序的对象
         private String error;
         private String errorCode;
-        private long durationMs;
-        private Instant timestamp;
+        private long durationMs;// 任务执行时长
+        private Instant timestamp;// 何时完成
 
         public static AgentResult success(String output) {
             return AgentResult.builder()

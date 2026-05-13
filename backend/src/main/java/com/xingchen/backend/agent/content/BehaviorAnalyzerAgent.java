@@ -1,7 +1,7 @@
 package com.xingchen.backend.agent.content;
 
 import com.xingchen.backend.agent.base.BaseAgent;
-import com.xingchen.backend.agent.llm.LLMProvider;
+import com.xingchen.backend.ai.llm.LLMProvider;
 import com.xingchen.backend.ai.model.AIRequest;
 import com.xingchen.backend.ai.model.AIResponse;
 import com.xingchen.backend.common.PageResult;
@@ -9,6 +9,7 @@ import com.xingchen.backend.service.ArticleService;
 import com.xingchen.backend.vo.ArticleListVO;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
@@ -17,11 +18,14 @@ import java.util.stream.Collectors;
 
 @Component
 @Slf4j
+/**
+ * 行为分析代理
+ */
 public class BehaviorAnalyzerAgent extends BaseAgent {
 
     private final ArticleService articleService;
     private final LLMProvider llmProvider;
-    private static final Logger AGENT_LOG = org.slf4j.LoggerFactory.getLogger(BehaviorAnalyzerAgent.class);
+    private static final Logger AGENT_LOG = LoggerFactory.getLogger(BehaviorAnalyzerAgent.class);
 
     public BehaviorAnalyzerAgent(ArticleService articleService,
                                  @Qualifier("agentLLMProvider") LLMProvider llmProvider) {
@@ -73,6 +77,10 @@ public class BehaviorAnalyzerAgent extends BaseAgent {
                 articles = List.of();
             }
 
+            /*计算总阅读数,另一种写法
+            * long totalViews = articles.stream().map(ArticleListVO::getReadNum).
+            * filter(Objects::nonNull).mapToLong(ArticleListVO::getReadNum).sum();
+            * */
             long totalViews = articles.stream()
                     .mapToLong(a -> a.getReadNum() != null ? a.getReadNum() : 0)
                     .sum();
@@ -106,7 +114,9 @@ public class BehaviorAnalyzerAgent extends BaseAgent {
 
         return data;
     }
-
+    /**
+     * 计算文章的互动率
+     */
     private double calculateEngagementRate(long views, long likes, long comments) {
         if (views == 0) return 0.0;
         return ((double) (likes + comments) / views) * 100;
@@ -145,7 +155,9 @@ public class BehaviorAnalyzerAgent extends BaseAgent {
 
         return performances.subList(0, Math.min(topN, performances.size()));
     }
-
+    /**
+     * 计算文章的得分
+     */
     private double calculatePerformanceScore(ArticleListVO article) {
         double views = article.getReadNum() != null ? article.getReadNum() : 0;
         double likes = article.getLikeNum() != null ? article.getLikeNum() : 0;
@@ -158,9 +170,9 @@ public class BehaviorAnalyzerAgent extends BaseAgent {
                                                    Map<String, Object> behaviorData) {
         Map<String, Object> insights = new HashMap<>();
 
-        insights.put("bestPostingTime", analyzeBestPostingTime(performances));
-        insights.put("contentLengthInsight", analyzeContentLength(performances));
-        insights.put("engagementDrivers", identifyEngagementDrivers(performances));
+        insights.put("bestPostingTime", analyzeBestPostingTime(performances));//最佳发布时间
+        insights.put("contentLengthInsight", analyzeContentLength(performances));//内容长度
+        insights.put("engagementDrivers", identifyEngagementDrivers(performances));//互动驱动,找出是“点赞、评论”
 
         try {
             String prompt = buildInsightPrompt(performances, behaviorData);
@@ -168,7 +180,7 @@ public class BehaviorAnalyzerAgent extends BaseAgent {
             AIRequest request = AIRequest.builder()
                     .userId(0L)
                     .message(prompt)
-                    .stream(false)
+                    .stream(false)//不流式
                     .build();
 
             AIResponse response = llmProvider.chat(request);
@@ -203,7 +215,7 @@ public class BehaviorAnalyzerAgent extends BaseAgent {
 
         double avgLength = performances.stream()
                 .mapToInt(p -> p.contentLength)
-                .average()
+                .average()//平均长度
                 .orElse(0);
 
         if (avgLength < 500) {

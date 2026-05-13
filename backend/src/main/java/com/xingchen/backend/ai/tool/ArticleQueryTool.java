@@ -158,7 +158,7 @@ public class ArticleQueryTool implements Tool {
 
         PageResult<ArticleListVO> result;
         if (keyword != null && !keyword.trim().isEmpty()) {
-            result = articleService.getUserArticles(userId, page, pageSize, keyword.trim());
+            result = articleService.getUserArticles(userId, page, pageSize, keyword.trim(), userId);
         } else {
             result = articleService.getUserArticles(userId, page, pageSize);
         }
@@ -180,7 +180,7 @@ public class ArticleQueryTool implements Tool {
 
         PageResult<ArticleListVO> result = articleService.getArticleList(
                 page, pageSize, keyword.trim(),
-                null, null, userId
+                null, null, userId, userId
         );
 
         return buildArticleListResult(result, "搜索完成");

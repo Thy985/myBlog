@@ -23,4 +23,10 @@ public interface ArticleCollectMapper extends BaseMapper<ArticleCollect> {
 
     @Select("SELECT COUNT(*) FROM t_article_collect WHERE user_id = #{userId}")
     long countByUserId(@Param("userId") Long userId);
+
+    @Delete("DELETE FROM t_article_collect WHERE article_id = #{articleId}")
+    int deleteByArticleId(@Param("articleId") Long articleId);
+
+    @Select("<script>SELECT article_id FROM t_article_collect WHERE user_id = #{userId} AND article_id IN <foreach collection='articleIds' item='id' open='(' separator=',' close=')'>#{id}</foreach></script>")
+    List<Long> selectArticleIdsByUserAndArticleIds(@Param("userId") Long userId, @Param("articleIds") List<Long> articleIds);
 }

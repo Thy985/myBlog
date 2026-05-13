@@ -26,6 +26,11 @@ export function getCommentList(articleId: number, page = 1, pageSize = 10): Prom
   })
 }
 
+// 获取用户评论列表（GET /api/comment/user）- 需要登录
+export function getUserComments(page = 1, pageSize = 10): Promise<ApiResponse<{ records: CommentVO[]; total: number; page: number; size: number }>> {
+  return request.get('/comment/user', { params: { page, pageSize } })
+}
+
 // 获取回复列表（GET /api/comment/{rootId}/replies）
 export function getReplyList(rootId: number): Promise<ApiResponse<CommentVO[]>> {
   return request.get(`/comment/${rootId}/replies`).then(res => {

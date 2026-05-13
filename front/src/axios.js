@@ -5,6 +5,58 @@ import { clearAuthInfo, setRedirectUrl, getCsrfToken } from '@/composables/auth'
 import logger from '@/utils/logger'
 import { API_STATUS } from '@/composables/api'
 
+const TECHNICAL_ERROR_PATTERNS = [
+  'NullPointerException',
+  'SQLException',
+  'IOException',
+  'ClassNotFoundException',
+  'ArrayIndexOutOfBoundsException',
+  'ConcurrentModificationException',
+  'StackOverflowError',
+  'OutOfMemoryError',
+  'InternalError',
+  'ServiceException',
+  'DaoException',
+  'ServletException',
+  'ReflectionException',
+  'InvocationTargetException',
+  'MalformedURLException',
+  'ClassCastException',
+  'IllegalArgumentException',
+  'IndexOutOfBoundsException'
+]
+
+const TECHNICAL_MESSAGES = [
+  '数据处理异常',
+  '系统内部错误',
+  '服务器处理异常',
+  '数据访问异常',
+  '业务处理异常'
+]
+
+function isTechnicalError(message) {
+  if (!message) {return false}
+  return TECHNICAL_ERROR_PATTERNS.some(pattern =>
+    message.includes(pattern) || message.toLowerCase().includes(pattern.toLowerCase())
+  )
+}
+
+function getUserFriendlyMessage(message) {
+  if (!message) {return '操作失败，请稍后重试'}
+
+  if (isTechnicalError(message)) {
+    const randomMsg = TECHNICAL_MESSAGES[Math.floor(Math.random() * TECHNICAL_MESSAGES.length)]
+    logger.warn(`技术错误已过滤: ${message} -> ${randomMsg}`)
+    return randomMsg
+  }
+
+  if (message.length > 100) {
+    return '操作失败，请稍后重试'
+  }
+
+  return message
+}
+
 const instance = axios.create({
   baseURL: import.meta.env.DEV ? '/api' : import.meta.env.VITE_APP_BASE_API,
   timeout: 15000,
@@ -45,7 +97,6 @@ async function clearAuthStoreCache() {
     const authStore = useAuthStore()
     authStore.invalidateAndLogout?.() || authStore.clearCache?.()
   } catch (e) {
-    // store 可能未初始化，忽略
   }
 }
 
@@ -128,15 +179,20 @@ instance.interceptors.response.use((response) => {
     const { code, message } = error.response.data
     if (code !== API_STATUS.SUCCESS) {
       if (code === 429) {
-        // 限流错误不显示消息，由调用者处理
       } else if (code === API_STATUS.SUCCESS) {
-        // 成功不显示
       } else {
-        showMessage(message || '请求失败', 'error')
+        const friendlyMessage = getUserFriendlyMessage(message)
+        showMessage(friendlyMessage, 'error')
       }
     }
   } else {
-    showMessage('网络错误，请稍后重试', 'error')
+    if (error.code === 'ECONNABORTED') {
+      showMessage('请求超时，请检查网络连接', 'error')
+    } else if (error.code === 'ERR_NETWORK') {
+      showMessage('网络连接失败，请检查网络设置', 'error')
+    } else {
+      showMessage('网络错误，请稍后重试', 'error')
+    }
   }
 
   return Promise.reject(error)

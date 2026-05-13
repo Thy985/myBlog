@@ -1,7 +1,7 @@
 package com.xingchen.backend.agent.content;
 
 import com.xingchen.backend.agent.base.BaseAgent;
-import com.xingchen.backend.agent.llm.LLMProvider;
+import com.xingchen.backend.ai.llm.LLMProvider;
 import com.xingchen.backend.ai.model.AIRequest;
 import com.xingchen.backend.ai.model.AIResponse;
 import com.xingchen.backend.common.PageResult;

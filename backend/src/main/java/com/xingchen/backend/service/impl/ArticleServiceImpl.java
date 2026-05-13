@@ -214,7 +214,10 @@ public class ArticleServiceImpl implements ArticleService {
 
         article.setIsDeleted(1);
         articleMapper.update(article);
-        
+
+        articleLikeMapper.deleteByArticleId(id);
+        articleCollectMapper.deleteByArticleId(id);
+
         clearArticleCache(id);
     }
 
@@ -329,7 +332,18 @@ public class ArticleServiceImpl implements ArticleService {
             nextVO.setThumbnail(nextArticle.getTitleImage());
             vo.setNextArticle(nextVO);
         }
-        
+
+        if (userId != null) {
+            ArticleLike existingLike = articleLikeMapper.selectByArticleAndUser(id, userId);
+            vo.setIsLiked(existingLike != null);
+
+            ArticleCollect existingCollect = articleCollectMapper.selectByArticleAndUser(id, userId);
+            vo.setIsCollected(existingCollect != null);
+        } else {
+            vo.setIsLiked(false);
+            vo.setIsCollected(false);
+        }
+
         long ttl = CACHE_ARTICLE_TTL_MINUTES + randomOffset(5);
         redisTemplate.opsForHash().put(cacheKey, hashField, vo);
         redisTemplate.expire(cacheKey, ttl, TimeUnit.MINUTES);
@@ -340,29 +354,34 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public PageResult<ArticleListVO> getArticleList(Integer page, Integer size, String keyword, Long categoryId, Long tagId) {
-        return getArticleList(page, size, keyword, categoryId, tagId, null);
+        return getArticleList(page, size, keyword, categoryId, tagId, null, null);
     }
 
     @Override
-    public PageResult<ArticleListVO> getArticleList(Integer page, Integer size, String keyword, Long categoryId, Long tagId, Long userId) {
+    public PageResult<ArticleListVO> getArticleList(Integer page, Integer size, String keyword, Long categoryId, Long tagId, Long authorId) {
+        return getArticleList(page, size, keyword, categoryId, tagId, authorId, null);
+    }
+
+    @Override
+    public PageResult<ArticleListVO> getArticleList(Integer page, Integer size, String keyword, Long categoryId, Long tagId, Long authorId, Long currentUserId) {
         int offset = (page - 1) * size;
         List<Article> articles;
         long total;
-        
-        if (userId != null) {
+
+        if (authorId != null) {
             if (keyword != null && !keyword.isEmpty()) {
                 String escapedKeyword = escapeLikeKeyword(keyword);
-                articles = articleMapper.selectByUserIdAndKeyword(userId, escapedKeyword, offset, size);
-                total = articleMapper.countByUserIdAndKeyword(userId, escapedKeyword);
+                articles = articleMapper.selectByUserIdAndKeyword(authorId, escapedKeyword, offset, size);
+                total = articleMapper.countByUserIdAndKeyword(authorId, escapedKeyword);
             } else if (categoryId != null) {
-                articles = articleMapper.selectByUserIdAndCategoryId(userId, categoryId, offset, size);
-                total = articleMapper.countByUserIdAndCategoryId(userId, categoryId);
+                articles = articleMapper.selectByUserIdAndCategoryId(authorId, categoryId, offset, size);
+                total = articleMapper.countByUserIdAndCategoryId(authorId, categoryId);
             } else if (tagId != null) {
-                articles = articleMapper.selectByUserIdAndTagId(userId, tagId, offset, size);
-                total = articleMapper.countByUserIdAndTagId(userId, tagId);
+                articles = articleMapper.selectByUserIdAndTagId(authorId, tagId, offset, size);
+                total = articleMapper.countByUserIdAndTagId(authorId, tagId);
             } else {
-                articles = articleMapper.selectByUserId(userId, offset, size);
-                total = articleMapper.countByUserId(userId);
+                articles = articleMapper.selectByUserId(authorId, offset, size);
+                total = articleMapper.countByUserId(authorId);
             }
         } else {
             if (keyword != null && !keyword.isEmpty()) {
@@ -381,21 +400,26 @@ public class ArticleServiceImpl implements ArticleService {
             }
         }
 
-        List<ArticleListVO> voList = convertToListVOBatch(articles);
+        List<ArticleListVO> voList = convertToListVOBatch(articles, currentUserId);
         return PageResult.of(voList, total, page, size);
     }
 
     @Override
     public PageResult<ArticleListVO> getUserArticles(Long userId, Integer page, Integer size) {
-        return getUserArticles(userId, page, size, null);
+        return getUserArticles(userId, page, size, null, null);
     }
 
     @Override
-    public PageResult<ArticleListVO> getUserArticles(Long userId, Integer page, Integer size, String keyword) {
+    public PageResult<ArticleListVO> getUserArticles(Long userId, Integer page, Integer size, Long currentUserId) {
+        return getUserArticles(userId, page, size, null, currentUserId);
+    }
+
+    @Override
+    public PageResult<ArticleListVO> getUserArticles(Long userId, Integer page, Integer size, String keyword, Long currentUserId) {
         int offset = (page - 1) * size;
         List<Article> articles;
         long total;
-        
+
         if (keyword != null && !keyword.trim().isEmpty()) {
             String escapedKeyword = escapeLikeKeyword(keyword);
             articles = articleMapper.selectByUserIdAndKeyword(userId, escapedKeyword, offset, size);
@@ -404,8 +428,8 @@ public class ArticleServiceImpl implements ArticleService {
             articles = articleMapper.selectByUserId(userId, offset, size);
             total = articleMapper.countByUserId(userId);
         }
-        
-        List<ArticleListVO> voList = convertToListVOBatch(articles);
+
+        List<ArticleListVO> voList = convertToListVOBatch(articles, currentUserId);
         return PageResult.of(voList, total, page, size);
     }
 
@@ -493,52 +517,80 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional
-    public synchronized void likeArticle(Long userId, Long id) {
-        ArticleLike existingLike = articleLikeMapper.selectByArticleAndUser(id, userId);
-        if (existingLike != null) {
-            return;
-        }
+    public void likeArticle(Long userId, Long id) {
+        redisLockUtil.executeWithLock("like:article:" + id + ":user:" + userId, LOCK_EXPIRE_SECONDS, LOCK_RETRY_TIMES, LOCK_RETRY_INTERVAL_MS, () -> {
+            Article article = articleMapper.selectOneById(id);
+            if (article == null || article.getIsDeleted() == 1) {
+                throw new BusinessException(ErrorCode.NOT_FOUND, "文章不存在");
+            }
 
-        ArticleLike like = new ArticleLike();
-        like.setArticleId(id);
-        like.setUserId(userId);
-        articleLikeMapper.insert(like);
-        articleMapper.incrementLikeNum(id);
+            ArticleLike existingLike = articleLikeMapper.selectByArticleAndUser(id, userId);
+            if (existingLike != null) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "已经点赞过了");
+            }
+
+            ArticleLike like = new ArticleLike();
+            like.setArticleId(id);
+            like.setUserId(userId);
+            like.setCreatedTime(LocalDateTime.now());
+            articleLikeMapper.insert(like);
+            articleMapper.incrementLikeNum(id);
+            clearArticleCache(id);
+        });
     }
 
     @Override
     @Transactional
-    public synchronized void unlikeArticle(Long userId, Long id) {
-        ArticleLike existingLike = articleLikeMapper.selectByArticleAndUser(id, userId);
-        if (existingLike != null) {
+    public void unlikeArticle(Long userId, Long id) {
+        redisLockUtil.executeWithLock("like:article:" + id + ":user:" + userId, LOCK_EXPIRE_SECONDS, LOCK_RETRY_TIMES, LOCK_RETRY_INTERVAL_MS, () -> {
+            ArticleLike existingLike = articleLikeMapper.selectByArticleAndUser(id, userId);
+            if (existingLike == null) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "尚未点赞，无法取消");
+            }
+
             articleLikeMapper.delete(existingLike);
             articleMapper.decrementLikeNum(id);
-        }
+            clearArticleCache(id);
+        });
     }
 
     @Override
     @Transactional
-    public synchronized void collectArticle(Long userId, Long id) {
-        ArticleCollect existingCollect = articleCollectMapper.selectByArticleAndUser(id, userId);
-        if (existingCollect != null) {
-            return;
-        }
+    public void collectArticle(Long userId, Long id) {
+        redisLockUtil.executeWithLock("collect:article:" + id + ":user:" + userId, LOCK_EXPIRE_SECONDS, LOCK_RETRY_TIMES, LOCK_RETRY_INTERVAL_MS, () -> {
+            Article article = articleMapper.selectOneById(id);
+            if (article == null || article.getIsDeleted() == 1) {
+                throw new BusinessException(ErrorCode.NOT_FOUND, "文章不存在");
+            }
 
-        ArticleCollect collect = new ArticleCollect();
-        collect.setArticleId(id);
-        collect.setUserId(userId);
-        articleCollectMapper.insert(collect);
-        articleMapper.incrementCollectNum(id);
+            ArticleCollect existingCollect = articleCollectMapper.selectByArticleAndUser(id, userId);
+            if (existingCollect != null) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "已经收藏过了");
+            }
+
+            ArticleCollect collect = new ArticleCollect();
+            collect.setArticleId(id);
+            collect.setUserId(userId);
+            collect.setCreatedTime(LocalDateTime.now());
+            articleCollectMapper.insert(collect);
+            articleMapper.incrementCollectNum(id);
+            clearArticleCache(id);
+        });
     }
 
     @Override
     @Transactional
-    public synchronized void uncollectArticle(Long userId, Long id) {
-        ArticleCollect existingCollect = articleCollectMapper.selectByArticleAndUser(id, userId);
-        if (existingCollect != null) {
+    public void uncollectArticle(Long userId, Long id) {
+        redisLockUtil.executeWithLock("collect:article:" + id + ":user:" + userId, LOCK_EXPIRE_SECONDS, LOCK_RETRY_TIMES, LOCK_RETRY_INTERVAL_MS, () -> {
+            ArticleCollect existingCollect = articleCollectMapper.selectByArticleAndUser(id, userId);
+            if (existingCollect == null) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "尚未收藏，无法取消");
+            }
+
             articleCollectMapper.delete(existingCollect);
             articleMapper.decrementCollectNum(id);
-        }
+            clearArticleCache(id);
+        });
     }
 
     @Override
@@ -547,14 +599,17 @@ public class ArticleServiceImpl implements ArticleService {
         List<Long> articleIds = articleCollectMapper.selectArticleIdsByUserId(userId, offset, size);
         long total = articleCollectMapper.countByUserId(userId);
 
-        // 优化N+1查询：批量查询文章
-        List<ArticleListVO> result = articleIds.isEmpty() ? new ArrayList<>()
-                : articleMapper.selectByIds(articleIds).stream()
-                .filter(a -> a.getIsDeleted() == 0)
-                .map(this::convertToListVO)
-                .collect(java.util.stream.Collectors.toList());
+        if (articleIds.isEmpty()) {
+            return PageResult.of(new ArrayList<>(), total, page, size);
+        }
 
-        return PageResult.of(result, total, page, size);
+        List<Article> articles = articleMapper.selectByIds(articleIds);
+        List<ArticleListVO> voList = convertToListVOBatch(articles, userId);
+        for (ArticleListVO vo : voList) {
+            vo.setIsCollected(true);
+        }
+
+        return PageResult.of(voList, total, page, size);
     }
 
     @Override
@@ -653,7 +708,7 @@ public class ArticleServiceImpl implements ArticleService {
         return vo;
     }
 
-    private List<ArticleListVO> convertToListVOBatch(List<Article> articles) {
+    private List<ArticleListVO> convertToListVOBatch(List<Article> articles, Long currentUserId) {
         if (articles == null || articles.isEmpty()) {
             return new ArrayList<>();
         }
@@ -687,7 +742,6 @@ public class ArticleServiceImpl implements ArticleService {
             categoryMap = categories.stream().collect(Collectors.toMap(Category::getId, c -> c));
         }
 
-        // 批量查询所有文章的标签，避免N+1查询
         Map<Long, List<Tag>> articleTagsMap = new HashMap<>();
         if (!articleIds.isEmpty()) {
             List<ArticleTag> allArticleTags = articleTagMapper.selectByArticleIds(articleIds);
@@ -708,6 +762,13 @@ public class ArticleServiceImpl implements ArticleService {
                     articleTagsMap.computeIfAbsent(at.getArticleId(), k -> new ArrayList<>()).add(tag);
                 }
             }
+        }
+
+        Set<Long> likedArticleIds = new java.util.HashSet<>();
+        Set<Long> collectedArticleIds = new java.util.HashSet<>();
+        if (currentUserId != null && !articleIds.isEmpty()) {
+            likedArticleIds.addAll(articleLikeMapper.selectArticleIdsByUserAndArticleIds(currentUserId, articleIds));
+            collectedArticleIds.addAll(articleCollectMapper.selectArticleIdsByUserAndArticleIds(currentUserId, articleIds));
         }
 
         List<ArticleListVO> result = new ArrayList<>();
@@ -731,7 +792,6 @@ public class ArticleServiceImpl implements ArticleService {
                 }
             }
 
-            // 获取文章标签（使用预加载的数据）
             List<Tag> articleTags = articleTagsMap.get(article.getId());
             if (articleTags != null && !articleTags.isEmpty()) {
                 List<String> tagNames = articleTags.stream()
@@ -739,6 +799,9 @@ public class ArticleServiceImpl implements ArticleService {
                     .collect(Collectors.toList());
                 vo.setTagNames(tagNames);
             }
+
+            vo.setIsLiked(likedArticleIds.contains(article.getId()));
+            vo.setIsCollected(collectedArticleIds.contains(article.getId()));
 
             result.add(vo);
         }

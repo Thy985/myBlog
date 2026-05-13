@@ -120,8 +120,7 @@ const formData = reactive({
 
 const formRules = {
   account: [account()],
-  password: [password()],
-  captcha: [captcha()]
+  password: [password()]
 }
 
 const handleSubmit = async () => {

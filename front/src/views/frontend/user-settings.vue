@@ -13,27 +13,6 @@
                 <div class="sticky top-24 space-y-2">
                     <button
                         class="w-full flex items-center p-3 rounded-lg transition-all duration-200 text-sm"
-                        :class="activeTab === 'profile' ? 'bg-[var(--color-primary-subtle)] text-[var(--color-primary)] font-medium border-l-2 border-[var(--color-primary)]' : 'text-text-secondary hover:bg-[var(--color-primary-subtle)] border-l-2 border-transparent'"
-                        @click="activeTab = 'profile'"
-                    >
-                        <svg class="w-4 h-4 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-7 9a7 7 0 1 1 14 0H3Z" />
-                        </svg>
-                        个人资料
-                    </button>
-                    <button
-                        class="w-full flex items-center p-3 rounded-lg transition-all duration-200 text-sm"
-                        :class="activeTab === 'account' ? 'bg-[var(--color-primary-subtle)] text-[var(--color-primary)] font-medium border-l-2 border-[var(--color-primary)]' : 'text-text-secondary hover:bg-[var(--color-primary-subtle)] border-l-2 border-transparent'"
-                        @click="activeTab = 'account'"
-                    >
-                        <svg class="w-4 h-4 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 2a5 5 0 0 0-5 5v2a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2V7a5 5 0 0 0-5-5Z" />
-                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                        </svg>
-                        账户设置
-                    </button>
-                    <button
-                        class="w-full flex items-center p-3 rounded-lg transition-all duration-200 text-sm"
                         :class="activeTab === 'privacy' ? 'bg-[var(--color-primary-subtle)] text-[var(--color-primary)] font-medium border-l-2 border-[var(--color-primary)]' : 'text-text-secondary hover:bg-[var(--color-primary-subtle)] border-l-2 border-transparent'"
                         @click="activeTab = 'privacy'"
                     >
@@ -81,44 +60,6 @@
             <div class="lg:col-span-2">
                 <Transition name="tab-fade" mode="out-in">
                     <div :key="activeTab" class="space-y-8">
-                        <template v-if="activeTab === 'profile'">
-                            <Suspense>
-                                <template #default>
-                                    <ProfileSettings
-                                        :username="profileForm.username"
-                                        :email="profileForm.email"
-                                        :bio="profileForm.bio"
-                                        :avatar="store.user.avatar"
-                                        :loading="loading"
-                                        @update="handleProfileUpdate"
-                                        @upload="handleAvatarUpload"
-                                    />
-                                </template>
-                                <template #fallback>
-                                    <div class="flex items-center justify-center py-12">
-                                        <div class="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
-                                    </div>
-                                </template>
-                            </Suspense>
-                        </template>
-
-                        <template v-if="activeTab === 'account'">
-                            <Suspense>
-                                <template #default>
-                                    <PasswordSettings
-                                        :loading="loading"
-                                        @update="handlePasswordUpdate"
-                                        @clear="handlePasswordClear"
-                                    />
-                                </template>
-                                <template #fallback>
-                                    <div class="flex items-center justify-center py-12">
-                                        <div class="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
-                                    </div>
-                                </template>
-                            </Suspense>
-                        </template>
-
                         <template v-if="activeTab === 'privacy'">
                             <Suspense>
                                 <template #default>
@@ -206,10 +147,7 @@ import { useAuthStore } from '@/stores/auth'
 import { showMessage } from '@/utils'
 import logger from '@/utils/logger'
 import {
-  updateProfile,
-  changePassword,
   updatePrivacy,
-  uploadAvatar,
   updateMfaSetting,
   verifyMfaCode,
   generateBackupCodes,
@@ -219,8 +157,6 @@ import {
 import { scheduleGrowthTask } from '@/api/frontend/growth'
 
 // 懒加载设置组件
-const ProfileSettings = defineAsyncComponent(() => import('@/components/common/ProfileSettings.vue'))
-const PasswordSettings = defineAsyncComponent(() => import('@/components/common/PasswordSettings.vue'))
 const PrivacySettings = defineAsyncComponent(() => import('@/components/common/PrivacySettings.vue'))
 const SecuritySettings = defineAsyncComponent(() => import('@/components/common/SecuritySettings.vue'))
 const AISettings = defineAsyncComponent(() => import('@/components/common/AISettings.vue'))
@@ -234,16 +170,9 @@ const GrowthSettings = defineAsyncComponent({
 const store = useAuthStore()
 
 // 响应式数据
-const activeTab = ref('profile')
+const activeTab = ref('privacy')
 const loading = ref(false)
 const aiSaved = ref(false)
-
-// 表单数据
-const profileForm = ref({
-  username: '',
-  email: '',
-  bio: ''
-})
 
 const securityForm = ref({
   mfaEnabled: false,
@@ -254,56 +183,6 @@ const securityForm = ref({
 
 const backupCodes = ref([])
 
-// 初始化表单数据
-const initFormData = () => {
-  if (store.isLoggedIn()) {
-    profileForm.value.username = store.user.username || ''
-    profileForm.value.email = store.user.email || ''
-    profileForm.value.bio = store.user.bio || ''
-  }
-}
-
-// 更新个人资料
-const handleProfileUpdate = async () => {
-  loading.value = true
-  try {
-    await updateProfile({
-      username: profileForm.value.username,
-      email: profileForm.value.email,
-      bio: profileForm.value.bio
-    })
-    showMessage('个人资料更新成功', 'success')
-  } catch (error) {
-    logger.error('更新个人资料失败:', error)
-    showMessage('更新失败，请稍后重试', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 更新密码
-const handlePasswordUpdate = async (formData) => {
-  loading.value = true
-  try {
-    await changePassword({
-      oldPassword: formData?.oldPassword || '',
-      newPassword: formData?.newPassword || ''
-    })
-    showMessage('密码更新成功', 'success')
-  } catch (error) {
-    logger.error('修改密码失败:', error)
-    showMessage('更新失败，请稍后重试', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 清空密码表单
-const handlePasswordClear = () => {
-  // 密码表单在组件内部通过 emit('clear') 清空
-  // 这里只需要处理其他清理逻辑（如有）
-}
-
 // 更新隐私设置
 const handlePrivacyUpdate = async (formData) => {
   loading.value = true
@@ -313,25 +192,6 @@ const handlePrivacyUpdate = async (formData) => {
   } catch (error) {
     logger.error('更新隐私设置失败:', error)
     showMessage('更新失败，请稍后重试', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 处理头像上传
-const handleAvatarUpload = async (file) => {
-  loading.value = true
-  try {
-    const formData = new FormData()
-    formData.append('avatar', file)
-    const res = await uploadAvatar(formData)
-    if (store.user) {
-      store.setUser({ ...store.user, avatar: res.data?.url || '' })
-    }
-    showMessage('头像上传成功', 'success')
-  } catch (error) {
-    logger.error('上传头像失败:', error)
-    showMessage('上传失败，请稍后重试', 'error')
   } finally {
     loading.value = false
   }
@@ -465,7 +325,6 @@ const handleAgentSave = async (formData) => {
 
 // 生命周期钩子
 onMounted(() => {
-  initFormData()
   setTimeout(() => {
     securityForm.value.mfaEnabled = false
     securityForm.value.mfaType = 'sms'

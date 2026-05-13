@@ -20,10 +20,14 @@ public interface ArticleService {
 
     PageResult<ArticleListVO> getArticleList(Integer page, Integer size, String keyword, Long categoryId, Long tagId);
 
-    PageResult<ArticleListVO> getArticleList(Integer page, Integer size, String keyword, Long categoryId, Long tagId, Long userId);
+    PageResult<ArticleListVO> getArticleList(Integer page, Integer size, String keyword, Long categoryId, Long tagId, Long authorId);
+
+    PageResult<ArticleListVO> getArticleList(Integer page, Integer size, String keyword, Long categoryId, Long tagId, Long authorId, Long currentUserId);
 
     PageResult<ArticleListVO> getUserArticles(Long userId, Integer page, Integer size);
-    PageResult<ArticleListVO> getUserArticles(Long userId, Integer page, Integer size, String keyword);
+
+    PageResult<ArticleListVO> getUserArticles(Long userId, Integer page, Integer size, Long currentUserId);
+    PageResult<ArticleListVO> getUserArticles(Long userId, Integer page, Integer size, String keyword, Long currentUserId);
 
     List<ArticleVO> getHotArticles(Integer limit);
 
