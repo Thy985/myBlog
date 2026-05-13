@@ -1,6 +1,6 @@
 package com.xingchen.backend.config;
 
-import com.xingchen.backend.agent.llm.LLMProvider;
+import com.xingchen.backend.ai.llm.LLMProvider;
 import com.xingchen.backend.ai.llm.UserLLMProviderManager;
 import com.xingchen.backend.ai.model.AIRequest;
 import com.xingchen.backend.ai.model.AIResponse;

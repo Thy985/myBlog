@@ -212,7 +212,7 @@ openrouter:
 
 # 加密配置
 encryption:
-  master-key: ${ENCRYPTION_MASTER_KEY:default-dev-key-change-in-production}
+  master-key: ${ENCRYPTION_MASTER_KEY}
 
 # Resilience4j 熔断配置
 resilience4j:
@@ -342,5 +342,5 @@ langchain4j:
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:147258369Thy@}
+    password: ${REDIS_PASSWORD}
     database: ${REDIS_DATABASE:0}

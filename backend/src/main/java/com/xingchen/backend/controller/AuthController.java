@@ -73,7 +73,7 @@ public class AuthController {
                     .path("/")
                     .maxAge(TOKEN_MAX_AGE)
                     .sameSite("Lax")
-                    .domain("localhost")
+                    .domain(getCookieDomain(request))
                     .build();
             response.addHeader("Set-Cookie", cookie.toString());
         }
@@ -82,13 +82,13 @@ public class AuthController {
     }
 
     /**
-     * 校验验证码（开发环境禁用）
+     * 校验验证码
+     * 通过环境变量 AUTH_BYPASS_CAPTCHA 控制（仅允许开发环境临时开启）
      */
     private void verifyCaptcha(String captcha, HttpServletRequest request) {
-        // 开发环境跳过验证码验证
-        // TODO: 生产环境请删除此判断
-        String profile = System.getProperty("spring.profiles.active", "dev");
-        if ("dev".equals(profile)) {
+        // 显式环境变量控制，默认关闭
+        String bypassCaptcha = System.getenv("AUTH_BYPASS_CAPTCHA");
+        if ("true".equalsIgnoreCase(bypassCaptcha)) {
             return;
         }
 
@@ -106,6 +106,24 @@ public class AuthController {
         session.removeAttribute(CAPTCHA_CODE_KEY);
     }
 
+    /**
+     * 获取Cookie域名
+     * 生产环境从请求Host推断，开发环境使用localhost
+     */
+    private String getCookieDomain(HttpServletRequest request) {
+        String profile = System.getProperty("spring.profiles.active", "dev");
+        if ("dev".equals(profile)) {
+            return "localhost";
+        }
+        // 生产环境：从请求头获取域名，过滤端口
+        String host = request.getHeader("Host");
+        if (host != null) {
+            int portIndex = host.indexOf(':');
+            return portIndex > 0 ? host.substring(0, portIndex) : host;
+        }
+        return null;
+    }
+
     @PostMapping("/logout")
     @SaCheckLogin
     public Result<Void> logout(HttpServletRequest request, HttpServletResponse response) {
@@ -118,7 +136,7 @@ public class AuthController {
                 .path("/")
                 .maxAge(0)
                 .sameSite("Lax")
-                .domain("localhost")
+                .domain(getCookieDomain(request))
                 .build();
         response.addHeader("Set-Cookie", cookie.toString());
 
@@ -139,7 +157,7 @@ public class AuthController {
                     .path("/")
                     .maxAge(TOKEN_MAX_AGE)
                     .sameSite("Lax")
-                    .domain("localhost")
+                    .domain(getCookieDomain(request))
                     .build();
             response.addHeader("Set-Cookie", cookie.toString());
         }
