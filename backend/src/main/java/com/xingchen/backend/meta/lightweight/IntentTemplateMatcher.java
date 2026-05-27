@@ -18,11 +18,12 @@ public class IntentTemplateMatcher {
     private final Map<String, TemplatePattern> patterns = new HashMap<>();
     
     public IntentTemplateMatcher() {
-        // 预定义模板
-        register("code", List.of("写代码", "代码", "编程", "function", "class"), 0.8);
-        register("blog", List.of("写文章", "博客", "写作", "content"), 0.8);
-        register("review", List.of("审查", "review", "检查", "优化"), 0.7);
-        register("explain", List.of("解释", "说明", "什么是", "how to"), 0.6);
+        // 预定义模板（与 PromptTemplateManager 保持同步）
+        register("code", List.of("写代码", "代码", "编程", "function", "class", "实现", "写一个"), 0.8);
+        register("blog", List.of("写文章", "博客", "写作", "content", "文章", "发帖"), 0.8);
+        register("review", List.of("审查", "review", "检查", "优化", "代码审查"), 0.8);
+        register("explain", List.of("解释", "说明", "什么是", "how to", "介绍一下"), 0.6);
+        register("doc", List.of("文档", "doc", "写文档", "生成文档", "接口文档"), 0.7);
         register("chat", List.of(), 0.3); // 默认模板
     }
     
