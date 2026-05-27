@@ -22,7 +22,7 @@ public class IntentTemplateMatcher {
             Map.entry("写一个", 1.5), Map.entry("实现", 1.5), Map.entry("函数", 1.5), Map.entry("接口", 1.5),
             Map.entry("什么是", 1.3), Map.entry("介绍一下", 1.3), Map.entry("怎么实现", 1.3),
             Map.entry("编程", 1.2), Map.entry("function", 1.2), Map.entry("class", 1.2),
-            Map.entry("代码", 1.0), Map.entry("编程", 1.0), Map.entry("程序", 1.0),
+            Map.entry("代码", 1.0), Map.entry("程序", 1.0),
             Map.entry("审查", 1.0), Map.entry("review", 1.0), Map.entry("检查", 1.0), Map.entry("优化", 1.0),
             Map.entry("解释", 0.9), Map.entry("说明", 0.9), Map.entry("how to", 0.9),
             Map.entry("文档", 0.9), Map.entry("doc", 0.9), Map.entry("写文档", 0.9), Map.entry("接口文档", 0.9),
