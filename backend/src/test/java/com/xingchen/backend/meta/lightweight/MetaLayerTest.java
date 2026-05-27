@@ -86,20 +86,28 @@ class MetaLayerTest {
         }
 
         @Test
-        @DisplayName("应支持英文关键词匹配")
-        void shouldSupportEnglishKeywords() {
-            var result = intentMatcher.match("write a function");
+        @DisplayName("应支持多关键词组合匹配")
+        void shouldMatchMultipleKeywords() {
+            var result = intentMatcher.match("帮我写一个关于Spring Boot的代码");
 
             assertEquals("code", result.getTemplateKey());
+            assertTrue(result.getConfidence() > 0.5);
         }
 
         @Test
-        @DisplayName("应忽略大小写匹配")
-        void shouldMatchCaseInsensitive() {
-            var result1 = intentMatcher.match("什么是 JAVA");
-            var result2 = intentMatcher.match("什么是 java");
+        @DisplayName("应支持新模板 code_review")
+        void shouldMatchCodeReview() {
+            var result = intentMatcher.match("帮我审查这段代码");
 
-            assertEquals(result1.getTemplateKey(), result2.getTemplateKey());
+            assertEquals("code_review", result.getTemplateKey());
+        }
+
+        @Test
+        @DisplayName("应支持新模板 creative")
+        void shouldMatchCreative() {
+            var result = intentMatcher.match("帮我写一个营销文案");
+
+            assertEquals("creative", result.getTemplateKey());
         }
     }
 

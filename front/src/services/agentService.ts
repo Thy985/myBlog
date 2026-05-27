@@ -99,7 +99,8 @@ class AgentService {
         {
           message: trimmedContent,
           sessionId: this.sessionStore!.sessionId!,
-          messageId: aiMessageId
+          messageId: aiMessageId,
+          userId: this.sessionStore!.userId
         },
         {
           onEvent: (event: AgentEvent) => this.handleEvent(event, aiMessageId),

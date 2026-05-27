@@ -325,6 +325,13 @@ interface StreamChatParams {
   message: string
   sessionId: string
   messageId?: string
+  userId?: number
+}
+
+interface StreamChatParams_REMOVE {
+  message: string
+  sessionId: string
+  messageId?: string
 }
 
 interface StreamChatCallbacks {
@@ -341,7 +348,7 @@ export interface StreamController {
 
 /** SSE 流式聊天（支持自动重连） */
 export function streamAgentChat(
-  { message, sessionId, messageId }: StreamChatParams,
+  { message, sessionId, messageId, userId }: StreamChatParams,
   callbacks: StreamChatCallbacks,
   config: Partial<AgentConfig['retry']> = {}
 ): StreamController {
@@ -387,7 +394,8 @@ export function streamAgentChat(
         body: JSON.stringify({
           message: message.trim(),
           sessionId,
-          messageId
+          messageId,
+          userId
         }),
         signal: abortController.signal
       })
