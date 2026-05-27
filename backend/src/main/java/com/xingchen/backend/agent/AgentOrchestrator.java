@@ -13,6 +13,7 @@ import com.xingchen.backend.ai.security.SecurityFilterChain;
 import com.xingchen.backend.ai.tool.AIToolRegistry;
 import com.xingchen.backend.ai.tool.Tool;
 import com.xingchen.backend.service.KnowledgeBaseService;
+import com.xingchen.backend.meta.lightweight.LightweightMetaOrchestrator;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -36,6 +37,7 @@ public class AgentOrchestrator {
     private final UserLLMProviderManager userProviderManager;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final MeterRegistry meterRegistry;
+    private final LightweightMetaOrchestrator metaOrchestrator;
 
     public AIResponse handle(AIRequest request) {
         long startTime = System.currentTimeMillis();
@@ -46,6 +48,14 @@ public class AgentOrchestrator {
 
             Intent intent = intentClassifier.classify(request.getMessage());
             log.debug("意图分类: type={}, confidence={}", intent.getType(), intent.getConfidence());
+
+            // 使用微型元能力增强 systemPrompt
+            if (request.getUserId() != null) {
+                String enhancedPrompt = metaOrchestrator.buildEnhancedPrompt(request.getUserId(), request.getMessage());
+                if (!enhancedPrompt.isEmpty()) {
+                    request.setSystemPrompt(enhancedPrompt);
+                }
+            }
 
             ExecutionPlan plan = buildExecutionPlan(request, intent);
             AIResponse response = executePlan(plan);
@@ -93,9 +103,29 @@ public class AgentOrchestrator {
 
             Intent intent = intentClassifier.classify(request.getMessage());
 
+            // 3. 构建增强 System Prompt（使用微型元能力层）
+            String enhancedSystemPrompt = "";
+            if (userId != null) {
+                enhancedSystemPrompt = metaOrchestrator.buildEnhancedPrompt(userId, request.getMessage());
+                log.debug("使用微型元能力构建增强 Prompt, userId={}", userId);
+            }
+
+            // 4. 如果有增强 Prompt，设置到请求中
+            AIRequest enhancedRequest = request;
+            if (!enhancedSystemPrompt.isEmpty()) {
+                enhancedRequest = AIRequest.builder()
+                        .userId(request.getUserId())
+                        .sessionId(request.getSessionId())
+                        .message(request.getMessage())
+                        .systemPrompt(enhancedSystemPrompt)
+                        .stream(request.isStream())
+                        .history(request.getHistory())
+                        .build();
+            }
+
             LLMProvider userProvider = validateAndGetUserProvider(userId, onChunk);
             if (userProvider != null && userProvider.supportsStreaming()) {
-                userProvider.streamChat(request, response -> {
+                userProvider.streamChat(enhancedRequest, response -> {
                     if (response.isSuccess() && response.getContent() != null) {
                         fullResponse.append(response.getContent());
                     }
@@ -129,6 +159,17 @@ public class AgentOrchestrator {
 
                     unifiedMemoryService.addWorkingMemory(userId, request.getSessionId(), userItem);
                     unifiedMemoryService.addWorkingMemory(userId, request.getSessionId(), assistantItem);
+
+                    // 5. 记录反馈用于用户偏好学习（异步）
+                    final Long feedbackUserId = userId;
+                    final String userMessage = request.getMessage();
+                    new Thread(() -> {
+                        try {
+                            metaOrchestrator.recordFeedback(feedbackUserId, userMessage, true);
+                        } catch (Exception e) {
+                            log.warn("记录反馈失败", e);
+                        }
+                    }).start();
                 }
             }
 

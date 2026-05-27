@@ -16,18 +16,18 @@ import java.util.*;
 public class IntentTemplateMatcher {
 
     // 关键词权重（高频词权重更高）
-    private static final Map<String, Double> KEYWORD_WEIGHTS = Map.of(
-            "写代码", 1.8, "代码审查", 1.8, "code review", 1.8, "代码有问题", 1.8,
-            "写文章", 1.5, "写博客", 1.5, "博客文章", 1.5, "文章", 1.5,
-            "写一个", 1.5, "实现", 1.5, "函数", 1.5, "接口", 1.5,
-            "什么是", 1.3, "介绍一下", 1.3, "怎么实现", 1.3,
-            "编程", 1.2, "function", 1.2, "class", 1.2,
-            "代码", 1.0, "编程", 1.0, "程序", 1.0,
-            "审查", 1.0, "review", 1.0, "检查", 1.0, "优化", 1.0,
-            "解释", 0.9, "说明", 0.9, "how to", 0.9,
-            "文档", 0.9, "doc", 0.9, "写文档", 0.9, "接口文档", 0.9,
-            "博客", 0.9, "content", 0.9, "写作", 0.9, "发帖", 0.9,
-            "生成", 0.8, "创建", 0.8, "新增", 0.8
+    private static final Map<String, Double> KEYWORD_WEIGHTS = Map.ofEntries(
+            Map.entry("写代码", 1.8), Map.entry("代码审查", 1.8), Map.entry("code review", 1.8), Map.entry("代码有问题", 1.8),
+            Map.entry("写文章", 1.5), Map.entry("写博客", 1.5), Map.entry("博客文章", 1.5), Map.entry("文章", 1.5),
+            Map.entry("写一个", 1.5), Map.entry("实现", 1.5), Map.entry("函数", 1.5), Map.entry("接口", 1.5),
+            Map.entry("什么是", 1.3), Map.entry("介绍一下", 1.3), Map.entry("怎么实现", 1.3),
+            Map.entry("编程", 1.2), Map.entry("function", 1.2), Map.entry("class", 1.2),
+            Map.entry("代码", 1.0), Map.entry("编程", 1.0), Map.entry("程序", 1.0),
+            Map.entry("审查", 1.0), Map.entry("review", 1.0), Map.entry("检查", 1.0), Map.entry("优化", 1.0),
+            Map.entry("解释", 0.9), Map.entry("说明", 0.9), Map.entry("how to", 0.9),
+            Map.entry("文档", 0.9), Map.entry("doc", 0.9), Map.entry("写文档", 0.9), Map.entry("接口文档", 0.9),
+            Map.entry("博客", 0.9), Map.entry("content", 0.9), Map.entry("写作", 0.9), Map.entry("发帖", 0.9),
+            Map.entry("生成", 0.8), Map.entry("创建", 0.8), Map.entry("新增", 0.8)
     );
 
     // 模板注册表（模板key -> 核心关键词列表）
