@@ -13,7 +13,6 @@ import com.xingchen.backend.ai.security.SecurityFilterChain;
 import com.xingchen.backend.ai.tool.AIToolRegistry;
 import com.xingchen.backend.ai.tool.Tool;
 import com.xingchen.backend.service.KnowledgeBaseService;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
@@ -34,8 +33,6 @@ public class AgentOrchestrator {
     private final KnowledgeBaseService knowledgeBaseService;
     private final AIToolRegistry toolRegistry;
     private final UserLLMProviderManager userProviderManager;
-    @SuppressWarnings("unused")
-    private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final MeterRegistry meterRegistry;
 
     // 消息重要性/类型判断的触发词常量，避免每次方法调用重复创建

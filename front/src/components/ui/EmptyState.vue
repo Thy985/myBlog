@@ -58,58 +58,22 @@ import {
   Star
 } from '@element-plus/icons-vue'
 
-const props = defineProps({
-  // 图标类型
-  icon: {
-    type: String,
-    default: 'document',
-    validator: (val) => [
-      'document', 'chat', 'folder', 'search', 'bell', 'user', 'picture', 'link', 'star'
-    ].includes(val)
-  },
-  // 标题
-  title: {
-    type: String,
-    default: '暂无内容'
-  },
-  // 描述
-  description: {
-    type: String,
-    default: ''
-  },
-  // 主要操作按钮文字
-  actionText: {
-    type: String,
-    default: ''
-  },
-  // 次要操作按钮文字
-  secondaryActionText: {
-    type: String,
-    default: ''
-  },
-  // 情感化提示
-  tip: {
-    type: String,
-    default: ''
-  },
-  // 是否显示操作按钮区域
-  showAction: {
-    type: Boolean,
-    default: true
-  },
-  // 是否显示情感化提示
-  showTip: {
-    type: Boolean,
-    default: true
-  },
-  // 紧凑模式
-  compact: {
-    type: Boolean,
-    default: false
-  }
-})
+const props = defineProps<{
+  icon?: 'document' | 'chat' | 'folder' | 'search' | 'bell' | 'user' | 'picture' | 'link' | 'star'
+  title?: string
+  description?: string
+  actionText?: string
+  secondaryActionText?: string
+  tip?: string
+  showAction?: boolean
+  showTip?: boolean
+  compact?: boolean
+}>()
 
-const emit = defineEmits(['action', 'secondary-action'])
+const emit = defineEmits<{
+  (e: 'action'): void
+  (e: 'secondary-action'): void
+}>()
 
 const iconMap = {
   document: Document,

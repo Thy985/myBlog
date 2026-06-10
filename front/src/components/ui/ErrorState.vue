@@ -49,51 +49,16 @@ import {
   Document
 } from '@element-plus/icons-vue'
 
-const props = defineProps({
-  // 错误类型
-  type: {
-    type: String,
-    default: 'generic',
-    validator: (val) => [
-      'generic', 'network', 'server', 'not-found', 'permission'
-    ].includes(val)
-  },
-  // 自定义标题
-  title: {
-    type: String,
-    default: ''
-  },
-  // 自定义描述
-  description: {
-    type: String,
-    default: ''
-  },
-  // 是否显示重试按钮
-  showRetry: {
-    type: Boolean,
-    default: true
-  },
-  // 是否显示返回首页按钮
-  showBackHome: {
-    type: Boolean,
-    default: true
-  },
-  // 是否显示操作按钮区域
-  showActions: {
-    type: Boolean,
-    default: true
-  },
-  // 紧凑模式
-  compact: {
-    type: Boolean,
-    default: false
-  },
-  // 自定义重试回调
-  onRetry: {
-    type: Function,
-    default: null
-  }
-})
+const props = defineProps<{
+  type?: 'generic' | 'network' | 'server' | 'not-found' | 'permission'
+  title?: string
+  description?: string
+  showRetry?: boolean
+  showBackHome?: boolean
+  showActions?: boolean
+  compact?: boolean
+  onRetry?: () => void
+}>()
 
 const router = useRouter()
 

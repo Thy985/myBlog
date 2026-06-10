@@ -119,29 +119,20 @@
     </nav>
 </template>
 
-<script setup>
-import { ref, computed, defineProps, defineEmits, watch } from 'vue'
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
 
-const props = defineProps({
-    current: {
-        type: Number,
-        default: 1
-    },
-    total: {
-        type: Number,
-        default: 0
-    },
-    size: {
-        type: Number,
-        default: 10
-    },
-    pages: {
-        type: Number,
-        default: 0
-    }
-})
+const props = defineProps<{
+  current?: number
+  total?: number
+  size?: number
+  pages?: number
+}>()
 
-const emit = defineEmits(['page-change', 'size-change'])
+const emit = defineEmits<{
+  (e: 'page-change', page: number): void
+  (e: 'size-change', size: number): void
+}>()
 
 const jumpPage = ref(props.current)
 const localSize = ref(props.size)
