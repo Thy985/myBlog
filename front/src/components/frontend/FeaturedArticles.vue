@@ -147,16 +147,18 @@ const getInitial = (name) => {
     return (name || '匿').charAt(0).toUpperCase()
 }
 
+const getApiBaseUrl = () => import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
+const getAssetUrl = (path: string | undefined): string | undefined => {
+    if (!path) return path
+    if (path.startsWith('http://') || path.startsWith('https://')) return path
+    return `${getApiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`
+}
+
 // 获取完整的图片URL，处理相对路径
-const getImageUrl = (imagePath) => {
-    if (!imagePath) {return null}
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-        return imagePath
-    }
-    if (imagePath.startsWith('/')) {
-        return `http://localhost:8080${imagePath}`
-    }
-    return `http://localhost:8080/${imagePath}`
+const getImageUrl = (imagePath: string | undefined): string | null => {
+    if (!imagePath) return null
+    return getAssetUrl(imagePath) || null
 }
 
 // 获取文章图片URL

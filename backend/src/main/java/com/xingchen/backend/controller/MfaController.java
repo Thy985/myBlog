@@ -8,6 +8,7 @@ import com.xingchen.backend.service.MfaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -16,6 +17,7 @@ import java.util.Map;
 @RequestMapping("/api/mfa")
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 public class MfaController {
 
     private final MfaService mfaService;

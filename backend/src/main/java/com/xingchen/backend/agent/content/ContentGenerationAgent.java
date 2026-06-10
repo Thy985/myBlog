@@ -4,7 +4,6 @@ import com.xingchen.backend.agent.base.BaseAgent;
 import com.xingchen.backend.ai.llm.LLMProvider;
 import com.xingchen.backend.ai.model.AIRequest;
 import com.xingchen.backend.ai.model.AIResponse;
-import com.xingchen.backend.service.ArticleGenerationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -15,13 +14,10 @@ import java.util.*;
 @Slf4j
 public class ContentGenerationAgent extends BaseAgent {
 
-    private final ArticleGenerationService articleGenerationService;
     private final LLMProvider llmProvider;
 
-    public ContentGenerationAgent(ArticleGenerationService articleGenerationService,
-                                @Qualifier("agentLLMProvider") LLMProvider llmProvider) {
+    public ContentGenerationAgent(@Qualifier("agentLLMProvider") LLMProvider llmProvider) {
         super("ContentGenerationAgent", Map.of("maxTokens", 4000, "temperature", 0.7));
-        this.articleGenerationService = articleGenerationService;
         this.llmProvider = llmProvider;
     }
 

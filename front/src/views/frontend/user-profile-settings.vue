@@ -192,25 +192,22 @@ const isUploading = ref(false)
 const uploadError = ref('')
 
 // 计算头像URL
+const getApiBaseUrl = () => import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
+const getAssetUrl = (path: string | undefined): string | undefined => {
+    if (!path) return path
+    if (path.startsWith('http://') || path.startsWith('https://')) return path
+    return `${getApiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`
+}
+
 const getAvatarUrl = computed(() => {
     // 优先使用表单中的头像（可能是刚上传的）
     if (form.value.avatar) {
-        if (form.value.avatar.startsWith('http://') || form.value.avatar.startsWith('https://')) {
-            return form.value.avatar
-        } else if (form.value.avatar.startsWith('/')) {
-            return `http://localhost:8080${form.value.avatar}`
-        }
-        return `http://localhost:8080/${form.value.avatar}`
+        return getAssetUrl(form.value.avatar)
     }
     // 其次使用 store 中的用户头像
     if (store.isLoggedIn && store.user.avatar) {
-        const avatar = store.user.avatar
-        if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-            return avatar
-        } else if (avatar.startsWith('/')) {
-            return `http://localhost:8080${avatar}`
-        }
-        return `http://localhost:8080/${avatar}`
+        return getAssetUrl(store.user.avatar)
     }
     // 默认头像
     return new URL('@/assets/头像.jpg', import.meta.url).href

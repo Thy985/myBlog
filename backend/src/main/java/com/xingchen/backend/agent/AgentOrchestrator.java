@@ -34,8 +34,18 @@ public class AgentOrchestrator {
     private final KnowledgeBaseService knowledgeBaseService;
     private final AIToolRegistry toolRegistry;
     private final UserLLMProviderManager userProviderManager;
+    @SuppressWarnings("unused")
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final MeterRegistry meterRegistry;
+
+    // 消息重要性/类型判断的触发词常量，避免每次方法调用重复创建
+    private static final Set<String> PREFERENCE_TRIGGERS = Set.of("喜欢", "偏好", "习惯", "不要", "别用", "讨厌", "想要", "希望");
+    private static final Set<String> DECISION_TRIGGERS = Set.of("决定", "选择", "确定", "采用", "使用", "不用", "放弃");
+    private static final Set<String> FACT_TRIGGERS = Set.of("我叫", "我的名字", "我在", "我做", "我的工作", "我是");
+    private static final Set<String> IMPORTANCE_TRIGGERS = Set.of(
+        "喜欢", "偏好", "习惯", "不要", "别用", "决定", "选择",
+        "采用", "使用", "不用", "放弃", "我叫", "我的名字", "我在"
+    );
 
     public AIResponse handle(AIRequest request) {
         long startTime = System.currentTimeMillis();
@@ -404,12 +414,7 @@ public class AgentOrchestrator {
         if (length > 100) importance += 0.1;
         if (length > 300) importance += 0.1;
 
-        Set<String> importantTriggers = Set.of(
-            "喜欢", "偏好", "习惯", "不要", "别用", "决定", "选择",
-            "采用", "使用", "不用", "放弃", "我叫", "我的名字", "我在"
-        );
-
-        for (String trigger : importantTriggers) {
+        for (String trigger : IMPORTANCE_TRIGGERS) {
             if (message.contains(trigger)) {
                 importance += 0.1;
                 break;
@@ -422,17 +427,13 @@ public class AgentOrchestrator {
     private UnifiedMemoryContext.MemoryType classifyMessageType(String message) {
         if (message == null) return UnifiedMemoryContext.MemoryType.CONVERSATION;
 
-        Set<String> prefTriggers = Set.of("喜欢", "偏好", "习惯", "不要", "别用", "讨厌", "想要", "希望");
-        Set<String> decisionTriggers = Set.of("决定", "选择", "确定", "采用", "使用", "不用", "放弃");
-        Set<String> factTriggers = Set.of("我叫", "我的名字", "我在", "我做", "我的工作", "我是");
-
-        for (String trigger : prefTriggers) {
+        for (String trigger : PREFERENCE_TRIGGERS) {
             if (message.contains(trigger)) return UnifiedMemoryContext.MemoryType.PREFERENCE;
         }
-        for (String trigger : decisionTriggers) {
+        for (String trigger : DECISION_TRIGGERS) {
             if (message.contains(trigger)) return UnifiedMemoryContext.MemoryType.DECISION;
         }
-        for (String trigger : factTriggers) {
+        for (String trigger : FACT_TRIGGERS) {
             if (message.contains(trigger)) return UnifiedMemoryContext.MemoryType.FACT;
         }
 
