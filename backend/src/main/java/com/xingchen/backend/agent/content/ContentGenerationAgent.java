@@ -6,7 +6,6 @@ import com.xingchen.backend.ai.model.AIRequest;
 import com.xingchen.backend.ai.model.AIResponse;
 import com.xingchen.backend.service.ArticleGenerationService;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +17,6 @@ public class ContentGenerationAgent extends BaseAgent {
 
     private final ArticleGenerationService articleGenerationService;
     private final LLMProvider llmProvider;
-    private static final Logger AGENT_LOG = org.slf4j.LoggerFactory.getLogger(ContentGenerationAgent.class);
 
     public ContentGenerationAgent(ArticleGenerationService articleGenerationService,
                                 @Qualifier("agentLLMProvider") LLMProvider llmProvider) {
@@ -70,7 +68,7 @@ public class ContentGenerationAgent extends BaseAgent {
                 return response.getContent();
             }
         } catch (Exception e) {
-            AGENT_LOG.error("LLM生成内容失败: topic={}", topic, e);
+            log.error("LLM生成内容失败: topic={}", topic, e);
         }
 
         return generateFallbackContent(topic, keywords);

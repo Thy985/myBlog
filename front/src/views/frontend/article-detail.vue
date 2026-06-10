@@ -157,9 +157,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch, onMounted, defineAsyncComponent, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, RouteLocationNormalized } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useArticleDetail } from '@/composables/useArticleDetail'
 import { publishComment } from '@/api/frontend/comment'
@@ -202,8 +202,8 @@ const {
   loadAllData
 } = useArticleDetail()
 
-const commentListRef = ref(null)
-const articleContentRef = ref(null)
+const commentListRef = ref<InstanceType<typeof ArticleComments> | null>(null)
+const articleContentRef = ref<HTMLElement | null>(null)
 const showMobileToc = ref(false)
 const showBackToTop = ref(false)
 const isLiked = ref(false)
@@ -212,11 +212,12 @@ const likeCount = ref(0)
 const collectCount = ref(0)
 const actionLoading = ref(false)
 
-// Sync like/collect counts from article data
 watch(article, (newArticle) => {
   if (newArticle) {
     likeCount.value = newArticle.likeCount || 0
     collectCount.value = newArticle.collectCount || 0
+    isLiked.value = newArticle.isLiked || false
+    isCollected.value = newArticle.isCollected || false
   }
 }, { immediate: true })
 
@@ -224,7 +225,6 @@ function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-// 阅读进度条 - 基于文章正文区域计算
 const readingProgress = ref(0)
 
 function updateReadingProgress() {
@@ -239,14 +239,13 @@ function updateReadingProgress() {
   const contentRect = articleContentRef.value.getBoundingClientRect()
   const contentTop = contentRect.top + scrollTop
   const contentHeight = contentRect.height
-  const windowHeight = window.innerHeight
 
   if (contentHeight <= 0) {
     readingProgress.value = 0
     return
   }
 
-  // 计算阅读进度：从文章顶部开始，到文章底部结束
+  const windowHeight = window.innerHeight
   const scrollPosition = scrollTop + windowHeight / 2
   const startPosition = contentTop
   const endPosition = contentTop + contentHeight
@@ -264,8 +263,7 @@ function handleScroll() {
   updateReadingProgress()
 }
 
-// Handle TOC click from desktop component
-function handleTocClick({ id, index }) {
+function handleTocClick({ id, index }: { id: string; index: number }) {
   const element = document.getElementById(id)
   if (element) {
     element.scrollIntoView({ behavior: 'smooth' })
@@ -273,8 +271,7 @@ function handleTocClick({ id, index }) {
   }
 }
 
-// Handle TOC select from mobile component
-function handleMobileTocSelect(id, index) {
+function handleMobileTocSelect(id: string, index: number) {
   const element = document.getElementById(id)
   if (element) {
     element.scrollIntoView({ behavior: 'smooth' })
@@ -283,93 +280,91 @@ function handleMobileTocSelect(id, index) {
   showMobileToc.value = false
 }
 
-// Handle content rendered event
 function handleContentRendered() {
   // Content rendering is handled by MarkdownRenderer
 }
 
-// Handle comment submission
-async function handleCommentSubmit(content) {
-  const articleId = route.query.articleId
+async function handleCommentSubmit(content: string) {
+  const articleId = route.query.articleId as string
   if (!articleId) {
-    ElMessage.warning('Article ID does not exist')
+    ElMessage.warning('文章ID不存在')
     return
   }
 
   try {
     await publishComment({
       articleId: Number(articleId),
-      content: content,
+      content,
       parentId: 0
     })
-    ElMessage.success('Comment submitted successfully')
-    if (commentListRef.value) {
-      commentListRef.value.refresh()
-    }
-  } catch (err) {
-    ElMessage.error('Failed to submit comment, please try again later')
+    ElMessage.success('评论发布成功')
+    commentListRef.value?.refresh()
+  } catch {
+    ElMessage.error('评论发布失败，请稍后重试')
   }
 }
 
-// Toggle like
-async function toggleLike() {
+// 统一的点赞/收藏操作逻辑，消除重复代码
+async function toggleAction(
+  currentStatus: boolean,
+  count: { value: number },
+  status: { value: boolean },
+  actionTrue: () => Promise<void>,
+  actionFalse: () => Promise<void>,
+  actionName: string
+) {
   if (!isAuthenticated()) {
-    ElMessage.warning('Please login first')
+    ElMessage.warning('请先登录')
     router.push('/login')
     return
   }
-  if (actionLoading.value) {return}
-  const articleId = route.params.id
-  if (!articleId) {return}
+  if (actionLoading.value) return
+
+  const articleId = route.params.id as string
+  if (!articleId) return
 
   actionLoading.value = true
   try {
-    if (isLiked.value) {
-      await unlikeArticle(Number(articleId))
-      isLiked.value = false
-      likeCount.value--
+    if (currentStatus) {
+      await actionFalse()
+      status.value = false
+      count.value--
     } else {
-      await likeArticle(Number(articleId))
-      isLiked.value = true
-      likeCount.value++
+      await actionTrue()
+      status.value = true
+      count.value++
     }
-  } catch (err) {
-    ElMessage.error('Operation failed, please try again later')
+  } catch {
+    ElMessage.error(`${actionName}操作失败，请稍后重试`)
   } finally {
     actionLoading.value = false
   }
 }
 
-// Toggle collect
-async function toggleCollect() {
-  if (!isAuthenticated()) {
-    ElMessage.warning('Please login first')
-    router.push('/login')
-    return
-  }
-  if (actionLoading.value) {return}
-  const articleId = route.params.id
-  if (!articleId) {return}
-
-  actionLoading.value = true
-  try {
-    if (isCollected.value) {
-      await uncollectArticle(Number(articleId))
-      isCollected.value = false
-      collectCount.value--
-    } else {
-      await collectArticle(Number(articleId))
-      isCollected.value = true
-      collectCount.value++
-    }
-  } catch (err) {
-    ElMessage.error('Operation failed, please try again later')
-  } finally {
-    actionLoading.value = false
-  }
+function toggleLike() {
+  const id = Number(route.params.id)
+  toggleAction(
+    isLiked.value,
+    likeCount,
+    isLiked,
+    () => likeArticle(id),
+    () => unlikeArticle(id),
+    '点赞'
+  )
 }
 
-// Component mount
+function toggleCollect() {
+  const id = Number(route.params.id)
+  toggleAction(
+    isCollected.value,
+    collectCount,
+    isCollected,
+    () => collectArticle(id),
+    () => uncollectArticle(id),
+    '收藏'
+  )
+}
+
 onMounted(() => {
   loadAllData()
   window.addEventListener('scroll', handleScroll, { passive: true })
