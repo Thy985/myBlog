@@ -90,46 +90,24 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 
-const props = defineProps({
-  modelValue: {
-    type: [String, Number],
-    default: ''
-  },
-  label: {
-    type: String,
-    default: ''
-  },
-  type: {
-    type: String,
-    default: 'text'
-  },
-  placeholder: {
-    type: String,
-    default: ''
-  },
-  disabled: {
-    type: Boolean,
-    default: false
-  },
-  required: {
-    type: Boolean,
-    default: false
-  },
-  rules: {
-    type: Array,
-    default: () => []
-  },
-  helpText: {
-    type: String,
-    default: ''
-  },
-  successMessage: {
-    type: String,
-    default: ''
-  }
-})
+type RuleValidator = (value: string | number) => true | string
 
-const emit = defineEmits(['update:modelValue', 'validate'])
+const props = defineProps<{
+  modelValue?: string | number
+  label?: string
+  type?: string
+  placeholder?: string
+  disabled?: boolean
+  required?: boolean
+  rules?: RuleValidator[]
+  helpText?: string
+  successMessage?: string
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: string): void
+  (e: 'validate', valid: boolean): void
+}>()
 
 // 生成唯一ID
 const inputId = computed(() => `input-${Math.random().toString(36).slice(2, 11)}`)

@@ -14,14 +14,13 @@ import { ref, watch } from 'vue'
 import { mavonEditor } from 'mavon-editor'
 import 'mavon-editor/dist/css/index.css'
 
-const props = defineProps({
-    content: {
-        type: String,
-        default: ''
-    }
-})
+const props = defineProps<{
+    content?: string
+}>()
 
-const emit = defineEmits(['event'])
+const emit = defineEmits<{
+    (e: 'event', value: string): void
+}>()
 
 const myContent = ref('')
 
