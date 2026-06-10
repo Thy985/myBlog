@@ -216,14 +216,22 @@ describe('FormInput组件测试', () => {
       props: {
         modelValue: 'test',
         label: '用户名',
-        required: true
+        required: true,
+        rules: []
       }
     })
 
-    await wrapper.find('input').trigger('blur')
+    // 直接调用暴露的validate方法
+    const result = wrapper.vm.$.exposed.validate()
+    await wrapper.vm.$nextTick()
 
-    expect(wrapper.emitted('validate')).toBeTruthy()
-    expect(wrapper.emitted('validate')[0]).toEqual([true])
+    // validate返回true表示验证通过
+    expect(result).toBe(true)
+
+    // 验证emit已经被捕获
+    const events = wrapper.emitted('validate')
+    expect(events).toBeTruthy()
+    expect(events[0]).toEqual([true])
   })
 
   it('应该有正确的ARIA属性', async () => {

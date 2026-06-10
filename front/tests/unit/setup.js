@@ -101,7 +101,15 @@ vi.mock('@/components/common/CommentItem.vue', () => ({
     name: 'CommentItem',
     props: ['comment', 'isReply'],
     emits: ['reply', 'like', 'delete', 'load-replies'],
-    template: '<div class="comment-item"><span class="comment-content">{{ comment.content }}</span></div>'
+    template: `
+      <div class="comment-item">
+        <div class="comment-meta">
+          <span class="username">{{ comment.username }}</span>
+        </div>
+        <span class="comment-content">{{ comment.content }}</span>
+        <button v-if="comment.replyCount > 0" class="action-btn">查看{{ comment.replyCount }}条回复</button>
+      </div>
+    `
   }
 }))
 
