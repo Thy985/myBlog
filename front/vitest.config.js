@@ -18,6 +18,28 @@ export default defineConfig({
       exclude: ['src/**/*.d.ts', 'src/main.js', 'src/router/**', 'src/plugins/**']
     },
     setupFiles: ['./tests/unit/setup.js'],
-    exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**']
+    exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**'],
+    server: {
+      deps: {
+        inline: ['@vue/test-utils']
+      }
+    },
+    deps: {
+      optimizer: {
+        web: {
+          enabled: false
+        }
+      }
+    },
+    alias: [
+      {
+        find: /^@\/components\/ui\/EmptyState\.vue$/,
+        replacement: fileURLToPath(new URL('./tests/unit/__mocks__/EmptyState.vue', import.meta.url))
+      },
+      {
+        find: /^@\/components\/common\/CommentItem\.vue$/,
+        replacement: fileURLToPath(new URL('./tests/unit/__mocks__/CommentItem.vue', import.meta.url))
+      }
+    ]
   }
 })

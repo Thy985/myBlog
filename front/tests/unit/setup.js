@@ -75,8 +75,115 @@ vi.mock('@element-plus/icons-vue', () => ({
   ChatLineRound: { template: '<span class="el-icon-chat"></span>' },
   Delete: { template: '<span class="el-icon-delete"></span>' },
   ArrowDown: { template: '<span class="el-icon-arrow-down"></span>' },
-  ArrowUp: { template: '<span class="el-icon-arrow-up"></span>' }
+  ArrowUp: { template: '<span class="el-icon-arrow-up"></span>' },
+  Document: { template: '<span class="el-icon-document"></span>' },
+  Folder: { template: '<span class="el-icon-folder"></span>' },
+  Search: { template: '<span class="el-icon-search"></span>' },
+  Bell: { template: '<span class="el-icon-bell"></span>' },
+  User: { template: '<span class="el-icon-user"></span>' },
+  Picture: { template: '<span class="el-icon-picture"></span>' },
+  Link: { template: '<span class="el-icon-link"></span>' }
 }))
+
+// Mock child components that have TypeScript and cause parsing issues in vitest
+// (Also aliased in vitest.config.js test.alias)
+vi.mock('@/components/ui/EmptyState.vue', () => ({
+  default: {
+    name: 'EmptyState',
+    props: ['icon', 'title', 'description', 'actionText', 'showTip', 'compact', 'secondaryActionText', 'showAction'],
+    emits: ['action', 'secondary-action'],
+    template: '<div class="empty-state"><slot></slot></div>'
+  }
+}))
+
+vi.mock('@/components/common/CommentItem.vue', () => ({
+  default: {
+    name: 'CommentItem',
+    props: ['comment', 'isReply'],
+    emits: ['reply', 'like', 'delete', 'load-replies'],
+    template: '<div class="comment-item"><span class="comment-content">{{ comment.content }}</span></div>'
+  }
+}))
+
+// Global stubs for common child components
+config.global.stubs = {
+  CommentItem: {
+    name: 'CommentItem',
+    props: ['comment', 'isReply'],
+    emits: ['reply', 'like', 'delete', 'load-replies'],
+    template: '<div class="comment-item"><span class="comment-content">{{ comment.content }}</span></div>'
+  },
+  EmptyState: {
+    name: 'EmptyState',
+    props: ['icon', 'title', 'description', 'actionText', 'showTip', 'compact', 'secondaryActionText', 'showAction'],
+    emits: ['action', 'secondary-action'],
+    template: '<div class="empty-state"><slot></slot></div>'
+  }
+}
+
+// Mock Element Plus components globally
+const ElButton = {
+  name: 'ElButton',
+  props: ['type', 'size', 'loading', 'disabled', 'text', 'plain', 'circle', 'link'],
+  inheritAttrs: false,
+  template: `
+    <button
+      v-bind="$attrs"
+      :class="[
+        'el-button',
+        type ? 'el-button--' + type : '',
+        size ? 'el-button--' + size : '',
+        { 'is-loading': loading, 'is-disabled': disabled || loading }
+      ]"
+      :disabled="disabled || loading"
+    >
+      <slot></slot>
+    </button>
+  `
+}
+const ElAvatar = {
+  name: 'ElAvatar',
+  props: ['size', 'src', 'shape'],
+  template: '<span class="el-avatar"><slot></slot></span>'
+}
+const ElIcon = {
+  name: 'ElIcon',
+  template: '<span class="el-icon"><slot></slot></span>'
+}
+const ElInput = {
+  name: 'ElInput',
+  props: ['modelValue', 'type', 'placeholder', 'rows', 'maxlength', 'showWordLimit', 'show-word-limit', 'resize'],
+  emits: ['update:modelValue', 'focus', 'blur'],
+  inheritAttrs: false,
+  template: `
+    <div class="el-input" :class="{ 'el-textarea': type === 'textarea' }">
+      <textarea
+        v-if="type === 'textarea'"
+        class="el-textarea__inner"
+        :placeholder="placeholder"
+        :rows="rows"
+        :maxlength="maxlength"
+        :value="modelValue"
+        @input="$emit('update:modelValue', $event.target.value)"
+        @focus="$emit('focus')"
+        @blur="$emit('blur')"
+      ></textarea>
+      <input
+        v-else
+        class="el-input__inner"
+        :placeholder="placeholder"
+        :value="modelValue"
+        @input="$emit('update:modelValue', $event.target.value)"
+        @focus="$emit('focus')"
+        @blur="$emit('blur')"
+      />
+      <div v-if="showWordLimit || $attrs['show-word-limit'] !== undefined || $attrs['showWordLimit'] !== undefined" class="el-input__count">
+        <span class="el-input__count-inner">{{ (modelValue || '').length }} / {{ maxlength || '无限制' }}</span>
+      </div>
+    </div>
+  `
+}
+config.global.components = { ElButton, ElAvatar, ElIcon, ElInput }
 
 // 忽略 Vue Router 警告
 config.global.config.warnHandler = (msg, instance, trace) => {
