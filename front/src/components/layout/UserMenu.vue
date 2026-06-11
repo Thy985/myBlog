@@ -91,7 +91,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useAvatar } from '@/composables/useAvatar'
 
 const props = defineProps<{
