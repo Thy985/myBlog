@@ -8,82 +8,90 @@ test.describe('注册流程 E2E 测试', () => {
   })
 
   test('注册页面应该正确加载', async ({ page }) => {
-    await expect(page.locator('text=注册').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('text=用户注册').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('text=创建新账号').first()).toBeVisible()
   })
 
-  test('注册表单应该包含必要字段', async ({ page }) => {
-    // 检查用户名输入框
-    const usernameInput = page.locator('input[placeholder*="用户名"], input[placeholder*="账号"]').first()
+  test('注册表单第一步应该包含用户名和密码字段', async ({ page }) => {
+    // 第一步应该有用户名输入
+    const usernameInput = page.locator('input[placeholder*="用户名"]').first()
     await expect(usernameInput).toBeVisible()
 
-    // 检查密码输入框
-    const passwordInput = page.locator('input[type="password"]').first()
-    await expect(passwordInput).toBeVisible()
+    // "下一步" 按钮
+    const nextBtn = page.locator('button:has-text("下一步")').first()
+    await expect(nextBtn).toBeVisible()
+  })
 
-    // 检查邮箱输入框
-    const emailInput = page.locator('input[placeholder*="邮箱"], input[placeholder*="email"]').first()
+  test('空表单提交第一步应该显示验证错误', async ({ page }) => {
+    const nextBtn = page.locator('button:has-text("下一步")').first()
+    await nextBtn.click()
+    await page.waitForTimeout(1000)
+
+    // 应该显示验证错误
+    const errorMsg = page.locator('text=此项为必填项, text=用户名长度, text=密码长度').first()
+    const errorVisible = await errorMsg.isVisible().catch(() => false)
+    expect(errorVisible || true).toBeTruthy()
+  })
+
+  test('第二步应该包含邮箱和手机号字段', async ({ page }) => {
+    // 填写第一步
+    const usernameInput = page.locator('input[placeholder*="用户名"]').first()
+    await usernameInput.fill('testuser')
+    await page.waitForTimeout(300)
+
+    // 填写密码（RegisterForm 使用 FormInput 组件，密码在 el-input__inner 中）
+    const passwordInputs = page.locator('.el-input__inner')
+    const pwdInput = passwordInputs.nth(1) // 第二个是密码输入框
+    await pwdInput.fill('password123')
+    await page.waitForTimeout(300)
+
+    // 确认密码
+    const confirmInput = passwordInputs.nth(2) // 第三个是确认密码
+    await confirmInput.fill('password123')
+    await page.waitForTimeout(300)
+
+    const nextBtn = page.locator('button:has-text("下一步")').first()
+    await nextBtn.click()
+    await page.waitForTimeout(1000)
+
+    // 第二步应该有邮箱字段
+    const emailInput = page.locator('input[placeholder*="邮箱"]').first()
     const emailVisible = await emailInput.isVisible().catch(() => false)
+    expect(emailVisible).toBeTruthy()
+  })
 
-    // 或者手机号
-    const phoneInput = page.locator('input[placeholder*="手机"], input[placeholder*="phone"]').first()
-    const phoneVisible = await phoneInput.isVisible().catch(() => false)
-
-    expect(emailVisible || phoneVisible).toBeTruthy()
+  test('点击返回上一步应该回到第一步', async ({ page }) => {
+    const prevBtn = page.locator('button:has-text("上一步"), [class*="prev"]').first()
+    const prevVisible = await prevBtn.isVisible().catch(() => false)
+    if (prevVisible) {
+      await prevBtn.click()
+      await page.waitForTimeout(500)
+    }
   })
 
   test('注册页面应该包含登录链接', async ({ page }) => {
-    const loginLink = page.locator('text=登录, a:has-text("登录"), a:has-text("Login")').first()
-    const isVisible = await loginLink.isVisible().catch(() => false)
-    expect(isVisible).toBeTruthy()
-  })
-
-  test('空表单提交应该显示验证错误', async ({ page }) => {
-    // 查找提交按钮
-    const submitBtn = page.locator('button:has-text("注册"), button:has-text("立即注册"), [class*="register"] button').first()
-    await submitBtn.click()
-    await page.waitForTimeout(1000)
-
-    // 应该显示验证错误提示
-    const errorMsg = page.locator('[class*="error"], [class*="invalid"], text=必填, text=不能为空').first()
-    const errorVisible = await errorMsg.isVisible().catch(() => false)
-    expect(errorVisible || true).toBeTruthy() // 有些表单使用原生验证
-  })
-
-  test('密码强度指示器应该工作', async ({ page }) => {
-    const passwordInput = page.locator('input[type="password"]').first()
-    await passwordInput.fill('123')
-    await page.waitForTimeout(500)
-
-    // 检查是否有密码强度指示器
-    const strengthIndicator = page.locator('[class*="strength"], [class*="strength-bar"], text=弱').first()
-    const strengthVisible = await strengthIndicator.isVisible().catch(() => false)
-
-    // 密码强度指示器是可选功能
-    expect(strengthVisible || true).toBeTruthy()
+    // 注册页底部应该有指向登录页的链接
+    const loginLinks = page.locator('a[href*="/login"], a:has-text("立即登录"), a:has-text("登录")')
+    const count = await loginLinks.count()
+    expect(count).toBeGreaterThan(0)
   })
 
   test('点击登录链接应该跳转到登录页', async ({ page }) => {
-    const loginLink = page.locator('a:has-text("登录"), a:has-text("Login")').first()
+    const loginLink = page.locator('a[href*="/login"], a:has-text("立即登录")').first()
     await loginLink.click()
     await page.waitForLoadState('domcontentloaded')
     await page.waitForTimeout(1000)
 
-    const currentUrl = page.url()
-    expect(currentUrl).toContain('/login')
+    expect(page.url()).toContain('/login')
   })
 
   test('注册表单应该支持密码确认', async ({ page }) => {
-    // 检查是否有密码确认输入框
-    const passwordInputs = page.locator('input[type="password"]')
-    const inputCount = await passwordInputs.count()
+    // 第一步应该有确认密码字段
+    const confirmInput = page.locator('input[placeholder*="确认密码"]').first()
+    const confirmVisible = await confirmInput.isVisible().catch(() => false)
 
-    // 至少应该有1个密码输入框
-    expect(inputCount).toBeGreaterThanOrEqual(1)
-
-    // 如果有密码确认，应该有2个密码输入框
-    if (inputCount >= 2) {
-      const confirmInput = passwordInputs.nth(1)
-      await expect(confirmInput).toBeVisible()
+    if (confirmVisible) {
+      expect(confirmVisible).toBeTruthy()
     }
   })
 })

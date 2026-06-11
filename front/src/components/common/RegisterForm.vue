@@ -153,7 +153,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, computed, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { sendVerificationCode } from '@/api/auth'

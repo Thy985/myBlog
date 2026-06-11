@@ -105,15 +105,23 @@ test.describe('导航功能 E2E 测试', () => {
     await page.waitForTimeout(2000)
 
     const nav = page.locator('nav, header[class*="nav"], [class*="navbar"]').first()
-    const firstLink = nav.locator('a').first()
-    const linkHref = await firstLink.getAttribute('href').catch(() => '')
+    // 查找非首页的导航链接（排除 href="/" 和 "#"）
+    const navLinks = nav.locator('a')
+    const count = await navLinks.count()
 
-    if (linkHref && linkHref !== '#') {
-      await firstLink.click()
-      await page.waitForLoadState('domcontentloaded')
-      await page.waitForTimeout(2000)
+    let clicked = false
+    for (let i = 0; i < count && !clicked; i++) {
+      const link = navLinks.nth(i)
+      const href = await link.getAttribute('href').catch(() => '')
+      if (href && href !== '/' && href !== '#' && !href.startsWith('#')) {
+        await link.click()
+        await page.waitForLoadState('domcontentloaded')
+        await page.waitForTimeout(2000)
+        clicked = true
+      }
+    }
 
-      // 页面应该发生了跳转
+    if (clicked) {
       expect(page.url()).not.toBe('http://localhost:5173/')
     }
   })
