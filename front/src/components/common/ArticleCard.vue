@@ -78,7 +78,7 @@
                     <div class="author">
                         <img
                             v-if="article.authorAvatar"
-                            :src="getAuthorAvatarUrl(article.authorAvatar)"
+                            :src="getAssetUrl(article.authorAvatar)"
                             class="author-avatar-img"
                             :alt="article.authorName"
                             @error="$event.target.style.display='none'"
@@ -110,81 +110,72 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { defineProps, defineEmits, computed, ref } from 'vue'
 
-const props = defineProps({
-    article: {
-        type: Object,
-        required: true
-    }
-})
+interface ArticleCardData {
+    id: number
+    title: string
+    description?: string
+    titleImage?: string
+    thumbnail?: string
+    categoryName?: string
+    tagNames?: string[] | string
+    authorName?: string
+    authorAvatar?: string
+    readCount?: number
+    createdTime?: string
+}
 
-const emit = defineEmits([
-    'goArticleDetail',
-    'goTagArticleListPage',
-    'goCategoryArticleListPage'
-])
+const props = defineProps<{
+    article: ArticleCardData
+}>()
 
-const imageRef = ref(null)
+const emit = defineEmits<{
+    (e: 'goArticleDetail', articleId: number): void
+    (e: 'goTagArticleListPage', tagId: null, tagName: string): void
+    (e: 'goCategoryArticleListPage', categoryId: null, categoryName: string): void
+}>()
+
+const imageRef = ref<HTMLImageElement | null>(null)
 const imageLoaded = ref(false)
 const isHovered = ref(false)
 
 const fallbackImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450%3E%3Crect fill="%231e293b" width="800" height="450"/%3E%3C/svg%3E'
 
-// 获取完整的图片URL，处理相对路径
-const getImageUrl = (imagePath) => {
-    if (!imagePath) {return null}
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-        return imagePath
-    }
-    if (imagePath.startsWith('/')) {
-        // 相对路径需要拼接后端地址
-        return `http://localhost:8080${imagePath}`
-    }
-    return `http://localhost:8080/${imagePath}`
+// 使用 Vite 环境变量获取 API 基础地址
+const getApiBaseUrl = () => {
+    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 }
 
-const getPlaceholderImage = () => {
-    if (!props.article.id) {return fallbackImage}
+// 获取完整的资源 URL（图片等），处理相对路径
+const getAssetUrl = (path: string | null | undefined): string | null => {
+    if (!path) return null
+    if (path.startsWith('http://') || path.startsWith('https://')) return path
+    return `${getApiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`
+}
+
+const getPlaceholderImage = (): string => {
+    if (!props.article.id) return fallbackImage
     return `https://picsum.photos/seed/${props.article.id}/800/450`
 }
 
-// 主图URL优先使用titleImage，否则用thumbnail，都没有则用placeholder
+// 主图 URL 优先使用 titleImage，否则用 thumbnail
 const displayImage = computed(() => {
     const url = props.article.titleImage || props.article.thumbnail
-    return url ? getImageUrl(url) : null
+    return url ? getAssetUrl(url) : null
 })
-
-const _getTitleInitial = () => {
-    const title = props.article.title || ''
-    return title.charAt(0).toUpperCase() || '?'
-}
 
 const authorInitial = computed(() => {
     const name = props.article.authorName || '匿名'
     return name.charAt(0).toUpperCase()
 })
 
-// 获取作者头像URL
-const getAuthorAvatarUrl = (avatar) => {
-    if (!avatar) { return null }
-    if (avatar.startsWith('http://') || avatar.startsWith('https://')) { return avatar }
-    // 处理 /uploads/ 和 /api/file/ 开头的路径
-    if (avatar.startsWith('/uploads/') || avatar.startsWith('/api/file/')) {
-        return `http://localhost:8080${avatar}`
-    }
-    if (avatar.startsWith('/')) {
-        return `http://localhost:8080${avatar}`
-    }
-    return `http://localhost:8080/${avatar}`
-}
-
-const handleImageError = (e) => {
-    // 图片加载失败时使用占位图
+const handleImageError = (e: Event) => {
+    const target = e.target as HTMLImageElement
     const placeholder = getPlaceholderImage()
-    if (e.target.src !== placeholder) {
-        e.target.src = placeholder
+    if (target.src !== placeholder) {
+        target.src = placeholder
     }
     imageLoaded.value = true
 }
@@ -197,7 +188,7 @@ const handleMouseLeave = () => {
     isHovered.value = false
 }
 
-const displayTags = computed(() => {
+const displayTags = computed((): string[] => {
     let tags = props.article.tagNames
     if (typeof tags === 'string') {
         tags = tags.split(/\s+/).filter(tag => tag.trim() !== '')
@@ -207,17 +198,17 @@ const displayTags = computed(() => {
     return tags.slice(0, 3)
 })
 
-const formatDate = (dateStr) => {
-    if (!dateStr) {return ''}
+const formatDate = (dateStr?: string): string => {
+    if (!dateStr) return ''
     const date = new Date(dateStr)
     return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
 }
 
-const goArticleDetail = (articleId) => {
+const goArticleDetail = (articleId: number) => {
     emit('goArticleDetail', articleId)
 }
 
-const goTagArticleListPage = (tagId, tagName) => {
+const goTagArticleListPage = (tagId: null, tagName: string) => {
     emit('goTagArticleListPage', tagId, tagName)
 }
 </script>

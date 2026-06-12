@@ -301,7 +301,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
 import { useMainStore } from '@/stores'
 import { getUserStats, getUserActivities } from '@/api/frontend/user'
@@ -316,14 +316,15 @@ const likeCount = ref(0)
 const recentActivities = ref([])
 const loading = ref(false)
 
+const getApiBaseUrl = () => import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
 const getAvatarUrl = computed(() => {
   if (store.isLoggedIn() && store.user.avatar) {
     const avatar = store.user.avatar
     if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
       return avatar
-    } else if (avatar) {
-      return `${import.meta.env.VITE_APP_BASE_URL || 'http://localhost:8080'}/${avatar}`
     }
+    return `${getApiBaseUrl()}/${avatar}`
   }
   return new URL('@/assets/头像.jpg', import.meta.url).href
 })

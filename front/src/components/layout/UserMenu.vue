@@ -91,29 +91,20 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useAvatar } from '@/composables/useAvatar'
 
-const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    default: false
-  },
-  username: {
-    type: String,
-    default: ''
-  },
-  avatar: {
-    type: String,
-    default: ''
-  },
-  isAdmin: {
-    type: Boolean,
-    default: false
-  }
-})
+const props = defineProps<{
+  isOpen?: boolean
+  username?: string
+  avatar?: string
+  isAdmin?: boolean
+}>()
 
-defineEmits(['toggle', 'logout'])
+defineEmits<{
+  (e: 'toggle'): void
+  (e: 'logout'): void
+}>()
 
 const { avatarUrl, handleAvatarError } = useAvatar(() => props.avatar)
 </script>

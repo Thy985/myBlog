@@ -6,11 +6,13 @@ import com.xingchen.backend.dto.SendCodeDTO;
 import com.xingchen.backend.service.VerificationCodeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/verification")
 @RequiredArgsConstructor
+@Validated
 public class VerificationController {
 
     private final VerificationCodeService verificationCodeService;

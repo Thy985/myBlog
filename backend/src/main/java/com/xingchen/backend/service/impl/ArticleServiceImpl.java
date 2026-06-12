@@ -55,6 +55,12 @@ public class ArticleServiceImpl implements ArticleService {
                      .replace("_", ESCAPE_CHAR + "_");
     }
 
+    // N+1 查询修复：相关推荐 scoring 常量
+    private static final int CATEGORY_MATCH_SCORE = 10;
+    private static final int TAG_MATCH_SCORE = 5;
+    private static final int READ_NUM_DIVISOR = 100;
+    private static final int RELATED_CANDIDATE_LIMIT = 100;
+
     private final ArticleMapper articleMapper;
     private final ArticleContentMapper articleContentMapper;
     private final ArticleCategoryMapper articleCategoryMapper;
@@ -181,19 +187,10 @@ public class ArticleServiceImpl implements ArticleService {
         articleMapper.update(article);
 
         if (dto.getContent() != null) {
-            ArticleContent content = articleContentMapper.selectByArticleId(id);
-            
-            if (content == null) {
-                content = new ArticleContent();
-                content.setArticleId(id);
-                content.setContent(dto.getContent());
-                content.setWordCount(dto.getContent().length());
-                articleContentMapper.insert(content);
-            } else {
-                content.setContent(dto.getContent());
-                content.setWordCount(dto.getContent().length());
-                articleContentMapper.update(content);
-            }
+            String contentStr = dto.getContent();
+            int wordCount = contentStr.length();
+            // 使用 upsert 避免先查再插/更新的两次操作
+            articleContentMapper.upsert(id, contentStr, wordCount);
         }
         
         clearArticleCache(id);
@@ -303,17 +300,21 @@ public class ArticleServiceImpl implements ArticleService {
             }
         }
 
+        // N+1 修复：批量查询标签，避免每个标签一次 selectOneById
         List<ArticleTag> articleTags = articleTagMapper.selectByArticleId(id);
         if (articleTags != null && !articleTags.isEmpty()) {
-            List<TagVO> tagVOList = articleTags.stream().map(at -> {
-                Tag tag = tagMapper.selectOneById(at.getTagId());
-                if (tag != null) {
-                    TagVO tagVO = new TagVO();
-                    BeanUtils.copyProperties(tag, tagVO);
-                    return tagVO;
-                }
-                return null;
-            }).filter(t -> t != null).collect(java.util.stream.Collectors.toList());
+            List<Long> tagIds = articleTags.stream()
+                .map(ArticleTag::getTagId)
+                .distinct()
+                .collect(Collectors.toList());
+            List<Tag> tags = tagMapper.selectListByQuery(
+                com.mybatisflex.core.query.QueryWrapper.create().in("id", tagIds)
+            );
+            List<TagVO> tagVOList = tags.stream().map(tag -> {
+                TagVO tagVO = new TagVO();
+                BeanUtils.copyProperties(tag, tagVO);
+                return tagVO;
+            }).collect(java.util.stream.Collectors.toList());
             vo.setTags(tagVOList);
         }
 
@@ -899,11 +900,11 @@ public class ArticleServiceImpl implements ArticleService {
             ? articleTags.stream().map(ArticleTag::getTagId).collect(Collectors.toList())
             : new ArrayList<>();
 
-        // 【优化】最多取 100 篇最新文章作为候选集，避免全表扫描
+        // 【优化】最多取 RELATED_CANDIDATE_LIMIT 篇最新文章作为候选集，避免全表扫描
         // 原代码：List<Article> allArticles = articleMapper.selectPublicArticles();
         // 问题：所有已发布文章（可能数千篇）全部加载到内存，数据量大时内存暴涨
-        // 修复：限制候选集为 100 篇，兼顾相关性与性能
-        List<Article> allArticles = articleMapper.selectRecentPublicArticles(100);
+        // 修复：限制候选集，兼顾相关性与性能
+        List<Article> allArticles = articleMapper.selectRecentPublicArticles(RELATED_CANDIDATE_LIMIT);
         
         if (allArticles.isEmpty()) {
             return new ArrayList<>();
@@ -936,19 +937,19 @@ public class ArticleServiceImpl implements ArticleService {
             
             Long articleCatId = articleCategoryMap.get(article.getId());
             if (currentCategoryId != null && currentCategoryId.equals(articleCatId)) {
-                score += 10;
+                score += CATEGORY_MATCH_SCORE;
             }
             
             List<Long> articleTagIds = articleTagsMap.get(article.getId());
             if (!currentTagIds.isEmpty() && articleTagIds != null) {
                 for (Long tagId : articleTagIds) {
                     if (currentTagIds.contains(tagId)) {
-                        score += 5;
+                        score += TAG_MATCH_SCORE;
                     }
                 }
             }
             
-            score += (article.getReadNum() != null ? article.getReadNum() : 0) / 100;
+            score += (article.getReadNum() != null ? article.getReadNum() : 0) / READ_NUM_DIVISOR;
             
             scoredArticles.add(new ScoredArticle(article, score));
         }

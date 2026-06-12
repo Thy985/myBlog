@@ -71,3 +71,28 @@ export function createSanitizeDirective() {
 export function htmlFilter(value) {
   return sanitizeHtml(value)
 }
+
+/**
+ * 转义HTML特殊字符
+ * @param {string} str - 原始字符串
+ * @returns {string} - 转义后的字符串
+ */
+export function escapeHtml(str) {
+  if (!str || typeof str !== 'string') return ''
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+}
+
+/**
+ * 移除所有HTML标签
+ * @param {string} html - 原始HTML字符串
+ * @returns {string} - 纯文本字符串
+ */
+export function stripTags(html) {
+  if (!html || typeof html !== 'string') return ''
+  return html.replace(/<[^>]+>/g, '')
+}

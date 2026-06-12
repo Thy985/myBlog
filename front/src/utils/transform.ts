@@ -75,6 +75,48 @@ function toNum(val: any, fallback = 0): number {
 }
 
 // ============================================================
+// 键名转换工具
+// ============================================================
+
+/**
+ * 驼峰命名转蛇形命名
+ */
+export function camelToSnake(str: string): string {
+  if (!str || typeof str !== 'string') return str || ''
+  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
+}
+
+/**
+ * 蛇形命名转驼峰命名
+ */
+export function snakeToCamel(str: string): string {
+  if (!str || typeof str !== 'string') return str || ''
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+}
+
+/**
+ * 递归转换对象键名
+ * @param obj - 输入对象
+ * @param transform - 键名转换函数
+ * @returns 键名转换后的新对象
+ */
+export function transformKeys<T = any>(
+  obj: any,
+  transform: (key: string) => string
+): T {
+  if (obj === null || obj === undefined) return obj
+  if (typeof obj !== 'object') return obj
+  if (Array.isArray(obj)) return obj.map((item) => transformKeys(item, transform)) as T
+
+  const result: any = {}
+  for (const key of Object.keys(obj)) {
+    const newKey = transform(key)
+    result[newKey] = transformKeys(obj[key], transform)
+  }
+  return result
+}
+
+// ============================================================
 // 转换函数
 // ============================================================
 

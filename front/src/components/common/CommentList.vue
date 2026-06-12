@@ -40,7 +40,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import CommentItem from './CommentItem.vue'
@@ -48,17 +48,41 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import { getCommentList, likeComment, unlikeComment, deleteComment as deleteCommentApi } from '@/api/frontend/comment'
 
 import logger from '@/utils/logger'
-const props = defineProps({
-  articleId: {
-    type: Number,
-    required: true
-  }
-})
 
-const emit = defineEmits(['reply', 'like', 'delete', 'refresh'])
+interface CommentItemData {
+  id: number
+  articleId: number
+  userId: number
+  parentId: number
+  rootId: number
+  content: string
+  likeCount: number
+  replyCount: number
+  status: number
+  device?: string
+  createdTime?: string
+  articleTitle?: string
+  username?: string
+  nickname?: string
+  avatar?: string
+  replyTo?: string
+  replies?: CommentItemData[]
+  isLiked: boolean
+  level: number
+}
 
-// 评论数据
-const comments = ref([])
+const props = defineProps<{
+  articleId: number
+}>()
+
+const emit = defineEmits<{
+  (e: 'reply', comment: CommentItemData): void
+  (e: 'like', comment: CommentItemData): void
+  (e: 'delete', comment: CommentItemData): void
+  (e: 'refresh'): void
+}>()
+
+const comments = ref<CommentItemData[]>([])
 const total = ref(0)
 const loading = ref(false)
 const currentPage = ref(1)
@@ -71,10 +95,9 @@ const hasMore = computed(() => {
 })
 
 // 将评论树扁平化为数组，并映射后端字段到前端字段
-function flattenComments(commentList) {
-  const result = []
+function flattenComments(commentList: CommentItemData[]): CommentItemData[] {
+  const result: CommentItemData[] = []
   for (const comment of commentList) {
-    // 映射后端字段到前端期望的字段名
     const mappedComment = {
       id: comment.id,
       articleId: comment.articleId,
@@ -111,7 +134,6 @@ const loadComments = async (append = false) => {
     const response = await getCommentList(props.articleId, currentPage.value, pageSize.value)
 
     if (response.code === 200 && response.data) {
-      // 后端返回的是评论树结构，需要处理
       const commentTree = Array.isArray(response.data.list) ? response.data.list : []
 
       if (append) {
@@ -131,7 +153,7 @@ const loadComments = async (append = false) => {
 
 // 加载更多评论
 const loadMore = async () => {
-  if (!hasMore.value) {return}
+  if (!hasMore.value) return
   currentPage.value++
   await loadComments(true)
 }
@@ -142,12 +164,12 @@ const focusCommentInput = () => {
 }
 
 // 处理回复
-const handleReply = (comment) => {
+const handleReply = (comment: CommentItemData) => {
   emit('reply', comment)
 }
 
 // 处理点赞
-const handleLike = async (comment) => {
+const handleLike = async (comment: CommentItemData) => {
   const wasLiked = comment.isLiked
   const previousCount = comment.likeCount
   try {
@@ -169,17 +191,16 @@ const handleLike = async (comment) => {
 }
 
 // 处理删除
-const handleDelete = async (comment) => {
+const handleDelete = async (comment: CommentItemData) => {
   try {
     await deleteCommentApi(comment.id)
-    
-    // 从列表中移除
+
     const index = comments.value.findIndex(c => c.id === comment.id)
     if (index > -1) {
       comments.value.splice(index, 1)
       total.value--
     }
-    
+
     ElMessage.success('评论已删除')
     emit('delete', comment)
   } catch (error) {
@@ -189,7 +210,7 @@ const handleDelete = async (comment) => {
 }
 
 // 加载回复
-const handleLoadReplies = async (comment) => {
+const handleLoadReplies = async (comment: CommentItemData) => {
   try {
     const response = await getCommentList({
       articleId: props.articleId,
@@ -197,7 +218,7 @@ const handleLoadReplies = async (comment) => {
       pageSize: 100,
       parentId: comment.id
     })
-    
+
     if (response.code === 200 && response.data) {
       comment.replies = response.data.list || []
     }

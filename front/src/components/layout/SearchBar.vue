@@ -97,20 +97,20 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showMessage } from '@/utils'
 import logger from '@/utils/logger'
 
-const props = defineProps({
-  modelValue: {
-    type: String,
-    default: ''
-  }
-})
+const props = defineProps<{
+  modelValue?: string
+}>()
 
-const emit = defineEmits(['update:modelValue', 'search'])
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: string): void
+  (e: 'search', keyword: string): void
+}>()
 
 const router = useRouter()
 const keyword = ref(props.modelValue)
