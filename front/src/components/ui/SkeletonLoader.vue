@@ -65,26 +65,13 @@
   </div>
 </template>
 
-<script setup>
-defineProps({
-  type: {
-    type: String,
-    default: 'article-card',
-    validator: (val) => ['article-card', 'sidebar', 'article-detail', 'generic'].includes(val)
-  },
-  count: {
-    type: Number,
-    default: 4
-  },
-  text: {
-    type: String,
-    default: '加载中...'
-  },
-  compact: {
-    type: Boolean,
-    default: false
-  }
-})
+<script setup lang="ts">
+defineProps<{
+  type?: 'article-card' | 'sidebar' | 'article-detail' | 'generic'
+  count?: number
+  text?: string
+  compact?: boolean
+}>()
 </script>
 
 <style scoped>

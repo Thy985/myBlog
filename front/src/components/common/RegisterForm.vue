@@ -153,21 +153,21 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, computed, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { sendVerificationCode } from '@/api/auth'
 import logger from '@/utils/logger'
 import PasswordStrengthIndicator from '@/components/common/PasswordStrengthIndicator.vue'
 
-defineProps({
-  isLoading: {
-    type: Boolean,
-    default: false
-  }
-})
+defineProps<{
+  isLoading?: boolean
+}>()
 
-const emit = defineEmits(['submit', 'login'])
+const emit = defineEmits<{
+  (e: 'submit'): void
+  (e: 'login'): void
+}>()
 
 const formRef = ref(null)
 const currentStep = ref(1)

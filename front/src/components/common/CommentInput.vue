@@ -74,43 +74,26 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import logger from '@/utils/logger'
-const props = defineProps({
-  placeholder: {
-    type: String,
-    default: '说点什么吧...'
-  },
-  rows: {
-    type: Number,
-    default: 3
-  },
-  maxLength: {
-    type: Number,
-    default: 500
-  },
-  submitText: {
-    type: String,
-    default: '发表评论'
-  },
-  showCancel: {
-    type: Boolean,
-    default: false
-  },
-  parentId: {
-    type: Number,
-    default: 0
-  },
-  rootId: {
-    type: Number,
-    default: 0
-  }
-})
 
-const emit = defineEmits(['submit', 'cancel'])
+const props = defineProps<{
+  placeholder?: string
+  rows?: number
+  maxLength?: number
+  submitText?: string
+  showCancel?: boolean
+  parentId?: number
+  rootId?: number
+}>()
+
+const emit = defineEmits<{
+  (e: 'submit', content: string): void
+  (e: 'cancel'): void
+}>()
 
 // 状态
 const content = ref('')
@@ -145,7 +128,7 @@ const handleBlur = () => {
 }
 
 // 插入表情
-const insertEmoji = (emoji) => {
+const insertEmoji = (emoji: string) => {
   content.value += emoji
   showEmojiPicker.value = false
 }

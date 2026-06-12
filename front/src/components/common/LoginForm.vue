@@ -87,25 +87,22 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useValidationRules } from '@/composables/useValidation'
 import LoginCaptcha from './LoginCaptcha.vue'
 
 const { account, password, captcha } = useValidationRules()
 
-defineProps({
-  isLoading: {
-    type: Boolean,
-    default: false
-  }
-})
+defineProps<{
+  isLoading?: boolean
+}>()
 
-const emit = defineEmits([
-  'submit',
-  'forgot-password',
-  'register'
-])
+const emit = defineEmits<{
+  (e: 'submit'): void
+  (e: 'forgot-password'): void
+  (e: 'register'): void
+}>()
 
 const formRef = ref(null)
 const captchaRef = ref(null)

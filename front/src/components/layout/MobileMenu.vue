@@ -147,7 +147,7 @@
   </Transition>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showMessage, showModel } from '@/utils'
@@ -163,18 +163,16 @@ import {
   UserPlusIcon
 } from '@heroicons/vue/24/outline'
 
-const props = defineProps({
-  modelValue: {
-    type: String,
-    default: ''
-  },
-  isOpen: {
-    type: Boolean,
-    default: false
-  }
-})
+const props = defineProps<{
+  modelValue?: string
+  isOpen?: boolean
+}>()
 
-const emit = defineEmits(['update:modelValue', 'search', 'close'])
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: string): void
+  (e: 'search', keyword: string): void
+  (e: 'close'): void
+}>()
 
 const router = useRouter()
 const authStore = useAuthStore()

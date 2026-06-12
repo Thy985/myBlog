@@ -31,6 +31,10 @@ import java.util.*;
 @Slf4j
 public class UserServiceImpl implements UserService {
 
+    // 密码强度常量
+    private static final int MIN_PASSWORD_LENGTH = 6;
+    private static final int MAX_PASSWORD_LENGTH = 32;
+
     private final UserMapper userMapper;
     private final UserRoleMapper userRoleMapper;
     private final LoginHistoryMapper loginHistoryMapper;
@@ -151,6 +155,9 @@ public class UserServiceImpl implements UserService {
                 throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
             }
         }
+
+        // 密码强度校验
+        validatePassword(dto.getPassword());
 
         User user = new User();
         user.setUsername(dto.getUsername());
@@ -285,5 +292,17 @@ public class UserServiceImpl implements UserService {
             activities.add(activity);
         }
         return activities;
+    }
+
+    /**
+     * 密码强度校验
+     */
+    private void validatePassword(String password) {
+        if (password == null || password.length() < MIN_PASSWORD_LENGTH) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度不能少于 " + MIN_PASSWORD_LENGTH + " 个字符");
+        }
+        if (password.length() > MAX_PASSWORD_LENGTH) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度不能超过 " + MAX_PASSWORD_LENGTH + " 个字符");
+        }
     }
 }

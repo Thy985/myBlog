@@ -22,33 +22,16 @@
   </span>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps({
-  variant: {
-    type: String,
-    default: 'primary',
-    validator: (v) => ['primary', 'secondary', 'success', 'warning', 'error', 'accent'].includes(v)
-  },
-  size: {
-    type: String,
-    default: 'md',
-    validator: (v) => ['sm', 'md', 'lg'].includes(v)
-  },
-  glow: {
-    type: Boolean,
-    default: false
-  },
-  dot: {
-    type: Boolean,
-    default: false
-  },
-  className: {
-    type: String,
-    default: ''
-  }
-})
+const props = defineProps<{
+  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'accent'
+  size?: 'sm' | 'md' | 'lg'
+  glow?: boolean
+  dot?: boolean
+  className?: string
+}>()
 
 const sizeClass = computed(() => {
   return {

@@ -23,13 +23,6 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'msedge',
-      use: {
-        ...devices['Desktop Edge'],
-        executablePath: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
-      }
-    },
-    {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] }
     }
